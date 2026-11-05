@@ -33,7 +33,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
   return (
     <>
       <p className="no-print">
-        <a href="#/">← ภาพรวม</a>
+        <a href="#/lecturers">← รายชื่ออาจารย์</a>
       </p>
       <h1 className="person-name">
         {p.nameTh || p.nameEn} <span className="muted">({p.nameEn})</span>

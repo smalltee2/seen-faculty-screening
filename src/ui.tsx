@@ -9,6 +9,16 @@ export const STATUS_LABEL: Record<Status, { th: string; sym: string }> = {
   needs_review: { th: 'รอตรวจสอบ', sym: '?' },
 }
 
+/** Short role names for compact views; full names live in ROLES. */
+export const ROLE_SHORT: Record<string, string> = {
+  program: 'อาจารย์ประจำหลักสูตร',
+  responsible: 'ผู้รับผิดชอบหลักสูตร',
+  advisor: 'ที่ปรึกษาวิทยานิพนธ์หลัก',
+  examiner: 'ผู้สอบวิทยานิพนธ์ (ภายใน)',
+  teacher: 'อาจารย์ผู้สอน',
+}
+export const roleShort = (id: string) => ROLE_SHORT[id.split('_')[1]] ?? id
+
 export function StatusChip({ status, compact = false, title }: { status: Status; compact?: boolean; title?: string }) {
   const s = STATUS_LABEL[status]
   return (
@@ -29,12 +39,12 @@ export const TYPE_LABEL: Record<PubType, string> = {
 
 export const yearLabel = (ce: number | null) => (ce === null ? '—' : `${toBE(ce)} (${ce})`)
 
-export function Card({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Status }) {
+export function Metric({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Status }) {
   return (
-    <div className={`card ${tone ? `card-${tone}` : ''}`}>
-      <div className="card-label">{label}</div>
-      <div className="card-value">{value}</div>
-      {sub && <div className="card-sub">{sub}</div>}
+    <div className={`metric ${tone ? `metric-${tone}` : ''}`}>
+      <span className="metric-label">{label}</span>
+      <b className="metric-value">{value}</b>
+      {sub && <span className="metric-sub">{sub}</span>}
     </div>
   )
 }
@@ -44,5 +54,29 @@ export function Button({ children, onClick, kind = 'default', title }: { childre
     <button type="button" className={`btn btn-${kind}`} onClick={onClick} title={title}>
       {children}
     </button>
+  )
+}
+
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="seg seg-small" role="tablist" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.id} type="button" role="tab" aria-selected={value === o.id} onClick={() => onChange(o.id)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Horizontal stacked bar: met / needs review / not met. */
+export function StatusBar({ met, review, notMet }: { met: number; review: number; notMet: number }) {
+  const total = met + review + notMet || 1
+  return (
+    <div className="sbar" role="img" aria-label={`ผ่าน ${met}, รอตรวจสอบ ${review}, ไม่ผ่าน ${notMet}`}>
+      <span className="sbar-met" style={{ width: `${(met / total) * 100}%` }} />
+      <span className="sbar-review" style={{ width: `${(review / total) * 100}%` }} />
+      <span className="sbar-not" style={{ width: `${(notMet / total) * 100}%` }} />
+    </div>
   )
 }

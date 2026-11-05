@@ -1,17 +1,160 @@
 key	year	title	authors	venue	cites
-Example Lecturer A	2025	Example study one on PM2.5 in an example basin	A Example, B Example	Example Journal of Atmospheric Research 12 (3), 45-60, 2025	3
-Example Lecturer A	2024	Example study two on rainfall extremes	A Example	Example Environmental Letters 8, 101234, 2024	5
-Example Lecturer A	2024	Example study two on rainfall extremes	A Example	Research Square, 2024	0
-Example Lecturer A	2023	A review of example air quality models	A Example, C Example	Example Reviews in Environment 4 (1), 1-20, 2023	10
-Example Lecturer A	2022	Example full paper on haze forecasting	A Example	Proceedings of the Example Conference on Environment, 112-118, 2022	1
-Example Lecturer A	2021	Example poster on smoke transport	A Example	AGU Fall Meeting Abstracts 2021, A12B-03, 2021	0
-Example Lecturer A	2020	Example study outside the window	A Example	Example Journal of Atmospheric Research 7 (2), 10-20, 2020	12
-Example Lecturer B	2026	Example study on river temperature	B Example	Example Water Journal 3 (2), 11, 2026	0
-Example Lecturer B	2023	Example study on lake evaporation	B Example, A Example	IOP Conference Series: Earth and Environmental Science 1100 (1), 012001, 2023	2
-Example Lecturer B	2022	Example book chapter on climate	B Example	Example Book of Climate, 33-50, 2022	4
+Example Lecturer A	2015	Example study 1 on solar resource	A Example	Example Journal of Agriculture 9 (6), 597-908, 2015	32
+Example Lecturer A	2015	Example study 2 on lake evaporation	A Example	Example Climate Journal 29 (2), 247-912, 2015	35
+Example Lecturer A	2016	Example study 3 on rainfall extremes	A Example	Research Square, 2016	40
+Example Lecturer A	2016	Example study 4 on solar resource	A Example	Example Journal of Atmospheric Research 39 (10), 407-907, 2016	14
+Example Lecturer A	2017	Example study 5 on crop residue burning	A Example	Example Journal of Agriculture 10 (10), 316-972, 2017	11
+Example Lecturer A	2017	Example study 6 on rainfall extremes	A Example	Example Environmental Letters 26 (2), 561-992, 2017	4
+Example Lecturer A	2018	Example study 7 on heat index	A Example	Proceedings of the Example Conference on Environment, 110-300, 2018	20
+Example Lecturer A	2018	Example study 8 on heat index	A Example	Example Climate Journal 26 (5), 255-924, 2018	15
+Example Lecturer A	2019	Example study 9 on heat index	A Example	AGU Fall Meeting Abstracts 2019, A67B-05, 2019	38
+Example Lecturer A	2019	Example study 10 on rainfall extremes	A Example	Example Climate Journal 13 (6), 156-963, 2019	26
+Example Lecturer A	2020	Example study 11 on drought	A Example	Example Water Journal 24 (12), 359-977, 2020	31
+Example Lecturer A	2020	Example study 12 on land cover change	A Example	Proceedings of the Example Conference on Environment, 18-212, 2020	17
+Example Lecturer A	2021	Example study 13 on PM2.5 transport	A Example	Proceedings of the Example Conference on Environment, 80-283, 2021	36
+Example Lecturer A	2021	Example study 14 on solar resource	A Example	AGU Fall Meeting Abstracts 2021, A46B-07, 2021	22
+Example Lecturer A	2022	Example study 15 on river temperature	A Example	Example Climate Journal 6 (4), 787-937, 2022	8
+Example Lecturer A	2022	Example study 16 on haze forecasting	A Example	Example Climate Journal 34 (2), 171-958, 2022	25
+Example Lecturer A	2023	Example study 17 on ozone trends	A Example	AGU Fall Meeting Abstracts 2023, A45B-07, 2023	22
+Example Lecturer A	2023	A review of example solar resource methods (18)	A Example	Example Environmental Letters 17, 119781, 2023	5
+Example Lecturer A	2024	Example study 19 on lake evaporation	A Example	Example Journal of Agriculture 14 (5), 289-901, 2024	9
+Example Lecturer A	2024	Example study 20 on ozone trends	A Example	Example Journal of Agriculture 39 (6), 129-989, 2024	32
+Example Lecturer A	2025	Example study 21 on haze forecasting	A Example	Example Journal of Agriculture 28 (7), 409-951, 2025	6
+Example Lecturer A	2025	Example study 22 on heat index	A Example	Example Journal of Atmospheric Research 15 (2), 214-957, 2025	10
+Example Lecturer A	2026	Example study 23 on rainfall extremes	A Example	Example Environmental Letters 37 (2), 373-979, 2026	1
+Example Lecturer A	2026	Example study 24 on rainfall extremes	A Example	AGU Fall Meeting Abstracts 2026, A88B-07, 2026	9
+Example Lecturer B	2016	Example study 25 on rainfall extremes	B Example	AGU Fall Meeting Abstracts 2016, A69B-08, 2016	30
+Example Lecturer B	2017	Example study 26 on haze forecasting	B Example	Example Water Journal 33 (12), 166-967, 2017	1
+Example Lecturer B	2017	Example study 27 on lake evaporation	B Example	Research Square, 2017	33
+Example Lecturer B	2018	Example study 28 on PM2.5 transport	B Example	Proceedings of the Example Conference on Environment, 77-283, 2018	5
+Example Lecturer B	2019	A review of example ventilation index methods (29)	B Example	Example Environmental Letters 25, 129201, 2019	34
+Example Lecturer B	2023	Example study 30 on ozone trends	B Example	Proceedings of the Example Conference on Environment, 59-226, 2023	33
+Example Lecturer B	2023	Example study 31 on heat index	B Example	Example Journal of Atmospheric Research 4 (5), 484-934, 2023	12
+Example Lecturer B	2025	Example study 32 on ventilation index	B Example	Research Square, 2025	23
+Example Lecturer B	2026	Example study 33 on heat index	B Example	Example Environmental Letters 33 (10), 625-901, 2026	30
+Example Lecturer B	2026	Example study 34 on solar resource	B Example	Example Journal of Atmospheric Research 10 (7), 802-992, 2026	12
+Example Lecturer C	2023	Example study 35 on solar resource	C Example	Example Climate Journal 32 (7), 762-911, 2023	10
+Example Lecturer C	2024	Example study 36 on river temperature	C Example	Example Climate Journal 12 (10), 847-977, 2024	30
+Example Lecturer C	2024	Example study 37 on solar resource	C Example	Research Square, 2024	9
+Example Lecturer C	2025	Example study 38 on PM2.5 transport	C Example	Proceedings of the Example Conference on Environment, 186-284, 2025	6
+Example Lecturer D	2015	Example study 39 on lake evaporation	D Example	Example Environmental Letters 21 (9), 247-998, 2015	37
+Example Lecturer D	2016	Example study 40 on river temperature	D Example	Example Water Journal 32 (11), 598-967, 2016	26
+Example Lecturer D	2016	Example study 41 on drought	D Example	Example Environmental Letters 36 (9), 20-957, 2016	11
+Example Lecturer D	2018	Example study 42 on land cover change	D Example	Proceedings of the Example Conference on Environment, 143-208, 2018	20
+Example Lecturer D	2018	Example study 43 on solar resource	D Example	Example Journal of Agriculture 33 (2), 574-908, 2018	15
+Example Lecturer D	2019	Example study 44 on rainfall extremes	D Example	Example Journal of Agriculture 4 (2), 454-942, 2019	39
+Example Lecturer D	2019	Example study 45 on drought	D Example	Example Environmental Letters 20 (8), 521-969, 2019	30
+Example Lecturer D	2020	Example study 46 on drought	D Example	AGU Fall Meeting Abstracts 2020, A43B-09, 2020	12
+Example Lecturer D	2020	Example study 47 on heat index	D Example	Example Journal of Atmospheric Research 28 (8), 324-910, 2020	15
+Example Lecturer D	2021	Example study 48 on crop residue burning	D Example	Proceedings of the Example Conference on Environment, 199-220, 2021	23
+Example Lecturer D	2021	Example study 49 on river temperature	D Example	Example Environmental Letters 32 (4), 765-913, 2021	25
+Example Lecturer D	2022	Example study 50 on solar resource	D Example	AGU Fall Meeting Abstracts 2022, A30B-07, 2022	32
+Example Lecturer D	2023	Example study 51 on ventilation index	D Example	Example Water Journal 4 (6), 568-959, 2023	28
+Example Lecturer D	2023	Example study 52 on haze forecasting	D Example	Example Water Journal 36 (10), 303-966, 2023	4
+Example Lecturer D	2024	Example study 53 on lake evaporation	D Example	Research Square, 2024	6
+Example Lecturer D	2025	Example study 54 on river temperature	D Example	Example Environmental Letters 30 (11), 839-934, 2025	25
+Example Lecturer D	2025	Example study 55 on river temperature	D Example	Example Journal of Agriculture 39 (8), 718-942, 2025	5
+Example Lecturer D	2026	Example study 56 on river temperature	D Example	Example Journal of Atmospheric Research 20 (1), 650-912, 2026	16
+Example Lecturer E	2015	Example study 57 on rainfall extremes	E Example	Example Journal of Atmospheric Research 32 (1), 348-971, 2015	26
+Example Lecturer E	2015	Example study 58 on crop residue burning	E Example	Example Journal of Atmospheric Research 36 (12), 245-915, 2015	10
+Example Lecturer E	2016	Example study 59 on crop residue burning	E Example	Example Journal of Agriculture 16 (5), 457-965, 2016	11
+Example Lecturer E	2016	Example study 60 on crop residue burning	E Example	Example Journal of Atmospheric Research 19 (1), 16-903, 2016	32
+Example Lecturer E	2017	Example study 61 on heat index	E Example	Example Climate Journal 9 (11), 839-984, 2017	27
+Example Lecturer E	2017	Example study 62 on solar resource	E Example	Example Climate Journal 35 (5), 705-928, 2017	14
+Example Lecturer E	2018	Example study 63 on haze forecasting	E Example	Proceedings of the Example Conference on Environment, 36-252, 2018	22
+Example Lecturer E	2018	Example study 64 on PM2.5 transport	E Example	AGU Fall Meeting Abstracts 2018, A11B-02, 2018	40
+Example Lecturer E	2019	Example study 65 on river temperature	E Example	Example Climate Journal 35 (11), 289-977, 2019	15
+Example Lecturer E	2019	Example study 66 on haze forecasting	E Example	Example Climate Journal 14 (3), 276-958, 2019	0
+Example Lecturer E	2020	Example study 67 on drought	E Example	Example Journal of Atmospheric Research 22 (4), 366-924, 2020	0
+Example Lecturer E	2020	Example study 68 on ventilation index	E Example	Example Climate Journal 20 (9), 672-926, 2020	15
+Example Lecturer E	2021	Example study 69 on crop residue burning	E Example	AGU Fall Meeting Abstracts 2021, A28B-07, 2021	37
+Example Lecturer E	2021	Example study 70 on PM2.5 transport	E Example	Example Water Journal 22 (11), 239-911, 2021	37
+Example Lecturer E	2022	Example study 71 on river temperature	E Example	Example Journal of Agriculture 27 (6), 738-964, 2022	9
+Example Lecturer E	2022	Example study 72 on crop residue burning	E Example	Proceedings of the Example Conference on Environment, 165-219, 2022	2
+Example Lecturer E	2023	Example study 73 on drought	E Example	Example Journal of Agriculture 11 (9), 771-965, 2023	36
+Example Lecturer E	2023	Example study 74 on PM2.5 transport	E Example	AGU Fall Meeting Abstracts 2023, A84B-04, 2023	5
+Example Lecturer E	2024	Example study 75 on ventilation index	E Example	Research Square, 2024	24
+Example Lecturer E	2024	Example study 76 on heat index	E Example	Example Journal of Atmospheric Research 37 (11), 251-963, 2024	16
+Example Lecturer E	2025	Example study 77 on haze forecasting	E Example	Research Square, 2025	34
+Example Lecturer E	2025	Example study 78 on rainfall extremes	E Example	Example Journal of Atmospheric Research 33 (5), 829-910, 2025	16
+Example Lecturer E	2026	Example study 79 on lake evaporation	E Example	Proceedings of the Example Conference on Environment, 118-264, 2026	24
+Example Lecturer E	2026	Example study 80 on rainfall extremes	E Example	Example Water Journal 5 (10), 648-983, 2026	12
+Example Lecturer F	2015	Example study 81 on crop residue burning	F Example	Example Water Journal 39 (3), 13-962, 2015	3
+Example Lecturer F	2015	Example study 82 on heat index	F Example	Example Journal of Atmospheric Research 16 (11), 502-938, 2015	33
+Example Lecturer F	2016	Example study 83 on rainfall extremes	F Example	Research Square, 2016	35
+Example Lecturer F	2016	Example study 84 on lake evaporation	F Example	Example Journal of Atmospheric Research 33 (1), 297-959, 2016	4
+Example Lecturer F	2018	A review of example lake evaporation methods (85)	F Example	Example Environmental Letters 16, 109779, 2018	37
+Example Lecturer F	2018	Example study 86 on rainfall extremes	F Example	Example Journal of Agriculture 19 (6), 136-978, 2018	40
+Example Lecturer F	2019	Example study 87 on haze forecasting	F Example	Example Climate Journal 34 (7), 26-921, 2019	0
+Example Lecturer F	2020	Example study 88 on ozone trends	F Example	Example Environmental Letters 29 (6), 386-941, 2020	7
+Example Lecturer F	2021	Example study 89 on ventilation index	F Example	AGU Fall Meeting Abstracts 2021, A25B-04, 2021	0
+Example Lecturer F	2022	Example study 90 on ventilation index	F Example	Example Climate Journal 40 (2), 370-955, 2022	17
+Example Lecturer F	2023	Example study 91 on PM2.5 transport	F Example	AGU Fall Meeting Abstracts 2023, A46B-03, 2023	15
+Example Lecturer F	2024	Example study 92 on ventilation index	F Example	Example Water Journal 30 (1), 832-998, 2024	40
+Example Lecturer F	2025	Example study 93 on drought	F Example	Example Journal of Atmospheric Research 6 (12), 421-958, 2025	39
+Example Lecturer F	2026	Example study 94 on crop residue burning	F Example	Example Journal of Agriculture 11 (3), 484-954, 2026	21
+Example Lecturer G	2015	Example study 95 on haze forecasting	G Example	Research Square, 2015	16
+Example Lecturer G	2015	Example study 96 on ozone trends	G Example	Example Water Journal 33 (9), 685-951, 2015	7
+Example Lecturer G	2016	Example study 97 on lake evaporation	G Example	Example Climate Journal 38 (4), 464-943, 2016	28
+Example Lecturer G	2016	Example study 98 on ozone trends	G Example	Example Environmental Letters 18 (2), 179-944, 2016	35
+Example Lecturer G	2017	Example study 99 on crop residue burning	G Example	AGU Fall Meeting Abstracts 2017, A35B-01, 2017	26
+Example Lecturer G	2017	Example study 100 on ozone trends	G Example	Example Journal of Agriculture 16 (7), 277-944, 2017	3
+Example Lecturer G	2019	Example study 101 on drought	G Example	Example Environmental Letters 8 (5), 255-950, 2019	25
+Example Lecturer G	2021	Example study 102 on PM2.5 transport	G Example	Example Climate Journal 33 (10), 502-901, 2021	4
+Example Lecturer G	2022	Example study 103 on drought	G Example	AGU Fall Meeting Abstracts 2022, A67B-04, 2022	6
+Example Lecturer G	2023	Example study 104 on solar resource	G Example	Example Climate Journal 8 (9), 796-906, 2023	0
+Example Lecturer G	2023	Example study 105 on river temperature	G Example	Example Journal of Atmospheric Research 22 (3), 642-933, 2023	33
+Example Lecturer G	2025	Example study 106 on drought	G Example	Research Square, 2025	12
+Example Lecturer G	2025	Example study 107 on ozone trends	G Example	Example Journal of Agriculture 3 (1), 551-939, 2025	29
+Example Lecturer G	2026	Example study 108 on lake evaporation	G Example	Example Environmental Letters 38 (4), 30-953, 2026	19
+Example Lecturer G	2026	Example study 109 on PM2.5 transport	G Example	Example Climate Journal 29 (2), 264-930, 2026	27
+Example Lecturer H	2018	Example study 110 on PM2.5 transport	H Example	Proceedings of the Example Conference on Environment, 184-254, 2018	23
+Example Lecturer H	2019	Example study 111 on crop residue burning	H Example	Proceedings of the Example Conference on Environment, 130-209, 2019	13
+Example Lecturer H	2020	Example study 112 on lake evaporation	H Example	Example Environmental Letters 19 (5), 112-980, 2020	31
+Example Lecturer H	2023	Example study 113 on ozone trends	H Example	Example Journal of Atmospheric Research 12 (7), 54-991, 2023	3
+Example Lecturer H	2024	A review of example haze forecasting methods (114)	H Example	Example Environmental Letters 10, 110402, 2024	10
+Example Lecturer H	2024	Example study 115 on ventilation index	H Example	Example Journal of Agriculture 32 (1), 320-986, 2024	24
+Example Lecturer H	2026	Example study 116 on rainfall extremes	H Example	Example Water Journal 29 (2), 575-998, 2026	13
+Example Lecturer H	2026	Example study 117 on ozone trends	H Example	Example Water Journal 30 (2), 51-991, 2026	30
+Example Lecturer I	2015	Example study 118 on heat index	I Example	Example Water Journal 33 (1), 647-953, 2015	15
+Example Lecturer I	2015	Example study 119 on solar resource	I Example	Proceedings of the Example Conference on Environment, 11-249, 2015	2
+Example Lecturer I	2016	Example study 120 on PM2.5 transport	I Example	Example Journal of Atmospheric Research 24 (6), 279-943, 2016	39
+Example Lecturer I	2016	Example study 121 on PM2.5 transport	I Example	Example Water Journal 20 (5), 4-993, 2016	38
+Example Lecturer I	2017	Example study 122 on rainfall extremes	I Example	Example Environmental Letters 9 (8), 733-960, 2017	24
+Example Lecturer I	2017	A review of example crop residue burning methods (123)	I Example	Example Environmental Letters 34, 117394, 2017	31
+Example Lecturer I	2018	Example study 124 on haze forecasting	I Example	Example Environmental Letters 18 (6), 882-941, 2018	29
+Example Lecturer I	2018	Example study 125 on ventilation index	I Example	Proceedings of the Example Conference on Environment, 153-211, 2018	32
+Example Lecturer I	2019	Example study 126 on lake evaporation	I Example	Example Journal of Atmospheric Research 33 (9), 558-942, 2019	10
+Example Lecturer I	2019	A review of example ozone trends methods (127)	I Example	Example Environmental Letters 7, 134719, 2019	39
+Example Lecturer I	2020	Example study 128 on heat index	I Example	Research Square, 2020	28
+Example Lecturer I	2020	Example study 129 on river temperature	I Example	Example Climate Journal 32 (10), 691-931, 2020	34
+Example Lecturer I	2021	Example study 130 on rainfall extremes	I Example	Proceedings of the Example Conference on Environment, 76-238, 2021	17
+Example Lecturer I	2021	Example study 131 on land cover change	I Example	Example Water Journal 19 (4), 450-932, 2021	11
+Example Lecturer I	2022	Example study 132 on land cover change	I Example	Example Journal of Atmospheric Research 28 (5), 252-965, 2022	33
+Example Lecturer I	2022	Example study 133 on lake evaporation	I Example	Example Journal of Atmospheric Research 32 (1), 105-901, 2022	30
+Example Lecturer I	2023	A review of example heat index methods (134)	I Example	Example Environmental Letters 5, 138492, 2023	14
+Example Lecturer I	2023	Example study 135 on rainfall extremes	I Example	Example Journal of Agriculture 40 (4), 77-948, 2023	32
+Example Lecturer I	2024	Example study 136 on crop residue burning	I Example	Proceedings of the Example Conference on Environment, 171-201, 2024	6
+Example Lecturer I	2024	Example study 137 on solar resource	I Example	Example Journal of Agriculture 25 (4), 39-948, 2024	21
+Example Lecturer I	2025	Example study 138 on crop residue burning	I Example	Example Environmental Letters 3 (6), 419-987, 2025	23
+Example Lecturer I	2025	Example study 139 on river temperature	I Example	Example Journal of Atmospheric Research 16 (1), 815-964, 2025	35
+Example Lecturer I	2026	Example study 140 on ozone trends	I Example	Example Environmental Letters 37 (2), 669-921, 2026	25
+Example Lecturer I	2026	Example study 141 on haze forecasting	I Example	Example Water Journal 22 (7), 53-940, 2026	36
+Example Lecturer J	2016	Example study 142 on ventilation index	J Example	Example Climate Journal 28 (4), 7-956, 2016	10
+Example Lecturer J	2019	Example study 143 on PM2.5 transport	J Example	Example Environmental Letters 28 (2), 587-980, 2019	23
+Example Lecturer J	2020	Example study 144 on ventilation index	J Example	Example Journal of Agriculture 13 (2), 112-950, 2020	31
+Example Lecturer J	2023	Example study 145 on heat index	J Example	Example Journal of Agriculture 27 (2), 730-980, 2023	10
+Example Lecturer J	2026	Example study 146 on land cover change	J Example	Example Climate Journal 36 (3), 393-946, 2026	7
+Example Lecturer K	2015	Example study 147 on lake evaporation	K Example	Example Journal of Agriculture 5 (11), 859-942, 2015	7
+Example Lecturer K	2019	Example study 148 on ventilation index	K Example	Example Climate Journal 14 (1), 4-980, 2019	31
+Example Lecturer K	2023	Example study 149 on ventilation index	K Example	Example Journal of Atmospheric Research 31 (9), 523-985, 2023	2
+Example Lecturer K	2024	Example study 150 on haze forecasting	K Example	Example Journal of Agriculture 8 (1), 771-965, 2024	24
+Example Lecturer K	2024	Example study 151 on solar resource	K Example	Research Square, 2024	8
+Example Lecturer K	2025	Example study 152 on land cover change	K Example	Proceedings of the Example Conference on Environment, 29-225, 2025	8
+Example Lecturer K	2025	Example study 153 on heat index	K Example	Example Environmental Letters 17 (2), 854-945, 2025	39
+Example Lecturer K	2026	Example study 154 on land cover change	K Example	Example Climate Journal 12 (5), 515-962, 2026	13
 Example Lecturer B	2022	Example thesis	B Example	Example University, 2022	0
-Example Lecturer C	2023	Example dissertation chapter paper	C Example	Example Journal of Climate Data 2 (1), 5-15, 2023	1
-Example Lecturer C	2025	Example first post-graduate paper	C Example	Example Journal of Climate Data 4 (2), 20-31, 2025	0
-Example Lecturer D	2025	Example study on crop residue burning	D Example	Example Journal of Agriculture 9 (4), 400-410, 2025	1
-Example Lecturer D	2024	Example perspective on burning policy	D Example	Example Policy Journal 2, 15-18, 2024	0
 Example Lecturer D	2023	Example study on ventilation index	D Example	Example Atmosphere Letters	0
+Example Lecturer F	2024	A machine learning perspective on example drought	F Example	Example Water Journal 9 (2), 77, 2024	3
+Example Lecturer C	2023	Example dissertation chapter paper	C Example	Example Journal of Climate Data 2 (1), 5-15, 2023	1
+Example Lecturer L	2024	Example paper from the doctoral project	L Example	Example Water Journal 11 (4), 210-220, 2024	0

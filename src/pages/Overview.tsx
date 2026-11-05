@@ -1,154 +1,138 @@
-import { useState } from 'react'
-import { LEVELS, ROLES, programmeCheck, toBE, type Level, type PersonResult, type Settings } from '../rules'
-import { downloadCsv } from '../download'
-import { Button, Card, STATUS_LABEL, StatusChip } from '../ui'
+import { LEVELS, ROLES, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
+import { LecturerOutputs, PubsPerYear, ReadinessDonut } from '../charts'
+import { Button, Metric, StatusBar, StatusChip } from '../ui'
 
-const TABS: { id: string; th: string; levels: Level[] }[] = [
-  { id: 'degree', th: 'ปริญญาโท / ปริญญาเอก (9.3, 9.4)', levels: ['ms', 'phd'] },
-  { id: 'diploma', th: 'ประกาศนียบัตรบัณฑิต (9.1, 9.2)', levels: ['gd', 'hgd'] },
-]
+const personLink = (r: PersonResult) => (
+  <a key={r.person.nameEn} href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>
+    {r.person.nameTh || r.person.nameEn}
+  </a>
+)
 
 export function Overview({ results, queueCount, settings }: { results: PersonResult[]; queueCount: number; settings: Settings }) {
-  const [tab, setTab] = useState(TABS[0])
-  const levels = LEVELS.filter((l) => tab.levels.includes(l.id))
-  const roles = ROLES.filter((r) => tab.levels.includes(r.level))
-  const checks = levels.map((l) => programmeCheck(l.id, results))
-  const sorted = [...results].sort((a, b) => a.person.nameEn.localeCompare(b.person.nameEn))
-
-  const exportMatrix = () =>
-    downloadCsv(
-      `seen-screening-${tab.id}-${settings.year}.csv`,
-      ['name_en', 'name_th', 'rank', 'degree', 'degree_year_ce', ...roles.map((r) => `${r.clause} ${r.labelEn}`)],
-      sorted.map((r) => [
-        r.person.nameEn,
-        r.person.nameTh,
-        r.person.rank,
-        r.person.degree,
-        r.person.degreeYear,
-        ...roles.map((role) => STATUS_LABEL[r.roles[role.id].status].th),
-      ]),
-    )
+  const checks = LEVELS.map((l) => programmeCheck(l.id, results))
+  const [ms, phd] = checks
+  const fullyMet = results.filter((r) => ROLES.filter((x) => x.level === 'ms' || x.level === 'phd').every((x) => r.roles[x.id].status === 'met')).length
 
   return (
     <>
       <div className="print-only print-header">
-        <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์ — {tab.th}</h1>
+        <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์</h1>
         <p>
           ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับโปสเตอร์: {settings.countPosters ? 'นับ' : 'ไม่นับ'} ·
           พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH')}
         </p>
       </div>
 
-      <div className="cards">
-        <Card label="จำนวนอาจารย์ (Lecturers)" value={results.length} />
-        <Card
-          label="รายการรอตรวจสอบ (Review queue)"
-          value={<a href="#/review">{queueCount}</a>}
-          sub="ผลงานที่จำแนกไม่แน่ชัด"
-          tone={queueCount ? 'needs_review' : undefined}
-        />
-        {checks.map((c) => (
-          <Card
-            key={c.level.id}
-            label={`หลักสูตร${c.level.th}: ผู้รับผิดชอบหลักสูตร (${c.level.clause}.2)`}
-            value={
-              <>
-                {c.met.length} <span className="card-of">/ ต้องการ ≥ 3</span>
-              </>
-            }
-            sub={
-              <>
-                <StatusChip status={c.status} />{' '}
-                {c.usedAll ? 'ไม่มีผู้ระบุ programs สำหรับระดับนี้ — นับจากอาจารย์ทุกคน' : `จากอาจารย์ที่ระบุในหลักสูตร ${c.listed} คน`}
-                {c.review.length > 0 && ` · รอตรวจสอบ ${c.review.length}`}
-                {c.metNotListed.length > 0 && ` · ผ่านแต่ไม่ได้อยู่ในหลักสูตร ${c.metNotListed.length}`}
-              </>
-            }
-            tone={c.status}
-          />
-        ))}
-      </div>
-
-      <div className="tabs no-print">
-        {TABS.map((t) => (
-          <button key={t.id} type="button" className={`tab ${t.id === tab.id ? 'active' : ''}`} onClick={() => setTab(t)}>
-            {t.th}
-          </button>
-        ))}
-      </div>
-
-      <div className="role-summary">
-        {roles.map((role) => {
-          const met = results.filter((r) => r.roles[role.id].status === 'met').length
-          const rev = results.filter((r) => r.roles[role.id].status === 'needs_review').length
-          return (
-            <div key={role.id} className="role-sum">
-              <span className="clause">{role.clause}</span>
-              <span className="role-name">{role.labelTh}</span>
-              <span className="role-count">
-                <b>{met}</b> ผ่าน{rev > 0 && <span className="muted"> · {rev} รอตรวจ</span>}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="table-head">
-        <h2>ตารางคุณสมบัติรายบุคคล</h2>
+      <div className="section-head">
+        <div>
+          <h1>ภาพรวม</h1>
+          <p className="lede">
+            อาจารย์ {results.length} คน ประเมินตามข้อ 9 ด้วยผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+          </p>
+        </div>
         <div className="actions no-print">
-          <Button onClick={exportMatrix}>ดาวน์โหลด CSV</Button>
           <Button onClick={() => window.print()} kind="primary">
             พิมพ์ / PDF
           </Button>
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="matrix">
-          <thead>
-            <tr>
-              <th rowSpan={2} className="sticky">อาจารย์ (Lecturer)</th>
-              {levels.map((l) => (
-                <th key={l.id} colSpan={roles.filter((r) => r.level === l.id).length} className="group">
-                  {l.th} ({l.clause})
-                </th>
-              ))}
-            </tr>
-            <tr>
-              {roles.map((r) => (
-                <th key={r.id} className="role-col" title={r.labelEn}>
-                  <span className="clause">{r.clause}</span>
-                  <span>{r.labelTh}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((r) => (
-              <tr key={r.person.nameEn}>
-                <td className="sticky">
-                  <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{r.person.nameTh || r.person.nameEn}</a>
-                  <div className="muted small">
-                    {r.person.rank ?? '—'} · {r.person.degree ?? 'ไม่ระบุวุฒิ'}
-                  </div>
-                </td>
-                {roles.map((role) => {
-                  const res = r.roles[role.id]
-                  return (
-                    <td key={role.id} className="cell">
-                      <StatusChip status={res.status} compact title={res.reasons.join('\n')} />
-                      {res.path === 'new_grad' && <sup title="ผ่านทางเกณฑ์อาจารย์ใหม่">ใหม่</sup>}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="metrics">
+        <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านทุกบทบาท ป.โท/เอก ${fullyMet} คน`} />
+        <Metric label="ผู้รับผิดชอบ ป.โท (9.3.2)" value={<>{ms.met.length}<small>/3</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
+        <Metric label="ผู้รับผิดชอบ ป.เอก (9.4.2)" value={<>{phd.met.length}<small>/3</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
+        <Metric label="รายการรอตรวจสอบ" value={<a href="#/review">{queueCount}</a>} sub="ผลงานที่จำแนกไม่แน่ชัด" tone={queueCount ? 'needs_review' : undefined} />
+      </div>
+
+      <div className="viz-grid">
+        <section className="panel">
+          <h3>สถานะอาจารย์ (ป.โท + ป.เอก 10 บทบาท)</h3>
+          <ReadinessDonut results={results} />
+        </section>
+        <section className="panel">
+          <h3>ผลงานต่อปี แยกตามประเภท (ทุกคนรวมกัน)</h3>
+          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
+        </section>
+      </div>
+
+      <section className="panel">
+        <h3>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน</h3>
+        <p className="note">
+          ป.โท ต้องมีผลงาน ≥ 3 เรื่อง (วิจัย ≥ 1) · ป.เอก ต้องมีงานวิจัย ≥ 3 เรื่อง · คลิกชื่อเพื่อดูรายละเอียด
+        </p>
+        <LecturerOutputs results={results} settings={settings} />
+      </section>
+
+      <h2 className="block-title">หลักสูตรผ่านเกณฑ์จำนวนอาจารย์ผู้รับผิดชอบหลักสูตรหรือไม่</h2>
+      <p className="note">หลักสูตรผ่านเมื่อมีอาจารย์ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติครบอย่างน้อย 3 คน (ข้อ 9.x.2)</p>
+      <div className="programmes">
+        {checks.filter((c) => c.level.id === 'ms' || c.level.id === 'phd' || c.listed > 0).map((c) => (
+          <article key={c.level.id} className={`panel programme programme-${c.status}`}>
+            <header>
+              <div>
+                <span className="eyebrow">ข้อ {c.level.clause}.2</span>
+                <h3>{c.level.th}</h3>
+              </div>
+              <StatusChip status={c.status} />
+            </header>
+            <p className="programme-count mono">
+              <b>{c.met.length}</b> / 3 คน
+              {c.review.length > 0 && <span className="muted"> · รอตรวจ {c.review.length}</span>}
+            </p>
+            <p className="note">
+              {c.usedAll ? 'ยังไม่มีผู้ระบุ programs ระดับนี้ใน faculty.csv — นับจากอาจารย์ทุกคน' : `จากอาจารย์ที่ระบุในหลักสูตร ${c.listed} คน`}
+            </p>
+            {c.met.length > 0 && (
+              <div className="names">
+                <span className="names-label">ผ่าน</span>
+                {c.met.map(personLink)}
+              </div>
+            )}
+            {c.review.length > 0 && (
+              <div className="names">
+                <span className="names-label">รอตรวจ</span>
+                {c.review.map(personLink)}
+              </div>
+            )}
+            {c.metNotListed.length > 0 && (
+              <div className="names">
+                <span className="names-label">ผ่านแต่ไม่อยู่ในหลักสูตร</span>
+                {c.metNotListed.map(personLink)}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <h2 className="block-title">จำนวนอาจารย์ที่ผ่านแต่ละบทบาท</h2>
+      <div className="role-levels">
+        {LEVELS.map((l) => (
+          <section key={l.id} className="panel role-level">
+            <h3>
+              {l.th} <span className="eyebrow">ข้อ {l.clause}</span>
+            </h3>
+            {ROLES.filter((r) => r.level === l.id).map((role) => {
+              const st = results.map((r) => r.roles[role.id].status)
+              const met = st.filter((s) => s === 'met').length
+              const review = st.filter((s) => s === 'needs_review').length
+              const notMet = st.length - met - review
+              return (
+                <div key={role.id} className="role-row">
+                  <span className="clause mono">{role.clause}</span>
+                  <span className="role-name">{role.labelTh}</span>
+                  <StatusBar met={met} review={review} notMet={notMet} />
+                  <span className="role-num mono">
+                    <b>{met}</b>/{st.length}
+                  </span>
+                </div>
+              )
+            })}
+          </section>
+        ))}
       </div>
       <p className="legend">
-        <StatusChip status="met" /> <StatusChip status="not_met" /> <StatusChip status="needs_review" /> · <sup>ใหม่</sup> = อาจผ่านด้วยเกณฑ์อาจารย์ใหม่วุฒิปริญญาเอก (9.x.4 / 9.x.6)
-        · ชี้ที่ช่องเพื่อดูเหตุผล หรือคลิกชื่อเพื่อดูรายละเอียด
+        <span className="dot dot-met" /> ผ่าน <span className="dot dot-review" /> รอตรวจสอบ <span className="dot dot-not" /> ไม่ผ่าน · ดูรายบุคคลที่แท็บ{' '}
+        <a href="#/lecturers">รายชื่ออาจารย์</a>
       </p>
     </>
   )
