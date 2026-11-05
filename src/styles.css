@@ -919,3 +919,9 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 .count-link { color: var(--not); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--not-mark) 45%, transparent); text-underline-offset: 3px; border-radius: 4px; padding: 0 2px; }
 .count-link b { color: var(--not); }
 .count-link:hover { background: var(--not-bg); color: var(--not); }
+
+/* Alert box for lecturers not passing / at risk, separate from the summary */
+.finding-alert { background: var(--not-bg); border-color: color-mix(in srgb, var(--not-mark) 40%, transparent); border-left-color: var(--not-mark); flex-direction: row; align-items: flex-start; gap: 14px; }
+.finding-alert .alert-icon { color: var(--not-mark); flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: color-mix(in srgb, var(--not-mark) 12%, transparent); margin-top: 1px; }
+.finding-alert .alert-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.finding-alert p { margin: 0; }

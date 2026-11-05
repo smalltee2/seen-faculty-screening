@@ -62,19 +62,33 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           อาจารย์ที่มีคุณสมบัติเป็นผู้รับผิดชอบหลักสูตรได้ ระดับปริญญาตรี <b className="mono">{ba.met.length}</b> คน (ต้องมีอย่างน้อย 5 คน) ระดับปริญญาโท{' '}
           <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอก <b className="mono">{phd.met.length}</b> คน (ต้องมีอย่างน้อย 3 คน)
         </p>
-        {failBa + failGrad > 0 && (
-          <p>
-            อาจารย์ที่ยังไม่ผ่านเกณฑ์บางหน้าที่ ระดับปริญญาตรี <Count n={failBa} filter="not_met" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
-            <Count n={failGrad} filter="not_met" scope="grad" />
-          </p>
-        )}
-        {riskBa + riskGrad > 0 && (
-          <p>
-            หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ไม่ผ่านเพิ่ม ระดับปริญญาตรี <Count n={riskBa} filter="risk" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
-            <Count n={riskGrad} filter="risk" scope="grad" />
-          </p>
-        )}
       </div>
+
+      {failBa + failGrad + riskBa + riskGrad > 0 && (
+        <div className="finding finding-alert" role="note">
+          <span className="alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path d="M12 3 2.5 20h19L12 3z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M12 9v5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              <circle cx="12" cy="17" r="1.3" fill="currentColor" />
+            </svg>
+          </span>
+          <div className="alert-body">
+            {failBa + failGrad > 0 && (
+              <p>
+                อาจารย์ที่ยังไม่ผ่านเกณฑ์บางหน้าที่ ระดับปริญญาตรี <Count n={failBa} filter="not_met" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
+                <Count n={failGrad} filter="not_met" scope="grad" />
+              </p>
+            )}
+            {riskBa + riskGrad > 0 && (
+              <p>
+                หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ไม่ผ่านเพิ่ม ระดับปริญญาตรี <Count n={riskBa} filter="risk" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
+                <Count n={riskGrad} filter="risk" scope="grad" />
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="metrics">
         <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
