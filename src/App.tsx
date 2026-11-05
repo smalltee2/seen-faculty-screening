@@ -107,10 +107,6 @@ export function App() {
               <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565</small>
             </span>
           </a>
-          <div className="updated-at" title={data.builtAt}>
-            <span className="updated-label">ข้อมูลล่าสุด</span>
-            <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
-          </div>
         </div>
         <nav className="tabsbar no-print" aria-label="หน้า">
           <div className="tabsbar-inner">
@@ -120,6 +116,10 @@ export function App() {
                 {t.count !== undefined && <span className="seg-count">{t.count}</span>}
               </a>
             ))}
+            <div className="updated-at" title={data.builtAt}>
+              <span className="updated-label">ข้อมูลล่าสุด</span>
+              <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
+            </div>
           </div>
         </nav>
       </header>
