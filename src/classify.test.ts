@@ -76,9 +76,10 @@ describe('classifyResearch', () => {
   it('marks Thai academic articles as not research', () => {
     expect(classifyResearch('บทความวิชาการ เรื่อง ฝุ่น', 'วารสาร 1 (1), 1-5').isResearch).toBe(false)
   })
-  it('sends systematic reviews and "perspective" titles to review', () => {
-    expect(classifyResearch('X: a systematic review and meta-analysis', '').uncertain).toBe(true)
-    expect(classifyResearch('A machine learning perspective on drought', '').uncertain).toBe(true)
+  it('counts systematic reviews, meta-analyses and perspectives as research (policy 2026-11-05)', () => {
+    expect(classifyResearch('X: a systematic review and meta-analysis', '')).toMatchObject({ isResearch: true, uncertain: false })
+    expect(classifyResearch('A machine learning perspective on drought', '')).toMatchObject({ isResearch: true, uncertain: false })
+    expect(classifyResearch('Trends in X', 'Critical Reviews in Environmental Science 41 (13), 1231')).toMatchObject({ isResearch: true, uncertain: false })
   })
   it('defaults to research', () => {
     expect(classifyResearch('Trends of ozone over Asia', 'ACP 1 (1), 1-2')).toMatchObject({ isResearch: true, uncertain: false })

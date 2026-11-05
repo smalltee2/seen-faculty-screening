@@ -2,7 +2,8 @@ import { programmeCheck, toBE, type PersonResult, type Settings } from '../rules
 import { LecturerOutputs, PubsPerYear, ReadinessDonut } from '../charts'
 import { Button, Metric, SHOWN_LEVELS, SHOWN_ROLES, StatusBar, StatusChip } from '../ui'
 
-export function Overview({ results, queueCount, settings }: { results: PersonResult[]; queueCount: number; settings: Settings }) {
+export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
+  const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ms, phd] = checks
   const fullyMet = results.filter((r) => SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length
@@ -35,7 +36,7 @@ export function Overview({ results, queueCount, settings }: { results: PersonRes
         <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านทุกบทบาท ป.โท/เอก ${fullyMet} คน`} />
         <Metric label="ผู้รับผิดชอบ ป.โท (9.3.2)" value={<>{ms.met.length}<small>/3</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
         <Metric label="ผู้รับผิดชอบ ป.เอก (9.4.2)" value={<>{phd.met.length}<small>/3</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
-        <Metric label="รายการรอตรวจสอบ" value={<a href="#/review">{queueCount}</a>} sub="ผลงานที่จำแนกไม่แน่ชัด" tone={queueCount ? 'needs_review' : undefined} />
+        <Metric label="ผลงานที่นับได้ใน 5 ปี" value={countedPubs} sub="นับเรื่องที่มีผู้เขียนร่วมหลายคนครั้งเดียว" />
       </div>
 
       <div className="viz-grid">
@@ -84,7 +85,7 @@ export function Overview({ results, queueCount, settings }: { results: PersonRes
         ))}
       </div>
       <p className="legend">
-        <span className="dot dot-met" /> ผ่าน <span className="dot dot-review" /> รอตรวจสอบ <span className="dot dot-not" /> ไม่ผ่าน · ดูรายบุคคลที่แท็บ{' '}
+        <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ดูรายบุคคลที่แท็บ{' '}
         <a href="#/lecturers">รายชื่ออาจารย์</a>
       </p>
     </>

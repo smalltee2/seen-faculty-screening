@@ -97,13 +97,14 @@ export interface ResearchResult {
 /** Clause 9.4 counts only research outputs (ผลงานวิจัย); review/academic articles are not. */
 export function classifyResearch(title: string, venue: string): ResearchResult {
   title = joinThai(title)
+  // Systematic reviews, meta-analyses and perspectives count as research (decision by Tum, 2026-11-05).
   if (SYSTEMATIC.test(title))
-    return { isResearch: false, reason: 'systematic review / meta-analysis — ต้องตัดสินว่าเป็นงานวิจัยหรือไม่', uncertain: true }
+    return { isResearch: true, reason: 'systematic review / meta-analysis — นับเป็นงานวิจัย', uncertain: false }
   if (NOT_RESEARCH.test(title)) return { isResearch: false, reason: 'บทความปริทัศน์/วิชาการ (review/academic article)', uncertain: false }
   if (MAYBE_NOT_RESEARCH.test(title))
-    return { isResearch: false, reason: 'ชื่อเรื่องมีคำว่า perspective/overview — อาจไม่ใช่งานวิจัย', uncertain: true }
+    return { isResearch: true, reason: 'perspective/overview — นับเป็นงานวิจัย', uncertain: false }
   if (REVIEW_VENUE.test(stripYear(venue)))
-    return { isResearch: false, reason: 'ตีพิมพ์ในวารสารประเภท Reviews', uncertain: true }
+    return { isResearch: true, reason: 'ตีพิมพ์ในวารสารประเภท Reviews — นับเป็นงานวิจัย', uncertain: false }
   return { isResearch: true, reason: 'งานวิจัย (default)', uncertain: false }
 }
 

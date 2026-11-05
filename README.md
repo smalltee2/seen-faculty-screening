@@ -119,6 +119,13 @@ Not checked automatically (the data has no field for them):
 - external examiners and co-advisors,
 - "เทียบเท่า" equivalents.
 
+### Site policy (decided by the programme, 2026-11-05)
+
+- Strict mode: the site counts only outputs it can confirm as a journal article, a full proceedings paper or a conference poster/abstract. Anything uncertain is not counted, and there is no review queue: every role shows ผ่าน or ไม่ผ่าน. To count an item the classifier is unsure of, add a line to `data/overrides.csv`.
+- Posters and abstracts from conferences count.
+- Systematic reviews, meta-analyses and perspective articles count as research (ผลงานวิจัย). Narrative reviews and editorials do not.
+- The site shows master's and doctoral levels (9.3, 9.4) only.
+
 ### Open questions in the criteria (`TODO(criteria)` in `src/rules.ts`)
 
 1. **"อาจารย์ใหม่" (9.x.4 / 9.x.6) is not defined.** It is applied here when a doctorate was completed ≤ 5 years before Y, and every result reached through it needs review.

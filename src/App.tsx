@@ -2,37 +2,34 @@ import { useEffect, useMemo, useState } from 'react'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
 import { evaluatePerson, toBE, type Settings } from './rules'
-import { reviewItems } from './review'
 import type { DataBundle } from './types'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
-import { ReviewPage } from './pages/ReviewPage'
 
 const data = raw as DataBundle
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 
-type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string } | { page: 'review' }
+type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string }
 
 function parseHash(): Route {
   const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
   if (h.startsWith('person/')) return { page: 'person', key: h.slice('person/'.length) }
   if (h === 'lecturers') return { page: 'lecturers' }
-  if (h === 'review') return { page: 'review' }
   return { page: 'overview' }
 }
 
 function loadSettings(): Settings {
   try {
     const s = JSON.parse(localStorage.getItem('seen-screening-settings') ?? 'null')
-    if (s && Number.isInteger(s.year)) return { year: s.year, countPosters: true }
+    if (s && Number.isInteger(s.year)) return { year: s.year, countPosters: true, strict: true }
   } catch {
     /* storage unavailable: use defaults */
   }
   // Posters/abstracts always count (decision by the programme, 2026-11-05).
-  return { year: CURRENT_YEAR, countPosters: true }
+  return { year: CURRENT_YEAR, countPosters: true, strict: true }
 }
 
 export function App() {
@@ -56,7 +53,6 @@ export function App() {
   }, [settings])
 
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [settings])
-  const queue = useMemo(() => reviewItems(results), [results])
 
   const pubYears = pubs.map((p) => p.year).filter((y): y is number => y !== null)
   const minYear = Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4))
@@ -67,7 +63,6 @@ export function App() {
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
     { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length },
-    { id: 'review', href: '#/review', th: 'รอตรวจสอบ', en: 'Review', count: queue.length, warn: queue.length > 0 },
   ]
 
   return (
@@ -84,7 +79,7 @@ export function App() {
             {tabs.map((t) => (
               <a key={t.id} href={t.href} aria-current={tab === t.id ? 'page' : undefined}>
                 {t.th}
-                {t.count !== undefined && <span className={`seg-count ${t.warn ? 'warn' : ''}`}>{t.count}</span>}
+                {t.count !== undefined && <span className="seg-count">{t.count}</span>}
               </a>
             ))}
           </nav>
@@ -116,10 +111,9 @@ export function App() {
         </section>
 
         <main>
-          {route.page === 'overview' && <Overview results={results} queueCount={queue.length} settings={settings} />}
+          {route.page === 'overview' && <Overview results={results} settings={settings} />}
           {route.page === 'lecturers' && <LecturersPage results={results} settings={settings} />}
           {route.page === 'person' && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
-          {route.page === 'review' && <ReviewPage items={queue} />}
         </main>
 
         <footer className="footer">

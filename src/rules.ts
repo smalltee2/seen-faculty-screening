@@ -17,6 +17,9 @@ export interface Settings {
   year: number
   /** Count posters/abstracts as outputs. Off by default: see the warning in the UI. */
   countPosters: boolean
+  /** Strict mode (the site's setting): anything that cannot be confirmed is not counted,
+   *  missing degree/rank data does not qualify, and no result is left as needs review. */
+  strict?: boolean
 }
 
 /** Degree/rank requirement of a role. */
@@ -139,7 +142,11 @@ export function evaluatePub(pub: Pub, p: Faculty, s: Settings): PubEval {
     parts.push('maybe')
     reasons.push(`ตีพิมพ์ภายใน 2 ปีก่อนจบ (${p.degreeYear}) — อาจเป็นส่วนหนึ่งของการศึกษาเพื่อรับปริญญา`)
   }
-  const eligible = minTri(...parts)
+  let eligible = minTri(...parts)
+  if (s.strict && eligible === 'maybe') {
+    eligible = 'no'
+    reasons.unshift('ไม่นับ: ยืนยันประเภทหรือเงื่อนไขไม่ได้')
+  }
   const researchSelf: Tri = pub.isResearch ? (pub.researchUncertain ? 'maybe' : 'yes') : pub.researchUncertain ? 'maybe' : 'no'
   if (researchSelf !== 'yes') reasons.push(pub.researchReason)
   return { pub, eligible, research: minTri(eligible, researchSelf), reasons }
@@ -223,7 +230,8 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
   const evals = pubs.map((pub) => evaluatePub(pub, p, s))
   const inWindow = evals.filter((e) => e.pub.year !== null && e.pub.year >= from && e.pub.year <= to)
   const counts = tally(inWindow)
-  const q = qualifies(p, role.qual)
+  const q0 = qualifies(p, role.qual)
+  const q = s.strict && q0.ok === 'maybe' ? { ok: 'no' as Tri, reason: `${q0.reason} — ไม่ผ่าน` } : q0
   const o = outputsTri(counts, role.minOutputs, role.minResearch, role.researchOnly)
 
   const need = role.researchOnly
@@ -243,7 +251,8 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
     if (ng) {
       reasons.push(ng.reason)
       if (ng.ok !== 'no') {
-        status = 'needs_review'
+        // TODO(criteria): strict mode applies the new-graduate clause as written.
+        status = s.strict ? 'met' : 'needs_review'
         path = 'new_grad'
       }
     }

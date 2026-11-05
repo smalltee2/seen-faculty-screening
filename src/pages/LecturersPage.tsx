@@ -4,7 +4,7 @@ import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
 
 type View = 'cards' | 'table'
-type Filter = 'all' | 'not_met' | 'needs_review'
+type Filter = 'all' | 'not_met'
 
 
 const STATE_KEY = 'seen-screening-lecturers'
@@ -84,7 +84,6 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
           options={[
             { id: 'all', label: 'ทั้งหมด' },
             { id: 'not_met', label: 'มีบทบาทไม่ผ่าน' },
-            { id: 'needs_review', label: 'มีรอตรวจ' },
           ]}
         />
         <Segmented
@@ -226,7 +225,7 @@ function MatrixTable({ rows, levels, roles }: { rows: PersonResult[]; levels: (t
         </table>
       </div>
       <p className="legend">
-        <StatusChip status="met" /> <StatusChip status="not_met" /> <StatusChip status="needs_review" /> · <sup>ใหม่</sup> = อาจผ่านด้วยเกณฑ์อาจารย์ใหม่วุฒิปริญญาเอก · ชี้ที่ช่องเพื่อดูเหตุผล
+        <StatusChip status="met" /> <StatusChip status="not_met" /> · <sup>ใหม่</sup> = อาจผ่านด้วยเกณฑ์อาจารย์ใหม่วุฒิปริญญาเอก · ชี้ที่ช่องเพื่อดูเหตุผล
       </p>
     </>
   )

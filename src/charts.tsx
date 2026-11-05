@@ -200,9 +200,6 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           <i className="swatch swatch-hatch" /> ผลงานอื่น (บทความวิชาการ/ปริทัศน์)
         </span>
         <span>
-          <i className="swatch swatch-maybe" /> ยังไม่แน่ใจ (รอตรวจสอบ)
-        </span>
-        <span>
           <i className="swatch swatch-rule" /> เกณฑ์ 3 เรื่อง
         </span>
       </div>
@@ -290,15 +287,13 @@ export function ReadinessDonut({ results }: { results: PersonResult[] }) {
   const groups = [
     { th: 'ผ่านครบทุกบทบาท', cls: 'd-met', n: 0 },
     { th: 'ผ่านบางบทบาท', cls: 'd-partial', n: 0 },
-    { th: 'มีบทบาทรอตรวจสอบ', cls: 'd-review', n: 0 },
     { th: 'ไม่ผ่านเลย', cls: 'd-not', n: 0 },
   ]
   for (const r of results) {
     const st = ids.map((id) => r.roles[id].status)
     if (st.every((s) => s === 'met')) groups[0].n++
-    else if (st.includes('needs_review')) groups[2].n++
     else if (st.includes('met')) groups[1].n++
-    else groups[3].n++
+    else groups[2].n++
   }
   const total = results.length || 1
   const R = 52

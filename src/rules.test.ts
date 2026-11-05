@@ -229,3 +229,31 @@ describe('programme check', () => {
     expect(c.met).toHaveLength(2)
   })
 })
+
+describe('strict mode (site setting)', () => {
+  const T: Settings = { ...S, strict: true }
+  it('an uncertain publication is not counted, so the role is not met instead of needs review', () => {
+    const r = rule_9_3_1_msProgramLecturer(person(), [...journals(2), pub({ type: 'unknown', typeUncertain: true })], T)
+    expect(r.status).toBe('not_met')
+    expect(r.counts.totalPossible).toBe(2)
+  })
+  it('an output within 2 years before the degree year is not counted', () => {
+    // master's holder, so the new-graduate clause does not apply
+    const r = rule_9_3_1_msProgramLecturer(person({ degree: 'ปริญญาโท', degreeYear: 2024 }), [...journals(2, { year: 2025 }), pub({ year: 2023 })], T)
+    expect(r.status).toBe('not_met')
+  })
+  it('missing degree data does not qualify', () => {
+    expect(rule_9_3_1_msProgramLecturer(person({ degree: null }), journals(3), T).status).toBe('not_met')
+  })
+  it('the new-graduate clause is applied as written', () => {
+    const r = rule_9_3_5_msTeacher(person({ rank: 'อาจารย์', degreeYear: 2024 }), [], T)
+    expect(r.status).toBe('met')
+    expect(r.path).toBe('new_grad')
+  })
+  it('never returns needs review', () => {
+    const p = person({ degree: null, degreeYear: 2025 })
+    const pubs = [pub({ type: 'unknown', typeUncertain: true }), pub({ researchUncertain: true, isResearch: false }), pub({ year: 2024 })]
+    const all = [rule_9_3_1_msProgramLecturer, rule_9_3_2_msResponsibleLecturer, rule_9_3_5_msTeacher, rule_9_4_1_phdProgramLecturer, rule_9_4_5_phdTeacher]
+    for (const f of all) expect(f(p, pubs, T).status).not.toBe('needs_review')
+  })
+})
