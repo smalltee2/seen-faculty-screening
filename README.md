@@ -47,15 +47,33 @@ Pushing to `main` also rebuilds the site, but without fetching. You can also sta
 
 The same work from several sources is merged by DOI or normalised title. The type from OpenAlex, Scopus or the form decides over Scholar's venue text.
 
-### Scopus key (never commit it)
+### Scopus (runs on the iMac)
 
-Save the key as a repository secret, then run the workflow once:
+Elsevier accepts the key only from the University of Phayao network. GitHub's servers get `AUTHORIZATION_ERROR`. So Scopus is fetched by a daily job on the iMac:
+
+1. Save the key in the macOS Keychain. The command asks for the key and does not show it:
+   ```bash
+   security add-generic-password -a "$USER" -s seen-scopus-api-key -w
+   ```
+2. Install the job:
+   ```bash
+   zsh scripts/install-scopus-daily.sh
+   ```
+
+What the job does:
+
+- It works in a separate clone at `~/Library/Application Support/seen-scopus/repo`, runs `fetch-sources.mjs --only=scopus` every day at 07:30, overwrites `data/scopus.tsv`, and commits and pushes only when it changed.
+- The push makes GitHub rebuild the site.
+- If the Mac is asleep at 07:30, the job runs when it wakes. If it is off the university network, nothing changes.
+- The log is `~/Library/Logs/seen-scopus.log`.
+
+To stop it:
 
 ```bash
-gh secret set SCOPUS_API_KEY --repo smalltee2/seen-faculty-screening
+launchctl bootout gui/$UID ~/Library/LaunchAgents/th.ac.up.seen.scopus-daily.plist
 ```
 
-Elsevier may accept the key only from the university network. If the daily log shows `HTTP 401/403`, ask the library for an institutional token. Until then, Scopus is skipped and the other sources still update.
+If the library issues an institutional token, save it as the `SCOPUS_INSTTOKEN` secret together with `SCOPUS_API_KEY`. GitHub Actions will then fetch Scopus too.
 
 ### Admin Google Form
 

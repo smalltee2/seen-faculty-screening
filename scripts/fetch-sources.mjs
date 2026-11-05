@@ -290,6 +290,17 @@ const faculty = (() => {
 })()
 const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sources, 'utf8')) : {}
 
-await fetchOpenAlex(faculty)
-await fetchScopus(faculty, process.env.SCOPUS_API_KEY ?? '')
-await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
+// --only=openalex|scopus|manual runs one source (the iMac job runs --only=scopus).
+const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? ''
+const run = (name) => !only || only === name
+// Elsevier refuses the key from GitHub's servers without an institutional token, so in
+// GitHub Actions Scopus is fetched only when SCOPUS_INSTTOKEN is set; otherwise the iMac
+// job (scripts/scopus-daily.sh) updates data/scopus.tsv from the university network.
+const scopusHere = !process.env.GITHUB_ACTIONS || !!process.env.SCOPUS_INSTTOKEN
+
+if (run('openalex')) await fetchOpenAlex(faculty)
+if (run('scopus')) {
+  if (scopusHere) await fetchScopus(faculty, process.env.SCOPUS_API_KEY ?? '')
+  else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
+}
+if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
