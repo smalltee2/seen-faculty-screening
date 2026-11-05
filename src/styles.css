@@ -21,6 +21,7 @@
   --band: #1d5c33;
   --on-ember: #ffffff;
   --rule: #f37225;
+  --tab-active-fg: #1d5c33;
   --band-fg: #ffffff;
   --band-muted: #cde5d3;
   --focus: #2b5fd9;
@@ -76,6 +77,7 @@
     --band: #123b21;
     --on-ember: #1f130b;
     --rule: #ff8a3d;
+    --tab-active-fg: #eef2ee;
   --band-fg: #ffffff;
     --band-muted: #b9dcc1;
     --focus: #7ea6ff;
@@ -117,6 +119,7 @@
   --gold-soft: rgba(92, 196, 110, 0.14);
   --band: #123b21;
   --rule: #ff8a3d;
+  --tab-active-fg: #eef2ee;
   --band-fg: #ffffff;
   --band-muted: #b9dcc1;
   --focus: #7ea6ff;
@@ -193,18 +196,27 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
 .brand-sub { font-size: 0.8rem; color: var(--band-muted); }
 .tabsbar { background: var(--band); }
 .tabsbar-inner {
-  max-width: 1280px; margin: 0 auto; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
-  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  max-width: 1280px; margin: 0 auto; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
 }
 .tabsbar-inner::-webkit-scrollbar { display: none; }
+/* Folder tabs: each tab is a visible button on the band; the open one is a white
+   card sitting on the orange rule, with green text. */
 .tabsbar a {
-  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
-  padding: 9px 14px 10px; color: var(--band-muted); font-weight: 500; font-size: 0.95rem;
-  border-bottom: 3px solid transparent; margin-bottom: -3px;
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 9px 16px 10px; color: var(--band-fg); font-weight: 600; font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18); border-bottom: 0;
+  border-radius: 6px 6px 0 0; outline: none;
+  transition: background-color 0.15s ease;
 }
-.tabsbar a:hover { color: var(--band-fg); text-decoration: none; }
-.tabsbar a[aria-current='page'] { color: var(--band-fg); border-bottom-color: var(--rule); font-weight: 600; }
-.tabsbar .seg-count { background: rgba(255, 255, 255, 0.14); color: var(--band-fg); }
+.tabsbar a:hover { background: rgba(255, 255, 255, 0.2); color: var(--band-fg); text-decoration: none; }
+.tabsbar a:focus-visible { box-shadow: inset 0 0 0 2px var(--rule); }
+.tabsbar a[aria-current='page'] {
+  background: var(--panel); color: var(--tab-active-fg); border-color: var(--panel); font-weight: 700;
+  box-shadow: inset 0 3px 0 var(--rule);
+}
+.tabsbar .seg-count { background: rgba(255, 255, 255, 0.2); color: var(--band-fg); }
+.tabsbar a[aria-current='page'] .seg-count { background: var(--rule); color: #ffffff; }
 
 /* Segmented control (header nav and in-page toggles) */
 .seg {
@@ -733,12 +745,12 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .brand-org { font-size: 0.95rem; }
 .brand-name { font-size: 1.55rem; line-height: 1.25; }
 .brand-sub { font-size: 0.95rem; }
-.tabsbar a { font-size: 1.08rem; padding: 8px 16px 9px; }
+.tabsbar a { font-size: 1.08rem; padding: 9px 20px 10px; }
 .tabsbar .seg-count { font-size: 0.8rem; }
 @media (max-width: 640px) {
   .brand-mark img { height: 38px; }
   .brand-name { font-size: 1.12rem; }
-  .tabsbar a { font-size: 0.98rem; padding: 7px 10px 8px; }
+  .tabsbar a { font-size: 0.98rem; padding: 8px 12px 9px; }
 }
 .dash .pie-callouts { gap: 4px; margin-top: 2px; }
 .dash .pie-icon { width: 36px; height: 36px; }
