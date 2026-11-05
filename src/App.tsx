@@ -24,12 +24,13 @@ function parseHash(): Route {
   return { page: 'overview' }
 }
 
+// The site always opens on the current year; a year picked from the menu lasts only
+// until the page is reloaded (decision by Tum, 2026-11-05).
 function loadSettings(): Settings {
   try {
-    const s = JSON.parse(localStorage.getItem('seen-screening-settings') ?? 'null')
-    if (s && Number.isInteger(s.year)) return { year: s.year, countPosters: true, strict: true }
+    localStorage.removeItem('seen-screening-settings') // year saved by older versions
   } catch {
-    /* storage unavailable: use defaults */
+    /* storage unavailable */
   }
   // Posters/abstracts always count (decision by the programme, 2026-11-05).
   return { year: CURRENT_YEAR, countPosters: true, strict: true }
@@ -47,13 +48,6 @@ export function App() {
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
-  useEffect(() => {
-    try {
-      localStorage.setItem('seen-screening-settings', JSON.stringify(settings))
-    } catch {
-      /* ignore */
-    }
-  }, [settings])
 
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [settings])
 
