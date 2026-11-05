@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { LEVELS, ROLES, evaluatePub, toBE, type PersonResult, type Settings } from '../rules'
+import { evaluatePub, toBE, type PersonResult, type Settings } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
 
 export function PersonPage({ result, settings }: { result: PersonResult | undefined; settings: Settings }) {
   const [allYears, setAllYears] = useState(false)
@@ -18,7 +18,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
     downloadCsv(
       `${p.nameEn}-roles-${settings.year}.csv`,
       ['clause', 'role_th', 'role_en', 'status', 'outputs', 'outputs_possible', 'research', 'research_possible', 'reasons'],
-      ROLES.map((role) => {
+      SHOWN_ROLES.map((role) => {
         const r = result.roles[role.id]
         return [role.clause, role.labelTh, role.labelEn, STATUS_LABEL[r.status].th, r.counts.total, r.counts.totalPossible, r.counts.research, r.counts.researchPossible, r.reasons.join(' | ')]
       }),
@@ -51,7 +51,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
         <h2>ผลตามบทบาท (ปีที่ประเมิน พ.ศ. {toBE(settings.year)})</h2>
         <div className="actions no-print"><Button onClick={exportRoles}>ดาวน์โหลด CSV</Button></div>
       </div>
-      {LEVELS.map((l) => (
+      {SHOWN_LEVELS.map((l) => (
         <div key={l.id} className="table-wrap">
           <table className="data">
             <caption>{l.th} ({l.clause})</caption>
@@ -59,7 +59,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
               <tr><th>ข้อ</th><th>บทบาท (Role)</th><th>ผล</th><th className="num">ผลงาน</th><th className="num">วิจัย</th><th>เหตุผล (Reason)</th></tr>
             </thead>
             <tbody>
-              {ROLES.filter((r) => r.level === l.id).map((role) => {
+              {SHOWN_ROLES.filter((r) => r.level === l.id).map((role) => {
                 const r = result.roles[role.id]
                 return (
                   <tr key={role.id}>

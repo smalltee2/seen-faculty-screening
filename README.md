@@ -5,7 +5,7 @@ A static dashboard that screens the lecturers of the School of Energy and Enviro
 (ราชกิจจานุเบกษา เล่ม 139 ตอนพิเศษ 212 ง, 9 กันยายน 2565, pp. 25–31;
 [full text, OPS](https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view)).
 
-It reads each lecturer's Google Scholar list and keeps journal articles and full papers in proceedings. Posters and abstracts are listed but are counted only if you switch them on. It then counts the outputs in the 5-year window and shows met, not met or needs review for every role in 9.1–9.4.
+It reads each lecturer's Google Scholar list and keeps journal articles and full papers in proceedings. Posters and abstracts are listed but are counted only if you switch them on. It then counts the outputs in the 5-year window and shows met, not met or needs review for every master's and doctoral role (9.3, 9.4). The rules engine also encodes the graduate-diploma clauses (9.1, 9.2), but the site does not show them.
 
 > The screening is automated from Google Scholar data and must be checked against the official publication records before being used in official documents.
 

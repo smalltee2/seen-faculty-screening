@@ -1,23 +1,21 @@
 import { useState } from 'react'
-import { LEVELS, ROLES, toBE, type Level, type PersonResult, type Settings, type Status } from '../rules'
+import { LEVELS, ROLES, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
 
-type LevelSet = 'degree' | 'diploma'
 type View = 'cards' | 'table'
 type Filter = 'all' | 'not_met' | 'needs_review'
 
-const LEVEL_SETS: Record<LevelSet, Level[]> = { degree: ['ms', 'phd'], diploma: ['gd', 'hgd'] }
 
 const STATE_KEY = 'seen-screening-lecturers'
-function loadState(): { levels: LevelSet; view: View } {
+function loadState(): { view: View } {
   try {
     const s = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null')
-    if (s) return { levels: s.levels === 'diploma' ? 'diploma' : 'degree', view: s.view === 'table' ? 'table' : 'cards' }
+    if (s) return { view: s.view === 'table' ? 'table' : 'cards' }
   } catch {
     /* ignore */
   }
-  return { levels: 'degree', view: 'cards' }
+  return { view: 'cards' }
 }
 
 export function LecturersPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -32,8 +30,8 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
       /* ignore */
     }
   }
-  const levels = LEVELS.filter((l) => LEVEL_SETS[state.levels].includes(l.id))
-  const roles = ROLES.filter((r) => LEVEL_SETS[state.levels].includes(r.level))
+  const levels = SHOWN_LEVELS
+  const roles = SHOWN_ROLES
   const needle = q.trim().toLowerCase()
   const shown = [...results]
     .sort((a, b) => (a.person.nameTh || a.person.nameEn).localeCompare(b.person.nameTh || b.person.nameEn, 'th'))
@@ -42,7 +40,7 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
 
   const exportCsv = () =>
     downloadCsv(
-      `seen-lecturers-${state.levels}-${settings.year}.csv`,
+      `seen-lecturers-${settings.year}.csv`,
       ['name_th', 'name_en', 'rank', 'degree', 'degree_year_ce', 'outputs_in_window', 'research_in_window', ...roles.map((r) => `${r.clause} ${r.labelEn}`)],
       shown.map((r) => [
         displayName(r.person),
@@ -79,15 +77,6 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
 
       <div className="toolbar no-print">
         <input id="lecturer-search" type="search" className="search" placeholder="ค้นหาชื่อ…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Segmented
-          label="ระดับ"
-          value={state.levels}
-          onChange={(v) => update({ ...state, levels: v })}
-          options={[
-            { id: 'degree', label: 'ป.โท / ป.เอก' },
-            { id: 'diploma', label: 'ประกาศนียบัตร' },
-          ]}
-        />
         <Segmented
           label="กรอง"
           value={filter}

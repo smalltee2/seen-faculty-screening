@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import type { Status } from './rules'
-import { toBE } from './rules'
+import { LEVELS, ROLES, toBE } from './rules'
 import type { Faculty, PubType } from './types'
+
+/** The site covers master's and doctoral programmes only (9.3, 9.4); diploma rules (9.1, 9.2) stay in rules.ts. */
+export const SHOWN_LEVELS = LEVELS.filter((l) => l.id === 'ms' || l.id === 'phd')
+export const SHOWN_ROLES = ROLES.filter((r) => r.level === 'ms' || r.level === 'phd')
 
 /** Thai academic title as used on official documents: ศ./รศ./ผศ. plus ดร. for a doctorate. */
 export function thaiTitle(p: Faculty): string {
