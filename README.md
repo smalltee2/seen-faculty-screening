@@ -81,7 +81,7 @@ Create a Google Form whose question titles match these exactly:
 
 | Question title | Type |
 |---|---|
-| `อาจารย์ (name_en)` | Dropdown: the `name_en` values from `faculty.csv` |
+| `อาจารย์ (name_en)` | Dropdown: `ชื่อไทย (name_en)` for each lecturer, e.g. `ธีรชัย อำนวยล้อเจริญ (Teerachai Amnuaylojaroen)`; the importer reads the English name in brackets |
 | `ปีที่ตีพิมพ์ (ค.ศ.)` | Short answer (number) |
 | `ชื่อผลงาน` | Short answer |
 | `ผู้แต่ง` | Short answer |

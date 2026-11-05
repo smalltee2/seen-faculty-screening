@@ -247,7 +247,8 @@ async function fetchManual(faculty, url) {
     return
   }
   const rows = parseCsv(text)
-  const header = rows[0].map((h) => h.trim())
+  // A Thai-language Google account names the first column "ประทับเวลา" instead of "Timestamp".
+  const header = rows[0].map((h) => (h.trim() === 'ประทับเวลา' ? 'Timestamp' : h.trim()))
   const missing = Object.values(FORM).filter((h) => !header.includes(h))
   if (missing.length) {
     warn(`Google Sheet is missing column(s): ${missing.join(', ')}; data/manual.tsv left unchanged`)
@@ -257,7 +258,8 @@ async function fetchManual(faculty, url) {
   const names = new Set(faculty.map((f) => f.name_en))
   const out = []
   for (const [i, r] of rows.slice(1).entries()) {
-    const key = col(r, 'key')
+    // Dropdown options read "ชื่อไทย (English name)"; the English name in brackets is the key.
+    const key = col(r, 'key').match(/\(([^()]+)\)\s*$/)?.[1].trim() ?? col(r, 'key')
     const type = TYPE_MAP[col(r, 'type')]
     const year = Number(col(r, 'year'))
     if (!names.has(key) || !type || !Number.isInteger(year) || !col(r, 'title')) {
