@@ -75,9 +75,9 @@ export function App() {
         <div className="topbar-inner">
           <a href="#/" className="brand">
             <span className="brand-name">
-              SEEN<span>·</span>Faculty Screening
+              SEEN<span>·</span>Qualify Screening
             </span>
-            <small>คุณสมบัติอาจารย์หลักสูตรบัณฑิตศึกษา ข้อ 9 · พ.ศ. 2565</small>
+            <small>ตามเกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565</small>
           </a>
           <nav className="seg no-print" aria-label="หน้า">
             {tabs.map((t) => (
