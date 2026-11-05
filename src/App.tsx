@@ -97,7 +97,7 @@ export function App() {
             <select id="eval-year" value={settings.year} onChange={(e) => setSettings({ ...settings, year: Number(e.target.value) })}>
               {years.map((y) => (
                 <option key={y} value={y}>
-                  พ.ศ. {toBE(y)} · ค.ศ. {y}
+                  พ.ศ.{toBE(y)} ({y})
                 </option>
               ))}
             </select>
