@@ -646,3 +646,12 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .pie-note { margin: 8px 0 14px; }
 .bar-legend .dot { width: 12px; height: 12px; border-radius: 2px; }
 .bar-legend { margin-top: 12px; }
+
+/* Admin passcode gate */
+.gate { display: grid; place-items: center; padding: 40px 0; }
+.gate-card { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; border-top: 3px solid var(--ember); }
+.gate-card h1 { margin: 0; border-left: 4px solid var(--gold); padding-left: 12px; }
+.gate-card input { width: 100%; font-size: 1rem; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--panel); color: var(--fg); }
+.gate-card .btn { justify-content: center; padding: 9px 14px; font-size: 0.95rem; }
+.gate-card .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.gate-error { margin: 0; color: var(--not); font-weight: 600; font-size: 0.9rem; }

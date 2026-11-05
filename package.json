@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "standalone": "node scripts/build-standalone.mjs",
-    "fetch": "node scripts/fetch-sources.mjs"
+    "fetch": "node scripts/fetch-sources.mjs",
+    "set-passcode": "node scripts/set-admin-passcode.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

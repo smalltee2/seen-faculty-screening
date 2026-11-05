@@ -48,7 +48,12 @@ export interface Override {
 
 export interface DataBundle {
   builtAt: string
-  sources: { manualSheetCsvUrl?: string; googleFormUrl?: string }
+  sources: {
+    manualSheetCsvUrl?: string
+    googleFormUrl?: string
+    /** Form link encrypted with the admin passcode (scripts/set-admin-passcode.mjs). */
+    adminGate?: { iterations: number; salt: string; iv: string; data: string }
+  }
   faculty: Faculty[]
   publications: RawPub[]
   overrides: Override[]

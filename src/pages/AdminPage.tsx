@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
 import { TYPE_LABEL, displayName, yearLabel } from '../ui'
 import type { Faculty } from '../types'
@@ -9,8 +10,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, faculty }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[] }) {
-  const formUrl = data.sources.googleFormUrl ?? ''
+function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; onLock?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -22,6 +22,13 @@ export function AdminPage({ data, pubs, faculty }: { data: DataBundle; pubs: Pub
           <h1>เพิ่มผลงาน</h1>
           <p className="lede">สำหรับผู้ดูแล: เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ</p>
         </div>
+        {onLock && (
+          <div className="actions no-print">
+            <button type="button" className="btn" onClick={onLock}>
+              ออกจากระบบผู้ดูแล
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="admin-grid">
@@ -97,5 +104,100 @@ export function AdminPage({ data, pubs, faculty }: { data: DataBundle; pubs: Pub
         </div>
       )}
     </>
+  )
+}
+
+const SESSION_KEY = 'seen-admin-form'
+const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
+
+/** Decrypts the admin form link with the passcode; a wrong passcode fails AES-GCM authentication. */
+async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<string> {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: fromB64(gate.salt), iterations: gate.iterations },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt'],
+  )
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(gate.iv) }, key, fromB64(gate.data))
+  return (JSON.parse(new TextDecoder().decode(plain)) as { formUrl: string }).formUrl
+}
+
+/** The admin tab: open only after the passcode is entered (kept for this browser session). */
+export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Faculty[] }) {
+  const gate = props.data.sources.adminGate
+  const [formUrl, setFormUrl] = useState<string | null>(() => {
+    if (!gate) return props.data.sources.googleFormUrl ?? ''
+    try {
+      return sessionStorage.getItem(SESSION_KEY)
+    } catch {
+      return null
+    }
+  })
+  const [pass, setPass] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  if (formUrl !== null)
+    return (
+      <AdminContent
+        {...props}
+        formUrl={formUrl}
+        onLock={
+          gate
+            ? () => {
+                try {
+                  sessionStorage.removeItem(SESSION_KEY)
+                } catch {
+                  /* ignore */
+                }
+                setFormUrl(null)
+              }
+            : undefined
+        }
+      />
+    )
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!gate) return
+    setBusy(true)
+    setError('')
+    try {
+      const url = await unlock(gate, pass)
+      try {
+        sessionStorage.setItem(SESSION_KEY, url)
+      } catch {
+        /* ignore */
+      }
+      setPass('')
+      setFormUrl(url)
+    } catch {
+      setError('รหัสไม่ถูกต้อง')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="gate">
+      <form className="panel gate-card" onSubmit={submit}>
+        <h1>เพิ่มผลงาน</h1>
+        <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล</p>
+        <label className="control" htmlFor="admin-pass">
+          <span className="control-label">รหัสผู้ดูแล</span>
+          <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
+        </label>
+        {error && (
+          <p className="gate-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={busy || !pass}>
+          {busy ? 'กำลังตรวจสอบ…' : 'เข้าสู่ส่วนผู้ดูแล'}
+        </button>
+      </form>
+    </div>
   )
 }
