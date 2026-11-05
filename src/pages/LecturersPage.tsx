@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LEVELS, ROLES, toBE, type PersonResult, type Settings, type Status } from '../rules'
+import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
 
@@ -7,15 +7,16 @@ type View = 'cards' | 'table'
 type Filter = 'all' | 'not_met'
 
 
-const STATE_KEY = 'seen-screening-lecturers'
+// v2: the column view became the default (2026-11-05), so old saved choices are ignored.
+const STATE_KEY = 'seen-screening-lecturers-v2'
 function loadState(): { view: View } {
   try {
     const s = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null')
-    if (s) return { view: s.view === 'table' ? 'table' : 'cards' }
+    if (s) return { view: s.view === 'cards' ? 'cards' : 'table' }
   } catch {
     /* ignore */
   }
-  return { view: 'cards' }
+  return { view: 'table' }
 }
 
 export function LecturersPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -91,8 +92,8 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
           value={state.view}
           onChange={(v) => update({ ...state, view: v })}
           options={[
+            { id: 'table', label: 'คอลัมน์' },
             { id: 'cards', label: 'การ์ด' },
-            { id: 'table', label: 'ตาราง' },
           ]}
         />
       </div>
@@ -102,17 +103,18 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
       {state.view === 'cards' ? (
         <div className="person-grid">
           {shown.map((r) => (
-            <PersonCard key={r.person.nameEn} r={r} levels={levels} />
+            <PersonCard key={r.person.nameEn} r={r} levels={levels} settings={settings} />
           ))}
         </div>
       ) : (
-        <MatrixTable rows={shown} levels={levels} roles={roles} />
+        <MatrixTable rows={shown} levels={levels} roles={roles} settings={settings} />
       )}
     </>
   )
 }
 
-function PersonCard({ r, levels }: { r: PersonResult; levels: (typeof LEVELS)[number][] }) {
+function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof LEVELS)[number][]; settings: Settings }) {
+  const risk = nextYearRisk(r, settings).filter((x) => x.level === 'ms' || x.level === 'phd')
   const p = r.person
   const c = r.roles.ms_program.counts
   const statuses = levels.flatMap((l) => ROLES.filter((x) => x.level === l.id).map((x) => r.roles[x.id].status))
@@ -140,6 +142,11 @@ function PersonCard({ r, levels }: { r: PersonResult; levels: (typeof LEVELS)[nu
           </span>
         ))}
       </div>
+      {risk.length > 0 && (
+        <div className="risk-note" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
+          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน {risk.length} บทบาท
+        </div>
+      )}
       <div className="person-counts">
         <span>
           ผลงาน 5 ปี <b className="mono">{c.total}</b>
@@ -176,7 +183,7 @@ function PersonCard({ r, levels }: { r: PersonResult; levels: (typeof LEVELS)[nu
   )
 }
 
-function MatrixTable({ rows, levels, roles }: { rows: PersonResult[]; levels: (typeof LEVELS)[number][]; roles: typeof ROLES }) {
+function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; levels: (typeof LEVELS)[number][]; roles: typeof ROLES; settings: Settings }) {
   return (
     <>
       <div className="table-wrap">
@@ -202,10 +209,17 @@ function MatrixTable({ rows, levels, roles }: { rows: PersonResult[]; levels: (t
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.person.nameEn}>
+            {rows.map((r) => {
+              const risk = nextYearRisk(r, settings).filter((x) => x.level === 'ms' || x.level === 'phd')
+              return (
+              <tr key={r.person.nameEn} className={risk.length ? 'row-risk' : ''}>
                 <td className="sticky">
                   <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{displayName(r.person)}</a>
+                  {risk.length > 0 && (
+                    <div className="risk-inline" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
+                      ⚠ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length} บทบาท
+                    </div>
+                  )}
                   <div className="muted small">
                     {r.person.rank ?? '—'} · {r.person.degree ?? 'ไม่ระบุวุฒิ'}
                   </div>
@@ -220,12 +234,13 @@ function MatrixTable({ rows, levels, roles }: { rows: PersonResult[]; levels: (t
                   )
                 })}
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
       <p className="legend">
-        <StatusChip status="met" /> <StatusChip status="not_met" /> · <sup>ใหม่</sup> = อาจผ่านด้วยเกณฑ์อาจารย์ใหม่วุฒิปริญญาเอก · ชี้ที่ช่องเพื่อดูเหตุผล
+        <StatusChip status="met" /> <StatusChip status="not_met" /> · <span className="risk-inline">⚠</span> = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
       </p>
     </>
   )

@@ -302,6 +302,14 @@ export function evaluatePerson(p: Faculty, pubs: Pub[], s: Settings): PersonResu
   return { person: p, pubs: own, roles: Object.fromEntries(ROLES.map((r) => [r.id, evaluateRole(r, p, own, s)])) }
 }
 
+/** Roles met this year that would not be met next year if no new output appears:
+ *  the oldest year leaves the window and nothing new enters it. */
+export function nextYearRisk(r: PersonResult, s: Settings): RoleSpec[] {
+  const known = r.pubs.filter((p) => p.year === null || p.year <= s.year)
+  const next = evaluatePerson(r.person, known, { ...s, year: s.year + 1 })
+  return ROLES.filter((role) => r.roles[role.id].status === 'met' && next.roles[role.id].status !== 'met')
+}
+
 const LEVEL_PATTERNS: Record<Level, RegExp> = {
   hgd: /higher\s*grad|ป\.?\s?บัณฑิตชั้นสูง|บัณฑิตชั้นสูง/i,
   gd: /^(?!.*higher).*(grad\.?\s?dip|ป\.?\s?บัณฑิต)/i,

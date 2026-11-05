@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   evaluatePerson,
+  nextYearRisk,
   programmeCheck,
   qualifies,
   rule_9_1_1_gdProgramLecturer,
@@ -257,3 +258,22 @@ describe('strict mode (site setting)', () => {
     for (const f of all) expect(f(p, pubs, T).status).not.toBe('needs_review')
   })
 })
+
+describe('next-year risk', () => {
+  const T: Settings = { ...S, strict: true }
+  const mk = (years: number[], research = true) => years.map((y) => pub({ year: y, isResearch: research }))
+  it('flags a role met now that depends on an output from the oldest window year', () => {
+    const r = evaluatePerson(person(), mk([2022, 2024, 2025]).map((x) => ({ ...x, key: 'P' })), T)
+    expect(r.roles.ms_program.status).toBe('met')
+    expect(nextYearRisk(r, T).map((x) => x.id)).toContain('ms_program')
+  })
+  it('does not flag when the outputs are recent', () => {
+    const r = evaluatePerson(person(), mk([2024, 2025, 2026]).map((x) => ({ ...x, key: 'P' })), T)
+    expect(nextYearRisk(r, T)).toHaveLength(0)
+  })
+  it('does not flag roles that are already not met', () => {
+    const r = evaluatePerson(person(), mk([2022]).map((x) => ({ ...x, key: 'P' })), T)
+    expect(nextYearRisk(r, T).map((x) => x.id)).not.toContain('ms_program')
+  })
+})
+

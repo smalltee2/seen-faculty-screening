@@ -466,3 +466,13 @@ tr.greyed td { color: var(--subtle); }
 .source-list { margin: 0 0 8px; display: flex; flex-direction: column; }
 .source-list > div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 0.86rem; }
 .source-list dd { margin: 0; color: var(--fg); font-weight: 600; }
+
+/* Next-year risk: passes now, would fail next year with no new output */
+.swatch-risk { background: transparent; border: 2px solid var(--not-mark); border-radius: 4px; }
+.chart .risk-frame { fill: color-mix(in srgb, var(--not-mark) 6%, transparent); stroke: var(--not-mark); stroke-width: 2; }
+.chart .risk-label { fill: var(--not); font: 600 11.5px var(--font-body); }
+.tip-risk { color: var(--not); font-weight: 600; margin-top: 3px; }
+.risk-note { font-size: 0.8rem; font-weight: 600; color: var(--not); background: var(--not-bg); border: 1.5px solid var(--not-mark); border-radius: var(--radius-md); padding: 6px 10px; }
+.person-card:has(.risk-note) { border: 2px solid var(--not-mark); }
+.risk-inline { font-size: 0.74rem; font-weight: 600; color: var(--not); }
+.matrix tr.row-risk td.sticky { box-shadow: inset 3px 0 0 var(--not-mark); }

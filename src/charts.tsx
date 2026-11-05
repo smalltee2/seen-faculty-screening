@@ -2,7 +2,7 @@
 // --c-journal / --c-proceeding / --c-poster, validated for colour-blind
 // separation in light and dark themes.
 import { useState, type ReactNode } from 'react'
-import { toBE, type PersonResult, type Settings } from './rules'
+import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { displayName } from './ui'
 
@@ -178,6 +178,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         other: c.total - c.research,
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
+        risk: nextYearRisk(r, settings).filter((role) => role.level === 'ms' || role.level === 'phd'),
       }
     })
     .sort((a, b) => b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th'))
@@ -201,6 +202,9 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         </span>
         <span>
           <i className="swatch swatch-rule" /> เกณฑ์ 3 เรื่อง
+        </span>
+        <span>
+          <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน ถ้าไม่มีผลงานเพิ่ม
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน">
@@ -233,6 +237,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           const total = x.research + x.other
           return (
             <g key={x.r.person.nameEn}>
+              {x.risk.length > 0 && <rect className="risk-frame" x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />}
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
                 <text className="row-label" x={m.l - 10} y={y + bh - 2} textAnchor="end">
                   {x.name.length > 34 ? `${x.name.slice(0, 33)}…` : x.name}
@@ -249,6 +254,11 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                 {total}
                 {x.maybe ? `+${x.maybe}?` : ''}
               </text>
+              {x.risk.length > 0 && (
+                <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
+                  ⚠ ปีหน้าอาจไม่ผ่าน
+                </text>
+              )}
               <rect
                 className="hit"
                 x={0}
@@ -266,6 +276,11 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                       <span className="muted">
                         ปี {toBE(settings.year - 4)}–{toBE(settings.year)}
                       </span>
+                      {x.risk.length > 0 && (
+                        <span className="tip-risk">
+                          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน: {x.risk.map((role) => role.clause).join(', ')}
+                        </span>
+                      )}
                     </>,
                   )
                 }
