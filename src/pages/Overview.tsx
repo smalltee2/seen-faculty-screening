@@ -54,7 +54,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </div>
       </div>
 
-      <div className="finding">
+      <div className="summary-row">
+        <div className="finding">
         <p>
           ปีการประเมิน พ.ศ. {Y} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
         </p>
@@ -89,6 +90,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           </div>
         </div>
       )}
+      </div>
 
       <div className="metrics">
         <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />

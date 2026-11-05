@@ -414,7 +414,8 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
   const groups = readinessGroups(results)
   const total = results.length || 1
   const W = Math.max(260, width)
-  const R = Math.min(compact ? 124 : 150, W / 2 - 18)
+  // The pie fills the width it is given (the dashboard panel on desktop), capped so labels stay legible.
+  const R = Math.min(compact ? 170 : 150, W / 2 - (compact ? 8 : 18))
   const tilt = 0.5 // vertical squash of the top face
   const base = Math.round(R * 0.22) // extrusion of the largest slice
   const lift = Math.round(R * 0.14) // extra height of the other slices
