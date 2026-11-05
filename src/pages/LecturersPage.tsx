@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, roleShort } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, levelGroup, roleShort } from '../ui'
+import type { LecturerFilter, LecturerScope } from '../App'
 
 type View = 'cards' | 'table'
-type Filter = 'all' | 'not_met'
 
 
 // v3: "คอลัมน์" (one card column per lecturer) is the default, "ตาราง" the matrix (2026-11-05).
@@ -19,10 +19,21 @@ function loadState(): { view: View } {
   return { view: 'cards' }
 }
 
-export function LecturersPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
+export function LecturersPage({
+  results,
+  settings,
+  filter: initialFilter = 'all',
+  scope: initialScope = 'all',
+}: {
+  results: PersonResult[]
+  settings: Settings
+  filter?: LecturerFilter
+  scope?: LecturerScope
+}) {
   const [state, setState] = useState(loadState)
   const [q, setQ] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<LecturerFilter>(initialFilter)
+  const [scope, setScope] = useState<LecturerScope>(initialScope)
   const update = (s: typeof state) => {
     setState(s)
     try {
@@ -33,11 +44,20 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
   }
   const levels = SHOWN_LEVELS
   const roles = SHOWN_ROLES
+  // The scope narrows which duties the filter looks at; every level is still displayed.
+  const inScope = (level: (typeof SHOWN_ROLES)[number]['level']) => scope === 'all' || levelGroup(level) === scope
+  const scopedRoles = roles.filter((role) => inScope(role.level))
+  const matches = (r: PersonResult) =>
+    filter === 'all'
+      ? true
+      : filter === 'not_met'
+        ? scopedRoles.some((role) => r.roles[role.id].status === 'not_met')
+        : nextYearRisk(r, settings).some((role) => isShownLevel(role.level) && inScope(role.level))
   const needle = q.trim().toLowerCase()
   const shown = [...results]
     .sort((a, b) => (a.person.nameTh || a.person.nameEn).localeCompare(b.person.nameTh || b.person.nameEn, 'th'))
     .filter((r) => !needle || `${r.person.nameTh} ${r.person.nameEn}`.toLowerCase().includes(needle))
-    .filter((r) => filter === 'all' || roles.some((role) => r.roles[role.id].status === filter))
+    .filter(matches)
 
   const exportCsv = () =>
     downloadCsv(
@@ -85,8 +105,21 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
           options={[
             { id: 'all', label: 'ทั้งหมด' },
             { id: 'not_met', label: 'มีหน้าที่ไม่ผ่าน' },
+            { id: 'risk', label: `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน` },
           ]}
         />
+        {filter !== 'all' && (
+          <Segmented
+            label="ระดับที่พิจารณา"
+            value={scope}
+            onChange={setScope}
+            options={[
+              { id: 'all', label: 'ทุกระดับ' },
+              { id: 'ba', label: 'ป.ตรี' },
+              { id: 'grad', label: 'บัณฑิตศึกษา' },
+            ]}
+          />
+        )}
         <Segmented
           label="มุมมอง"
           value={state.view}

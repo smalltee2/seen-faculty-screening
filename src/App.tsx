@@ -17,7 +17,13 @@ const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/69
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
 const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/item/6942-2022-07-22-03-17-22'
 
-type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string } | { page: 'admin' }
+export type LecturerFilter = 'all' | 'not_met' | 'risk'
+export type LecturerScope = 'all' | 'ba' | 'grad'
+type Route =
+  | { page: 'overview' }
+  | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope }
+  | { page: 'person'; key: string }
+  | { page: 'admin' }
 
 function parseHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '')
@@ -28,7 +34,17 @@ function parseHash(): Route {
     h = raw // a truncated or malformed link (e.g. "%E0") falls through to the overview
   }
   if (h.startsWith('person/')) return { page: 'person', key: h.slice('person/'.length) }
-  if (h === 'lecturers') return { page: 'lecturers' }
+  if (h === 'lecturers' || h.startsWith('lecturers?')) {
+    // #/lecturers?filter=not_met&scope=ba — preset filters from the overview summary links.
+    const q = new URLSearchParams(h.slice('lecturers'.length + 1))
+    const f = q.get('filter')
+    const sc = q.get('scope')
+    return {
+      page: 'lecturers',
+      filter: f === 'not_met' || f === 'risk' ? f : 'all',
+      scope: sc === 'ba' || sc === 'grad' ? sc : 'all',
+    }
+  }
   if (h === 'admin') return { page: 'admin' }
   return { page: 'overview' }
 }
@@ -136,7 +152,9 @@ export function App() {
 
         <main>
           {route.page === 'overview' && <Overview results={results} settings={settings} />}
-          {route.page === 'lecturers' && <LecturersPage results={results} settings={settings} />}
+          {route.page === 'lecturers' && (
+            <LecturersPage key={`${route.filter}|${route.scope}`} results={results} settings={settings} filter={route.filter} scope={route.scope} />
+          )}
           {route.page === 'admin' && <AdminPage data={data} pubs={pubs} faculty={data.faculty} />}
           {route.page === 'person' && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
         </main>

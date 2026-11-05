@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, type OutputsView } from '../charts'
-import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, roleShort, type LevelGroup } from '../ui'
+import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const [view, setView] = useState<OutputsView>('research')
@@ -11,7 +11,23 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
   const fullyMet = results.filter((r) => SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length
-  const atRisk = results.filter((r) => nextYearRisk(r, settings).some((x) => isShownLevel(x.level))).length
+  // Per level group: fails now (any duty not met) and next-year risk, for the summary links.
+  const failing = (g: 'ba' | 'grad') => results.filter((r) => SHOWN_ROLES.some((x) => levelGroup(x.level) === g && r.roles[x.id].status === 'not_met')).length
+  const risking = (g: 'ba' | 'grad') => results.filter((r) => nextYearRisk(r, settings).some((x) => isShownLevel(x.level) && levelGroup(x.level) === g)).length
+  const failBa = failing('ba')
+  const failGrad = failing('grad')
+  const riskBa = risking('ba')
+  const riskGrad = risking('grad')
+  const Count = ({ n, filter, scope }: { n: number; filter: 'not_met' | 'risk'; scope: 'ba' | 'grad' }) =>
+    n > 0 ? (
+      <a className="count-link" href={`#/lecturers?filter=${filter}&scope=${scope}`} title="ดูรายชื่อ">
+        <b className="mono">{n}</b> คน
+      </a>
+    ) : (
+      <>
+        <b className="mono">0</b> คน
+      </>
+    )
   const Y = toBE(settings.year)
 
   return (
@@ -46,9 +62,16 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           อาจารย์ที่มีคุณสมบัติเป็นผู้รับผิดชอบหลักสูตรได้ ระดับปริญญาตรี <b className="mono">{ba.met.length}</b> คน (ต้องมีอย่างน้อย 5 คน) ระดับปริญญาโท{' '}
           <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอก <b className="mono">{phd.met.length}</b> คน (ต้องมีอย่างน้อย 3 คน)
         </p>
-        {atRisk > 0 && (
+        {failBa + failGrad > 0 && (
           <p>
-            หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ <a href="#/lecturers">{atRisk} คน</a> ไม่ผ่านเกณฑ์บางหน้าที่
+            อาจารย์ที่ยังไม่ผ่านเกณฑ์บางหน้าที่ ระดับปริญญาตรี <Count n={failBa} filter="not_met" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
+            <Count n={failGrad} filter="not_met" scope="grad" />
+          </p>
+        )}
+        {riskBa + riskGrad > 0 && (
+          <p>
+            หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ไม่ผ่านเพิ่ม ระดับปริญญาตรี <Count n={riskBa} filter="risk" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
+            <Count n={riskGrad} filter="risk" scope="grad" />
           </p>
         )}
       </div>
