@@ -908,9 +908,9 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 /* B. Metric cards: labels reserve two lines so every value sits on the same line. */
 .metric-label { min-height: calc(2 * 1.35em); }
 .metric { justify-content: flex-start; }
-/* C. Page width and reading width. */
-:root { --page-max: 1440px; }
-.finding, .finding p, .lede, .note, .footer p { max-width: 80ch; }
+/* C. Reading width only: the page itself fills every screen (Tum, 2026-11-06). */
+:root { --page-max: none; }
+.finding, .finding p, .lede, .note, .footer p { max-width: 100ch; }
 /* D. Pie panel: keep the figure centred in the panel instead of leaving the bottom empty. */
 .dash-pie { justify-content: flex-start; }
 .dash-pie .pie-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
