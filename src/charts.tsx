@@ -355,22 +355,6 @@ function readinessGroups(results: PersonResult[]) {
 
 const SLICE_FILL: Record<string, string> = { all: 'var(--pie-1)', some: 'var(--pie-2)', review: 'var(--pie-3)', none: 'var(--pie-4)' }
 
-function StatusIcon({ kind }: { kind: string }) {
-  const stroke = kind === 'check' ? 'var(--met-mark)' : kind === 'cross' ? 'var(--not-mark)' : 'var(--rev-mark)'
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-      {kind === 'check' && <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-      {kind === 'cross' && <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />}
-      {kind === 'partial' && (
-        <>
-          <circle cx="12" cy="12" r="8" fill="none" stroke={stroke} strokeWidth="2.5" />
-          <path d="M12 4a8 8 0 0 1 0 16z" fill={stroke} />
-        </>
-      )}
-    </svg>
-  )
-}
-
 /** Infographic: 3D extruded pie of lecturers by readiness, numbered pins, callouts below.
  *  Drawn back-to-front (painter's order) on a tilted ellipse; smaller slices are raised. */
 export function ReadinessPie({ results, compact = false }: { results: PersonResult[]; compact?: boolean }) {
@@ -378,11 +362,13 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
   const groups = readinessGroups(results)
   const total = results.length || 1
   const W = Math.max(260, width)
-  const R = Math.min(compact ? 96 : 150, W / 2 - 18)
+  const R = Math.min(compact ? 124 : 150, W / 2 - 18)
   const tilt = 0.5 // vertical squash of the top face
   const base = Math.round(R * 0.22) // extrusion of the largest slice
   const lift = Math.round(R * 0.14) // extra height of the other slices
-  const top = 44 // room for pins above the pie
+  const LEVEL = 46 // vertical step between stacked pin labels
+  const levels = Math.max(1, groups.filter((g) => g.n > 0).length - 1)
+  const top = 72 + levels * LEVEL // room for the pin labels above the pie
   const cx = W / 2
   const cy = top + R * tilt + lift
   const H = cy + R * tilt + base + 22
@@ -438,46 +424,47 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
               </g>
             )
           })}
-          {slices.map((sl) => {
-            const r = sl.a1 - sl.a0 > 5 ? R * 0.45 : R * 0.62
-            const [x, y] = pt(sl.mid, r, sl.h)
-            const yTop = Math.max(14, y - 40)
-            return (
-              <g key={`pin-${sl.g.key}`} className="pie3d-pin">
-                <line x1={x} y1={y} x2={x} y2={yTop} />
-                <circle cx={x} cy={y} r={3} className="pie3d-pin-foot" />
-                <circle cx={x} cy={yTop} r={11} className="pie3d-pin-head" />
-                <text x={x} y={yTop + 4} textAnchor="middle">
-                  {sl.no}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
-        <ul className="pie-callouts">
-          {groups.map((g) => {
-            const sl = slices.find((x) => x.g.key === g.key)
-            return (
-              <li key={g.key}>
-                <span className="pie-icon">
-                  <StatusIcon kind={g.icon} />
-                </span>
-                <span className="pie-pct">{g.pct}%</span>
-                <span className="pie-label">
-                  <b>
-                    <i className="pie-no" style={{ borderLeftColor: SLICE_FILL[g.key] }}>
-                      {sl?.no ?? '–'}
-                    </i>
+          {(() => {
+            // All labels sit above the pie. The leftmost pin's text goes left; the other
+            // pins' text goes right, stacked one level higher per pin from right to left,
+            // so no two labels share a row on the same side.
+            const pins = slices
+              .map((sl) => {
+                const r = sl.a1 - sl.a0 > 5 ? R * 0.45 : R * 0.62
+                const [x, y] = pt(sl.mid, r, sl.h)
+                return { sl, x, y }
+              })
+              .sort((p, q) => p.x - q.x)
+            const pieTop = cy - R * tilt - lift
+            return pins.map(({ sl, x, y }, i) => {
+              const left = i === 0 && pins.length > 1
+              const level = left ? 0 : pins.length - 1 - i
+              const yTop = pieTop - 24 - level * LEVEL
+              const tx = left ? x - 10 : x + 10
+              const anchor = left ? 'end' : 'start'
+              const g = sl.g
+              return (
+                <g key={`pin-${g.key}`} className="pie3d-pin">
+                  <line x1={x} y1={y} x2={x} y2={yTop} />
+                  <circle cx={x} cy={y} r={3} className="pie3d-pin-foot" />
+                  <circle cx={x} cy={yTop} r={5} className="pie3d-pin-head" style={{ fill: sl.fill }} />
+                  <text x={tx} y={yTop - 28} textAnchor={anchor} className="pie3d-pct">
+                    {g.pct}%
+                  </text>
+                  <text x={tx} y={yTop - 11} textAnchor={anchor} className="pie3d-name">
                     {g.th}
-                  </b>
-                  <span>
-                    {g.n} คน{g.note && !compact ? ` · ${g.note}` : ''}
-                  </span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+                  </text>
+                  <text x={tx} y={yTop + 4} textAnchor={anchor} className="pie3d-count">
+                    {g.n} คน
+                  </text>
+                </g>
+              )
+            })
+          })()}
+        </svg>
+        <p className="sr-only">
+          {groups.map((g) => `${g.th} ${g.pct}% (${g.n} คน)`).join(' · ')}
+        </p>
       </div>
     </figure>
   )

@@ -80,7 +80,7 @@ export function App() {
             <span className="brand-text">
               <small className="brand-org">คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</small>
               <span className="brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์หลักสูตรบัณฑิตศึกษา</span>
-              <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565 · Qualify Screening</small>
+              <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565</small>
             </span>
           </a>
         </div>
