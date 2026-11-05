@@ -66,7 +66,7 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
       <div className="section-head">
         <div>
           <h1>รายชื่ออาจารย์</h1>
-          <p className="lede">ผลการตรวจคุณสมบัติของอาจารย์แต่ละคน แสดง {shown.length} จาก {results.length} คน</p>
+          <p className="lede">ผลของอาจารย์แต่ละคนตามหน้าที่ แสดง {shown.length} จาก {results.length} คน</p>
         </div>
         <div className="actions no-print">
           <Button onClick={exportCsv}>ดาวน์โหลด CSV</Button>
@@ -84,7 +84,7 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
           onChange={setFilter}
           options={[
             { id: 'all', label: 'ทั้งหมด' },
-            { id: 'not_met', label: 'มีคุณสมบัติไม่ผ่าน' },
+            { id: 'not_met', label: 'มีหน้าที่ไม่ผ่าน' },
           ]}
         />
         <Segmented
@@ -128,7 +128,7 @@ function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof 
             {displayName(p)}
           </a>
         </div>
-        <div className="person-score mono" title="จำนวนคุณสมบัติที่ผ่าน">
+        <div className="person-score mono" title="จำนวนหน้าที่ที่ผ่าน">
           <b>{tally('met')}</b>/{statuses.length}
         </div>
       </header>
@@ -144,7 +144,7 @@ function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof 
       </div>
       {risk.length > 0 && (
         <div className="risk-note" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
-          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน {risk.length} คุณสมบัติ
+          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน {risk.length} หน้าที่
         </div>
       )}
       <div className="person-counts">
@@ -217,7 +217,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
                   <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{displayName(r.person)}</a>
                   {risk.length > 0 && (
                     <div className="risk-inline" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
-                      ⚠ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length} คุณสมบัติ
+                      ⚠ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length} หน้าที่
                     </div>
                   )}
                   <div className="muted small">
