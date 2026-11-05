@@ -57,7 +57,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <div className="dash">
         <section className="panel dash-pie">
           <h3>
-            <span className="sec-no">1</span>สัดส่วนอาจารย์ตามผลการประเมิน
+            สัดส่วนอาจารย์ตามผลการประเมิน
           </h3>
           <ReadinessPie results={results} compact />
           <p className="note">พิจารณา 10 หน้าที่ของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4)</p>
@@ -65,7 +65,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
         <section className="panel dash-roles">
           <h3>
-            <span className="sec-no">2</span>จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่
+            จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่
           </h3>
           {SHOWN_LEVELS.map((l) => (
             <div key={l.id} className="role-level">
@@ -99,7 +99,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
         <section className="panel dash-pubs">
           <h3>
-            <span className="sec-no">3</span>จำนวนผลงานต่อปี แยกตามประเภท
+            จำนวนผลงานต่อปี แยกตามประเภท
           </h3>
           <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีทอง = ช่วง 5 ปีที่ใช้ประเมิน</p>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
@@ -107,7 +107,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       </div>
 
       <h2 className="block-title">
-        <span className="sec-no">4</span>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน
+        ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน
       </h2>
       <section className="panel">
         <p className="note">
