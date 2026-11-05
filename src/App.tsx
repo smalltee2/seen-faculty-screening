@@ -115,8 +115,8 @@ export function App() {
             </span>
           </div>
           <div className="control">
-            <span className="control-label">ผลงานที่นับ</span>
-            <span className="control-text">วารสาร · proceedings · โปสเตอร์/บทคัดย่อในงานประชุม</span>
+            <span className="control-label">ผลงานที่นับ ได้แก่</span>
+            <span className="control-text">วารสาร, proceedings, โปสเตอร์/บทคัดย่อในงานประชุม</span>
           </div>
         </section>
 
