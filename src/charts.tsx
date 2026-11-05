@@ -202,13 +202,14 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
 type OutputsView = 'research' | 'type'
 
 /** Bar segments per view; colours match the per-year chart in the 'type' view. */
-const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journal' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
+const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalIntl' | 'journalNatl' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
   research: [
     { key: 'research', cls: 'c-journal', th: 'งานวิจัย' },
     { key: 'other', cls: 'hatched', th: 'ผลงานอื่น (บทความวิชาการ/ปริทัศน์)' },
   ],
   type: [
-    { key: 'journal', cls: 'c-journal', th: 'วารสาร' },
+    { key: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ' },
+    { key: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ' },
     { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
     { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
   ],
@@ -232,7 +233,8 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
         r,
         research: c.research,
         other: c.total - c.research,
-        journal: ofType('journal'),
+        journalIntl: used.filter((e) => e.pub.type === 'journal' && isInternational(e.pub)).length,
+        journalNatl: used.filter((e) => e.pub.type === 'journal' && !isInternational(e.pub)).length,
         proceeding: ofType('proceeding'),
         poster: ofType('poster'),
         maybe: c.totalPossible - c.total,
@@ -245,7 +247,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
     .sort((a, b) =>
       view === 'research'
         ? b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th')
-        : b.research + b.other - (a.research + a.other) || b.journal - a.journal || a.name.localeCompare(b.name, 'th'),
+        : b.research + b.other - (a.research + a.other) || b.journalIntl + b.journalNatl - (a.journalIntl + a.journalNatl) || a.name.localeCompare(b.name, 'th'),
     )
   const segDefs = OUTPUT_SEGS[view]
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)) * 1.12)
@@ -282,6 +284,10 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
           <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="6" height="6" className="hatch-bg" />
             <line x1="0" y1="0" x2="0" y2="6" className="hatch-line" />
+          </pattern>
+          <pattern id="hatch-natl" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" className="hatch-natl-bg" />
+            <line x1="0" y1="0" x2="0" y2="6" className="hatch-natl-line" />
           </pattern>
         </defs>
         {ticks(max).map((t) => (
