@@ -372,12 +372,13 @@ function StatusIcon({ kind }: { kind: string }) {
 }
 
 /** Infographic: solid pie of lecturers by readiness, big percentages, dotted leaders. */
-export function ReadinessPie({ results }: { results: PersonResult[] }) {
+/** compact: always pie-then-labels and shorter notes, for a dashboard column. */
+export function ReadinessPie({ results, compact = false }: { results: PersonResult[]; compact?: boolean }) {
   const [ref, width] = useWidth(900)
   const groups = readinessGroups(results)
   const total = results.length
-  const wide = width >= 640
-  const R = wide ? 140 : 110
+  const wide = width >= 640 && !compact
+  const R = wide ? 140 : compact ? 84 : 110
   const H = wide ? 340 : 2 * R + 24
   const W = Math.max(280, width)
   const cx = wide ? W - R - 40 : W / 2
@@ -444,7 +445,7 @@ export function ReadinessPie({ results }: { results: PersonResult[] }) {
                   {g.th}
                 </b>
                 <span>
-                  {g.n} คน{g.note ? ` · ${g.note}` : ''}
+                  {g.n} คน{g.note && !compact ? ` · ${g.note}` : ''}
                 </span>
               </span>
             </li>

@@ -1,6 +1,6 @@
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie } from '../charts'
-import { Button, Metric, SHOWN_LEVELS, SHOWN_ROLES, StatusBar, StatusChip } from '../ui'
+import { Button, Metric, SHOWN_LEVELS, SHOWN_ROLES, StatusBar, StatusChip, roleShort } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
@@ -20,11 +20,11 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </p>
       </div>
 
-      <div className="section-head">
-        <div>
+      <div className="report-head">
+        <div className="min0">
           <h1>รายงานสรุปผลการตรวจสอบคุณสมบัติอาจารย์</h1>
           <p className="lede">
-            อาจารย์ {results.length} คน · ประเมินตามข้อ 9 ของประกาศ กมอ. พ.ศ. 2565 · ผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+            อาจารย์ {results.length} คน · ข้อ 9 ประกาศ กมอ. พ.ศ. 2565 · ผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
           </p>
         </div>
         <div className="actions no-print">
@@ -36,9 +36,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <div className="finding">
         <span>
-          ปีการประเมิน พ.ศ. {Y}: อาจารย์ผ่านครบทุกหน้าที่ของหลักสูตร ป.โท และ ป.เอก <b className="mono">{fullyMet}</b> จาก{' '}
-          <span className="mono">{results.length}</span> คน · อาจารย์ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติ ป.โท <b className="mono">{ms.met.length}</b> คน ป.เอก{' '}
-          <b className="mono">{phd.met.length}</b> คน (เกณฑ์อย่างน้อย 3 คน)
+          ปีการประเมิน พ.ศ. {Y}: ผ่านครบทุกหน้าที่ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน · ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติ ป.โท{' '}
+          <b className="mono">{ms.met.length}</b> คน ป.เอก <b className="mono">{phd.met.length}</b> คน (เกณฑ์ ≥ 3)
           {atRisk > 0 && (
             <>
               {' '}
@@ -52,17 +51,22 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.โท (ข้อ 9.3.2)" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.เอก (ข้อ 9.4.2)" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
-        <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} sub="นับผลงานที่มีผู้เขียนร่วมหลายคนเพียงครั้งเดียว" />
+        <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} sub="ผลงานที่มีผู้เขียนร่วมหลายคนนับครั้งเดียว" />
       </div>
 
-      <h2 className="block-title">
-        <span className="sec-no">1</span>สถานะคุณสมบัติอาจารย์
-      </h2>
-      <ReadinessPie results={results} />
-      <p className="note pie-note">พิจารณา 10 หน้าที่ของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4) ปีการประเมิน พ.ศ. {Y}</p>
-      <div className="role-summary-panel">
-        <section className="panel">
-          <h3>จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่</h3>
+      <div className="dash">
+        <section className="panel dash-pie">
+          <h3>
+            <span className="sec-no">1</span>สัดส่วนอาจารย์ตามผลการประเมิน
+          </h3>
+          <ReadinessPie results={results} compact />
+          <p className="note">พิจารณา 10 หน้าที่ของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4)</p>
+        </section>
+
+        <section className="panel dash-roles">
+          <h3>
+            <span className="sec-no">2</span>จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่
+          </h3>
           {SHOWN_LEVELS.map((l) => (
             <div key={l.id} className="role-level">
               <div className="role-level-head">
@@ -76,7 +80,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
                 return (
                   <div key={role.id} className="role-row">
                     <span className="clause mono">{role.clause}</span>
-                    <span className="role-name">{role.labelTh}</span>
+                    <span className="role-name" title={role.labelTh}>
+                      {roleShort(role.id)}
+                    </span>
                     <StatusBar met={met} review={review} notMet={notMet} />
                     <span className="role-num mono">
                       <b>{met}</b>/{st.length}
@@ -87,23 +93,21 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             </div>
           ))}
           <p className="legend bar-legend">
-            <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ตัวเลขด้านขวา = จำนวนที่ผ่าน / อาจารย์ทั้งหมด · ดูรายบุคคลที่แท็บ{' '}
-            <a href="#/lecturers">รายชื่ออาจารย์</a>
+            <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ตัวเลข = ผ่าน / ทั้งหมด
           </p>
+        </section>
+
+        <section className="panel dash-pubs">
+          <h3>
+            <span className="sec-no">3</span>จำนวนผลงานต่อปี แยกตามประเภท
+          </h3>
+          <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีทอง = ช่วง 5 ปีที่ใช้ประเมิน</p>
+          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
         </section>
       </div>
 
       <h2 className="block-title">
-        <span className="sec-no">2</span>ผลงานตีพิมพ์ของคณะ
-      </h2>
-      <section className="panel">
-        <h3>จำนวนผลงานต่อปี แยกตามประเภท</h3>
-        <p className="note">รวมผลงานของอาจารย์ทุกคน (นับผลงานที่มีผู้เขียนร่วมแยกตามอาจารย์แต่ละคน) · แถบสีทองคือช่วง 5 ปีที่ใช้ประเมิน</p>
-        <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
-      </section>
-
-      <h2 className="block-title">
-        <span className="sec-no">3</span>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน
+        <span className="sec-no">4</span>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน
       </h2>
       <section className="panel">
         <p className="note">

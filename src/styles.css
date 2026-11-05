@@ -655,3 +655,53 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .gate-card .btn { justify-content: center; padding: 9px 14px; font-size: 0.95rem; }
 .gate-card .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .gate-error { margin: 0; color: var(--not); font-weight: 600; font-size: 0.9rem; }
+
+/* ---------- Full-width desktop dashboard (2026-11-05) ---------- */
+:root { --gutter: clamp(16px, 2.2vw, 40px); --page-max: 1920px; }
+.page, .topbar-inner, .tabsbar-inner {
+  max-width: var(--page-max);
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+.topbar-inner { padding-top: 8px; padding-bottom: 6px; }
+.brand-mark img { height: 40px; }
+.brand-name { font-size: 1.12rem; }
+.tabsbar a { padding: 7px 14px 8px; }
+.controls { display: flex; align-items: center; gap: 10px 28px; padding: 8px 16px; margin: 12px 0 0; }
+.controls .control { flex-direction: row; align-items: baseline; gap: 8px; }
+
+.report-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 14px 0 10px; }
+.report-head h1 { font-size: 1.45rem; margin: 0; border-left: 4px solid var(--gold); padding-left: 12px; }
+.report-head .lede { font-size: 0.9rem; padding-left: 16px; }
+.finding { padding: 9px 14px; margin: 0 0 10px; font-size: 0.95rem; }
+.metrics { gap: 10px; margin-bottom: 12px; }
+.metric { padding: 9px 14px; gap: 2px; }
+.metric-value { font-size: 1.5rem; }
+@media (min-width: 900px) { .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.dash { display: grid; gap: 12px; align-items: stretch; grid-template-columns: 1fr; }
+.dash > .panel { padding: 14px 16px; display: flex; flex-direction: column; min-width: 0; }
+.dash h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 0.98rem; }
+.dash .note { margin: 0 0 6px; font-size: 0.8rem; }
+.dash .pie-info { border: 0; padding: 0; background: none; margin: 0; }
+.dash .pie-callouts { margin-top: 8px; gap: 8px; }
+.dash .pie-pct { font-size: 1.9rem; }
+.dash .pie-icon { width: 40px; height: 40px; }
+.dash .pie-callouts li { grid-template-columns: 40px auto minmax(0, 1fr); gap: 10px; }
+.dash .role-row { padding: 4px 0; font-size: 0.83rem; grid-template-columns: 70px minmax(0, 1fr) minmax(80px, 0.8fr) 42px; }
+.dash .role-level + .role-level { margin-top: 8px; }
+.dash .bar-legend { margin-top: auto; padding-top: 8px; }
+@media (min-width: 768px) and (max-width: 1199px) {
+  .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-pubs { grid-column: 1 / -1; }
+}
+@media (min-width: 1200px) {
+  .dash { grid-template-columns: minmax(300px, 0.85fr) minmax(400px, 1.15fr) minmax(420px, 1.25fr); }
+}
+@media (max-width: 640px) {
+  .controls .control { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+.report-head .min0 { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
+.report-head .lede { padding-left: 0; }
+.dash .role-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash .pie-svg { margin-top: 2px; }
