@@ -4,3 +4,4 @@ src/generated/
 *.local
 .DS_Store
 standalone/
+tsconfig.tsbuildinfo
