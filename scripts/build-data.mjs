@@ -85,8 +85,8 @@ for (const f of faculty) {
 // All publication sources share the Scholar columns; the structured ones add a type.
 const SOURCES = [
   { file: CONFIG.publications, name: 'scholar', label: 'publications.tsv', required: true },
-  { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type }) },
-  { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type }) },
+  { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
+  { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
   { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted }) },
 ]
 const publications = SOURCES.flatMap((src) => {
@@ -138,9 +138,27 @@ if (errors.length) {
   process.exit(1)
 }
 
+// TCI journal list (data/tci_journals.csv, from scripts/fetch-sources.mjs --only=tci).
+// Only journals that currently hold a กลุ่ม are kept; the site treats กลุ่ม 1–2 as ระดับชาติ.
+const tciFile = join(ROOT, 'data/tci_journals.csv')
+const tci = existsSync(tciFile)
+  ? toRecords(parseCsv(read(tciFile)), ['id', 'name_eng', 'name_local', 'issn', 'eissn', 'tci_tier', 'status'], 'tci_journals.csv')
+      .filter((j) => ['1', '2', '3'].includes(j.tci_tier))
+      .map((j) => ({ nameEng: j.name_eng, nameLocal: j.name_local, abbrev: j.abbrev_name ?? '', issn: j.issn, eissn: j.eissn, tier: j.tci_tier, status: j.status }))
+  : []
+if (!tci.length) warn('data/tci_journals.csv missing or empty: national journals cannot be matched to TCI')
+
+// Journals known to be indexed in Scopus (data/scopus_journals.csv), by ISSN.
+const sjFile = join(ROOT, 'data/scopus_journals.csv')
+const scopusJournals = existsSync(sjFile)
+  ? toRecords(parseCsv(read(sjFile)), ['issn', 'in_scopus', 'name'], 'scopus_journals.csv')
+      .filter((j) => j.in_scopus === 'yes')
+      .map((j) => ({ issn: j.issn, name: j.name }))
+  : []
+
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals -> src/generated/data.json`)

@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup } from './ui'
+import { journalLevel } from './tci'
+import { TCI } from './tciIndex'
 
 interface Tip {
   x: number
@@ -59,13 +61,13 @@ function barPath(x: number, y: number, w: number, h: number, r: number) {
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
 }
 
-// Journals are split by database (decision by Tum, 2026-11-06): found in Scopus = international,
-// otherwise national. Display only; the clause-9/10 evaluation counts every journal alike.
-export const isInternational = (p: Pub) => p.sources.includes('scopus')
+// Journal level (see tci.ts): Scopus = international, TCI กลุ่ม 1–2 = national, else outside.
+export const levelOf = (p: Pub) => journalLevel(p, TCI)?.level ?? null
 
 const SERIES = [
   { key: 'journalIntl', th: 'วารสารนานาชาติ', cls: 'c-journal' },
   { key: 'journalNatl', th: 'วารสารระดับชาติ', cls: 'c-journal-natl' },
+  { key: 'journalNone', th: 'วารสารนอกฐานข้อมูล', cls: 'c-journal-none' },
   { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding' },
   { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster' },
 ] as const
@@ -81,15 +83,16 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
     const ofYear = pubs.filter((p) => p.year === y)
     return {
       y,
-      journalIntl: ofYear.filter((p) => p.type === 'journal' && isInternational(p)).length,
-      journalNatl: ofYear.filter((p) => p.type === 'journal' && !isInternational(p)).length,
+      journalIntl: ofYear.filter((p) => levelOf(p) === 'intl').length,
+      journalNatl: ofYear.filter((p) => levelOf(p) === 'natl').length,
+      journalNone: ofYear.filter((p) => levelOf(p) === 'none').length,
       proceeding: ofYear.filter((p) => p.type === 'proceeding').length,
       poster: ofYear.filter((p) => p.type === 'poster').length,
       excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length,
     }
   })
   // 15% headroom so the bar totals never collide with the window label.
-  const max = niceMax(Math.max(1, ...rows.map((r) => r.journalIntl + r.journalNatl + r.proceeding + r.poster)) * 1.15)
+  const max = niceMax(Math.max(1, ...rows.map((r) => r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster)) * 1.15)
   const W = Math.max(280, width)
   const H = W < 480 ? 230 : 260
   const narrow = W < 480
@@ -135,7 +138,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
         {rows.map((r, i) => {
           const x = m.l + band * i + (band - bw) / 2
           let acc = 0
-          const total = r.journalIntl + r.journalNatl + r.proceeding + r.poster
+          const total = r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster
           return (
             <g key={r.y}>
               {SERIES.map((s, si) => {
@@ -180,6 +183,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                       </b>
                       <span>วารสารนานาชาติ {r.journalIntl}</span>
                       <span>วารสารระดับชาติ {r.journalNatl}</span>
+                      <span>วารสารนอกฐานข้อมูล {r.journalNone}</span>
                       <span>Proceedings {r.proceeding}</span>
                       <span>โปสเตอร์/บทคัดย่อ {r.poster}</span>
                       <span className="muted">ไม่นับ/ไม่ทราบประเภท {r.excluded}</span>
@@ -202,7 +206,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
 type OutputsView = 'research' | 'type'
 
 /** Bar segments per view; colours match the per-year chart in the 'type' view. */
-const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalIntl' | 'journalNatl' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
+const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalIntl' | 'journalNatl' | 'journalNone' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
   research: [
     { key: 'research', cls: 'c-journal', th: 'งานวิจัย' },
     { key: 'other', cls: 'hatched', th: 'ผลงานอื่น (บทความวิชาการ/ปริทัศน์)' },
@@ -210,6 +214,7 @@ const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalInt
   type: [
     { key: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ' },
     { key: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ' },
+    { key: 'journalNone', cls: 'c-journal-none', th: 'วารสารนอกฐานข้อมูล' },
     { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
     { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
   ],
@@ -233,8 +238,9 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
         r,
         research: c.research,
         other: c.total - c.research,
-        journalIntl: used.filter((e) => e.pub.type === 'journal' && isInternational(e.pub)).length,
-        journalNatl: used.filter((e) => e.pub.type === 'journal' && !isInternational(e.pub)).length,
+        journalIntl: used.filter((e) => levelOf(e.pub) === 'intl').length,
+        journalNatl: used.filter((e) => levelOf(e.pub) === 'natl').length,
+        journalNone: used.filter((e) => levelOf(e.pub) === 'none').length,
         proceeding: ofType('proceeding'),
         poster: ofType('poster'),
         maybe: c.totalPossible - c.total,
@@ -247,7 +253,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
     .sort((a, b) =>
       view === 'research'
         ? b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th')
-        : b.research + b.other - (a.research + a.other) || b.journalIntl + b.journalNatl - (a.journalIntl + a.journalNatl) || a.name.localeCompare(b.name, 'th'),
+        : b.research + b.other - (a.research + a.other) || b.journalIntl + b.journalNatl + b.journalNone - (a.journalIntl + a.journalNatl + a.journalNone) || a.name.localeCompare(b.name, 'th'),
     )
   const segDefs = OUTPUT_SEGS[view]
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)) * 1.12)

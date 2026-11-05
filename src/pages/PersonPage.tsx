@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { evaluatePub, toBE, type PersonResult, type Settings } from '../rules'
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { journalLevel, journalTag } from '../tci'
+import { TCI } from '../tciIndex'
 
 export function PersonPage({ result, settings }: { result: PersonResult | undefined; settings: Settings }) {
   const [allYears, setAllYears] = useState(false)
@@ -113,7 +115,10 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
                         </>
                       )}</div>
                   </td>
-                  <td>{TYPE_LABEL[e.pub.type]}{e.pub.typeUncertain && ' ?'}</td>
+                  <td>
+                    {TYPE_LABEL[e.pub.type]}{e.pub.typeUncertain && ' ?'}
+                    {e.pub.type === 'journal' && <div className={`jl jl-${journalLevel(e.pub, TCI)?.level}`}>{journalTag(journalLevel(e.pub, TCI))}</div>}
+                  </td>
                   <td>{triLabel(e.research)}</td>
                   <td>{outside ? 'นอกช่วง' : triLabel(e.eligible)}</td>
                   <td className="reasons small">{e.reasons.map((x, i) => <div key={i}>{x}</div>)}</td>

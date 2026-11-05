@@ -214,7 +214,8 @@ export function dedupe(rows: RawPub[]): { row: RawPub; duplicates: number; membe
     // A duplicate without a year or DOI inherits one from its siblings.
     const year = best.year ?? g.find((r) => r.year !== null)?.year ?? null
     const doi = best.doi || g.find((r) => r.doi)?.doi || ''
-    return { row: { ...best, year, doi }, duplicates: g.length - 1, members: g }
+    const issn = [...new Set(g.flatMap((r) => (r.issn ?? '').split(';')).filter(Boolean))].join(';')
+    return { row: { ...best, year, doi, issn }, duplicates: g.length - 1, members: g }
   })
 }
 

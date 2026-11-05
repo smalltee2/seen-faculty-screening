@@ -32,7 +32,7 @@ npm run dev        # http://localhost:5173/seen-faculty-screening/
 
 GitHub Actions runs every day at 03:00 (Thailand time). It does three things:
 
-- refreshes `data/openalex.tsv`, `data/scopus.tsv` and `data/manual.tsv`
+- refreshes `data/openalex.tsv`, `data/scopus.tsv`, `data/manual.tsv`, the TCI journal list `data/tci_journals.csv` (tci-thailand.org) and the Scopus journal cache `data/scopus_journals.csv` (one `ISSN(x)` query per new ISSN)
 - commits whatever changed
 - rebuilds and redeploys the site
 
@@ -62,7 +62,7 @@ Elsevier accepts the key only from the University of Phayao network. GitHub's se
 
 What the job does:
 
-- It works in a separate clone at `~/Library/Application Support/seen-scopus/repo`, runs `fetch-sources.mjs --only=scopus` every day at 07:30, overwrites `data/scopus.tsv`, and commits and pushes only when it changed.
+- It works in a separate clone at `~/Library/Application Support/seen-scopus/repo`, runs `fetch-sources.mjs --only=scopus` every day at 07:30, overwrites `data/scopus.tsv` and `data/scopus_journals.csv`, and commits and pushes only when it changed.
 - The push makes GitHub rebuild the site.
 - If the Mac is asleep at 07:30, the job runs when it wakes. If it is off the university network, nothing changes.
 - The log is `~/Library/Logs/seen-scopus.log`.

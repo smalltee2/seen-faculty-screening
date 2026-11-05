@@ -7,6 +7,9 @@
 //      it is never written to the repository. Without a key this step is skipped.
 //   3. Admin Google Form: the response sheet published as CSV (URL in data/sources.json)
 //      -> data/manual.tsv
+//   4. TCI journal database (tci-thailand.org, the list behind its journal search):
+//      every journal with ISSN, E-ISSN and กลุ่ม -> data/tci_journals.csv. National
+//      journals are recognised by matching ISSN (OpenAlex/Scopus rows) or venue name.
 // Google Scholar is not fetched: it has no API and blocks automated access. The
 // Scholar export in data/publications.tsv is updated by hand with the console snippet.
 //
@@ -25,6 +28,9 @@ const CONFIG = {
   openalexOut: join(ROOT, 'data/openalex.tsv'),
   scopusOut: join(ROOT, 'data/scopus.tsv'),
   manualOut: join(ROOT, 'data/manual.tsv'),
+  tciOut: join(ROOT, 'data/tci_journals.csv'),
+  scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
+  tciUrl: 'https://tci-thailand.org/backend/journal/list_all_journal',
   firstYear: new Date().getFullYear() - 11, // ten years for the chart plus one
   userAgent: 'seen-faculty-screening (https://github.com/smalltee2/seen-faculty-screening)',
 }
@@ -74,7 +80,9 @@ function venueOf(w) {
   return v
 }
 
-const OA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'oa_type', 'source_type', 'oa_id']
+const OA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'oa_type', 'source_type', 'oa_id', 'issn']
+/** ISSNs of a work's source, "issn_l;issn;…" (OpenAlex) — used to match the TCI list. */
+const issnsOf = (src) => [...new Set([src?.issn_l, ...(src?.issn ?? [])].filter(Boolean))].join(';')
 
 async function fetchOpenAlex(faculty) {
   const previous = readTsv(CONFIG.openalexOut).rows
@@ -105,6 +113,7 @@ async function fetchOpenAlex(faculty) {
             oa_type: w.type ?? '',
             source_type: w.primary_location?.source?.type ?? '',
             oa_id: w.id.split('/').pop(),
+            issn: issnsOf(w.primary_location?.source),
           })
         }
         cursor = d.meta?.next_cursor && d.results.length ? d.meta.next_cursor : null
@@ -125,7 +134,7 @@ async function fetchOpenAlex(faculty) {
   log(`OpenAlex: ${out.length} rows for ${ok}/${tried} lecturers -> data/openalex.tsv`)
 }
 
-const SC_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'sc_type', 'source_type', 'eid', 'scopus_author_id']
+const SC_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'sc_type', 'source_type', 'eid', 'scopus_author_id', 'issn']
 
 async function scopusGet(url, key) {
   const headers = { 'X-ELS-APIKey': key, Accept: 'application/json' }
@@ -189,6 +198,7 @@ async function fetchScopus(faculty, key) {
             source_type: e['prism:aggregationType'] ?? '',
             eid: e.eid ?? '',
             scopus_author_id: aid,
+            issn: [e['prism:issn'], e['prism:eIssn']].filter(Boolean).join(';'),
           })
         }
         const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
@@ -284,6 +294,60 @@ async function fetchManual(faculty, url) {
   log(`Google Sheet: ${out.length} rows -> data/manual.tsv`)
 }
 
+/** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
+ *  Scopus once whether the journal is indexed (ISSN(x) returns documents). Cached in
+ *  data/scopus_journals.csv so a new article in a Scopus journal counts as international
+ *  before Scopus itself has indexed it. Only ISSNs not yet in the cache are queried. */
+async function fetchScopusJournals(key) {
+  if (!key) {
+    log('Scopus journals: no SCOPUS_API_KEY; skipped')
+    return
+  }
+  const prev = existsSync(CONFIG.scopusJournalsOut) ? parseCsv(readFileSync(CONFIG.scopusJournalsOut, 'utf8')) : [['issn', 'in_scopus', 'name', 'checked']]
+  const header = prev[0]
+  const rows = prev.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
+  const known = new Set(rows.map((r) => r.issn))
+  const seen = new Set()
+  for (const f of [CONFIG.openalexOut, CONFIG.scopusOut]) for (const r of readTsv(f).rows) for (const i of (r.issn ?? '').split(';')) if (i) seen.add(i.trim())
+  const todo = [...seen].filter((i) => !known.has(i))
+  let added = 0
+  for (const issn of todo) {
+    try {
+      const d = await scopusGet(`https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(`ISSN(${issn})`)}&count=1`, key)
+      const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
+      const name = d['search-results']?.entry?.[0]?.['prism:publicationName'] ?? ''
+      rows.push({ issn, in_scopus: total > 0 ? 'yes' : 'no', name, checked: new Date().toISOString().slice(0, 10) })
+      added++
+      await sleep(150)
+    } catch (e) {
+      warn(`Scopus journals: ISSN ${issn} failed (${e.message})`)
+      if (e.fatal) break
+    }
+  }
+  rows.sort((a, b) => a.issn.localeCompare(b.issn))
+  writeFileSync(CONFIG.scopusJournalsOut, [header.join(','), ...rows.map((r) => header.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
+  log(`Scopus journals: ${rows.length} ISSNs cached (${added} new), ${rows.filter((r) => r.in_scopus === 'yes').length} in Scopus -> data/scopus_journals.csv`)
+}
+
+const csvCell = (v) => {
+  const t = clean(v)
+  return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
+}
+
+/** The TCI journal database: one POST returns every journal (about 1,700 rows). */
+async function fetchTci() {
+  const res = await fetch(CONFIG.tciUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': CONFIG.userAgent }, body: '{}' })
+  if (!res.ok) throw new Error(`TCI HTTP ${res.status}`)
+  const d = await res.json()
+  const js = Array.isArray(d.journals) ? d.journals : []
+  if (js.length < 500) throw new Error(`TCI returned only ${js.length} journals; keeping the previous file`)
+  const header = ['id', 'name_eng', 'name_local', 'abbrev_name', 'issn', 'eissn', 'tci_tier', 'status', 'main_area']
+  const lines = js.map((j) => header.map((h) => csvCell(j[h])).join(','))
+  writeFileSync(CONFIG.tciOut, [header.join(','), ...lines].join('\n') + '\n')
+  const tiers = js.reduce((m, j) => ((m[j.tci_tier] = (m[j.tci_tier] ?? 0) + 1), m), {})
+  log(`TCI: ${js.length} journals (กลุ่ม 1: ${tiers['1'] ?? 0}, 2: ${tiers['2'] ?? 0}, 3: ${tiers['3'] ?? 0}) -> data/tci_journals.csv`)
+}
+
 const faculty = (() => {
   const rows = parseCsv(readFileSync(CONFIG.faculty, 'utf8'))
   const h = rows[0].map((x) => x.trim())
@@ -291,7 +355,7 @@ const faculty = (() => {
 })()
 const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sources, 'utf8')) : {}
 
-// --only=openalex|scopus|manual runs one source (the iMac job runs --only=scopus).
+// --only=openalex|scopus|manual|tci runs one source (the iMac job runs --only=scopus).
 const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? ''
 const run = (name) => !only || only === name
 // Scopus Search accepts the key from any network (only Author Search is refused), so both
@@ -300,7 +364,16 @@ const scopusHere = true
 
 if (run('openalex')) await fetchOpenAlex(faculty)
 if (run('scopus')) {
-  if (scopusHere) await fetchScopus(faculty, process.env.SCOPUS_API_KEY ?? '')
-  else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
+  if (scopusHere) {
+    await fetchScopus(faculty, process.env.SCOPUS_API_KEY ?? '')
+    await fetchScopusJournals(process.env.SCOPUS_API_KEY ?? '')
+  } else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
 }
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
+if (run('tci')) {
+  try {
+    await fetchTci()
+  } catch (e) {
+    warn(`TCI: ${e.message}`)
+  }
+}

@@ -22,7 +22,7 @@ git pull --rebase -q || { log "ERROR: git pull failed"; exit 1; }
 # previous rows, so nothing changes and nothing is pushed.
 SCOPUS_API_KEY="$KEY" node scripts/fetch-sources.mjs --only=scopus || { log "ERROR: Scopus fetch failed"; exit 1; }
 
-git add data/scopus.tsv
+git add data/scopus.tsv data/scopus_journals.csv
 if git diff --cached --quiet; then
   log "No Scopus changes"
   exit 0

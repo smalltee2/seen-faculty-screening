@@ -32,6 +32,8 @@ export interface RawPub {
   extType?: string
   /** OpenAlex source type / Scopus aggregation type (journal, conference, repository …). */
   sourceType?: string
+  /** ISSNs of the venue, ";"-separated (OpenAlex / Scopus rows only). */
+  issn?: string
   /** Admin form answer to "เป็นงานวิจัยหรือไม่". */
   manualResearch?: boolean
   submitted?: string
@@ -57,6 +59,21 @@ export interface DataBundle {
   faculty: Faculty[]
   publications: RawPub[]
   overrides: Override[]
+  /** TCI journal list (data/tci_journals.csv); absent in builds made before it was added. */
+  tci?: TciJournal[]
+  /** Journals indexed in Scopus, by ISSN (data/scopus_journals.csv). */
+  scopusJournals?: { issn: string; name: string }[]
+}
+
+export interface TciJournal {
+  nameEng: string
+  nameLocal: string
+  abbrev: string
+  issn: string
+  eissn: string
+  /** '1' | '2' | '3' as published by TCI. */
+  tier: string
+  status: string
 }
 
 /** `unknown` = the classifier could not decide; always needs review. */

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
-import { LecturerOutputs, PubsPerYear, ReadinessPie, isInternational, type OutputsView } from '../charts'
+import { LecturerOutputs, PubsPerYear, ReadinessPie, levelOf, type OutputsView } from '../charts'
 import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -146,7 +146,10 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           <h3>
             จำนวนผลงานต่อปี แยกตามประเภท
           </h3>
-          <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีเขียว = ช่วง 5 ปีที่ใช้ประเมิน</p>
+          <p className="note">
+            รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีเขียว = ช่วง 5 ปีที่ใช้ประเมิน · วารสารนานาชาติ = อยู่ใน Scopus · ระดับชาติ = อยู่ใน TCI กลุ่ม 1–2 ·
+            นอกฐานข้อมูล = ไม่พบในทั้งสองฐาน
+          </p>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
           <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} />
         </section>
@@ -184,8 +187,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings: Settings }) {
   const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
   const types = [
-    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && isInternational(p) },
-    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && !isInternational(p) },
+    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'intl' },
+    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'natl' },
+    { id: 'journalNone', cls: 'c-journal-none', th: 'วารสารนอกฐานข้อมูล', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'none' },
     { id: 'proceeding', cls: 'c-proceeding', th: 'Proceedings', match: (p: PersonResult['pubs'][number]) => p.type === 'proceeding' },
     { id: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ', match: (p: PersonResult['pubs'][number]) => p.type === 'poster' },
   ]

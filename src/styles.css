@@ -956,3 +956,12 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 .chart .c-journal-natl { fill: url(#hatch-natl); stroke: var(--c-journal); stroke-width: 1; }
 .chart .hatch-natl-bg { fill: var(--panel); }
 .chart .hatch-natl-line { stroke: var(--c-journal); stroke-width: 2; }
+
+/* Journals outside Scopus and TCI: journal colour, light fill */
+.swatch.c-journal-none { background: color-mix(in srgb, var(--c-journal) 25%, var(--panel)); border: 1px solid var(--c-journal); }
+.chart .c-journal-none { fill: color-mix(in srgb, var(--c-journal) 25%, var(--panel)); stroke: var(--c-journal); stroke-width: 1; }
+/* Journal level tag on the person page */
+.jl { font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
+.jl-intl { color: var(--c-journal); }
+.jl-natl { color: var(--band); }
+.jl-none { color: var(--muted); font-weight: 500; }
