@@ -14,6 +14,8 @@ const data = raw as DataBundle
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
+// สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
+const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/item/6942-2022-07-22-03-17-22'
 
 type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string } | { page: 'admin' }
 
@@ -142,8 +144,11 @@ export function App() {
         <footer className="footer">
           <p>
             แหล่งเกณฑ์: ประกาศคณะกรรมการมาตรฐานการอุดมศึกษา (ราชกิจจานุเบกษา เล่ม 139 ตอนพิเศษ 212 ง, 9 กันยายน 2565) เรื่อง
-            เกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี พ.ศ. 2565 ข้อ 10.1 (ปริญญาตรีทางวิชาการ; ข้อ 10.2 ใช้คุณสมบัติรายบุคคลเดียวกัน) และ
-            เกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565 ข้อ 9.3–9.4 (ปริญญาโท และปริญญาเอก) ·{' '}
+            เกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี พ.ศ. 2565 ข้อ 10.1 (ปริญญาตรีทางวิชาการ; ข้อ 10.2 ใช้คุณสมบัติรายบุคคลเดียวกัน) ·{' '}
+            <a href={BACHELOR_ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
+              ฉบับปริญญาตรี (สป.อว.)
+            </a>{' '}
+            และ เกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565 ข้อ 9.3–9.4 (ปริญญาโท และปริญญาเอก) ·{' '}
             <a href={ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
               ฉบับบัณฑิตศึกษา (PDF, สป.อว.)
             </a>
