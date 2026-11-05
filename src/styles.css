@@ -1,27 +1,28 @@
-/* Formal academic style in the SEEN logo colours (orange, with the logo's green as
-   the second accent): warm paper ground, orange band with a green rule, Noto Serif Thai for headings,
+/* Formal academic style in the two SEEN logo colours: deep logo-green band with an
+   orange rule, orange for actions and highlights, green ramp for pass counts, Noto Serif Thai for headings,
    Sarabun for text (the face of Thai official documents), IBM Plex Mono for figures.
    Chart palette validated for colour-blind separation in light and dark themes. */
 :root {
-  --bg: #f6f4ef;
+  --bg: #f4f5f0;
   --panel: #ffffff;
-  --panel-hover: #fbf1ea;
-  --sub-panel: #fbf8f5;
-  --line: #e3dfd6;
-  --line-strong: #cbc5b8;
-  --fg: #1f1b2b;
-  --muted: #5d5868;
-  --subtle: #8c8796;
+  --panel-hover: #f0f6f1;
+  --sub-panel: #f8faf6;
+  --line: #dfe3da;
+  --line-strong: #c4cbbf;
+  --fg: #1b211c;
+  --muted: #55605a;
+  --subtle: #86908a;
   --ember: #c4510f;
   --ember-hover: #a2420b;
-  --ember-soft: rgba(243, 114, 37, 0.08);
-  --ember-glow: rgba(243, 114, 37, 0.26);
-  --gold: #2f8f3e;
+  --ember-soft: rgba(243, 114, 37, 0.07);
+  --ember-glow: rgba(243, 114, 37, 0.24);
+  --gold: #2b8a3e;
   --gold-soft: rgba(57, 181, 74, 0.12);
-  --band: #c4510f;
+  --band: #1d5c33;
   --on-ember: #ffffff;
+  --rule: #f37225;
   --band-fg: #ffffff;
-  --band-muted: #ffe1cc;
+  --band-muted: #cde5d3;
   --focus: #2b5fd9;
   --glass-bg: rgba(255, 255, 255, 0.92);
 
@@ -41,8 +42,8 @@
   --c-poster: #2f9e44;
   --window: rgba(57, 181, 74, 0.08);
 
-  --shadow-sm: 0 1px 1px rgba(31, 27, 43, 0.04);
-  --shadow-md: 0 2px 8px rgba(31, 27, 43, 0.08);
+  --shadow-sm: 0 1px 1px rgba(20, 40, 25, 0.05);
+  --shadow-md: 0 2px 8px rgba(20, 40, 25, 0.08);
 
   --font-display: 'Noto Serif Thai', 'Sarabun', Georgia, serif;
   --font-body: 'Sarabun', 'IBM Plex Sans Thai', -apple-system, 'Segoe UI', sans-serif;
@@ -57,28 +58,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #17130f;
-    --panel: #211b16;
-    --panel-hover: #2c241d;
-    --sub-panel: #1c1712;
+    --bg: #111511;
+    --panel: #192019;
+    --panel-hover: #222b22;
+    --sub-panel: #151b15;
     --line: rgba(255, 255, 255, 0.09);
     --line-strong: rgba(255, 255, 255, 0.18);
-    --fg: #f3f0f8;
-    --muted: #b3adc2;
-    --subtle: #827c92;
+    --fg: #eef2ee;
+    --muted: #a9b4ab;
+    --subtle: #7b867d;
     --ember: #ff9a5c;
     --ember-hover: #ffb27f;
     --ember-soft: rgba(255, 154, 92, 0.1);
     --ember-glow: rgba(255, 154, 92, 0.28);
     --gold: #5cc46e;
     --gold-soft: rgba(92, 196, 110, 0.14);
-    --band: #3a1d0c;
-  --on-ember: #1f130b;
+    --band: #123b21;
     --on-ember: #1f130b;
-    --band-fg: #ffffff;
-    --band-muted: #f5cdb3;
+    --rule: #ff8a3d;
+  --band-fg: #ffffff;
+    --band-muted: #b9dcc1;
     --focus: #7ea6ff;
-    --glass-bg: rgba(28, 25, 36, 0.92);
+    --glass-bg: rgba(22, 28, 22, 0.92);
     --met: #6fcf97;
     --met-bg: rgba(46, 139, 87, 0.16);
     --met-mark: #3fae6f;
@@ -99,26 +100,27 @@
   }
 }
 :root[data-theme='dark'] {
-  --bg: #17130f;
-  --panel: #211b16;
-  --panel-hover: #2c241d;
-  --sub-panel: #1c1712;
+  --bg: #111511;
+  --panel: #192019;
+  --panel-hover: #222b22;
+  --sub-panel: #151b15;
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.18);
-  --fg: #f3f0f8;
-  --muted: #b3adc2;
-  --subtle: #827c92;
+  --fg: #eef2ee;
+  --muted: #a9b4ab;
+  --subtle: #7b867d;
   --ember: #ff9a5c;
   --ember-hover: #ffb27f;
   --ember-soft: rgba(255, 154, 92, 0.1);
   --ember-glow: rgba(255, 154, 92, 0.28);
   --gold: #5cc46e;
   --gold-soft: rgba(92, 196, 110, 0.14);
-  --band: #3a1d0c;
+  --band: #123b21;
+  --rule: #ff8a3d;
   --band-fg: #ffffff;
-  --band-muted: #f5cdb3;
+  --band-muted: #b9dcc1;
   --focus: #7ea6ff;
-  --glass-bg: rgba(28, 25, 36, 0.92);
+  --glass-bg: rgba(22, 28, 22, 0.92);
   --met: #6fcf97;
   --met-bg: rgba(46, 139, 87, 0.16);
   --met-mark: #3fae6f;
@@ -170,7 +172,7 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
 .topbar {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
   background: var(--band); color: var(--band-fg);
-  border-bottom: 3px solid var(--gold);
+  border-bottom: 3px solid var(--rule);
 }
 .topbar-inner {
   max-width: 1280px; margin: 0 auto;
@@ -201,7 +203,7 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
   border-bottom: 3px solid transparent; margin-bottom: -3px;
 }
 .tabsbar a:hover { color: var(--band-fg); text-decoration: none; }
-.tabsbar a[aria-current='page'] { color: var(--band-fg); border-bottom-color: var(--gold); font-weight: 600; }
+.tabsbar a[aria-current='page'] { color: var(--band-fg); border-bottom-color: var(--rule); font-weight: 600; }
 .tabsbar .seg-count { background: rgba(255, 255, 255, 0.14); color: var(--band-fg); }
 
 /* Segmented control (header nav and in-page toggles) */
@@ -326,8 +328,8 @@ select, input[type='search'], input:not([type]) {
 .clause { color: var(--ember); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .role-num { text-align: right; color: var(--muted); font-size: 0.8rem; }
 .role-num b { color: var(--pie-figure); }
-/* Role pass bars in the orange ramp shared with the readiness pie:
-   passed = deep orange, needs review = mid, not passed = pale peach. */
+/* Role pass bars in the green ramp shared with the readiness pie:
+   passed = deep green, needs review = mid, not passed = pale green. */
 .sbar { display: flex; gap: 2px; height: 12px; border-radius: var(--radius-sm); overflow: hidden; background: var(--pie-4); }
 .sbar span { display: block; height: 100%; }
 .sbar-met { background: var(--pie-1); }
@@ -613,13 +615,13 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .role-level-head { font: 600 0.92rem/1.4 var(--font-display); display: flex; gap: 8px; align-items: baseline; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
 @media (min-width: 861px) { .viz-grid { grid-template-columns: minmax(260px, 1fr) minmax(0, 1.6fr); } }
 
-/* Readiness pie infographic: white panel, slices in the site's orange ramp
-   (more roles passed = darker), orange figures, green dotted leaders. */
-:root { --pie-1: #c4510f; --pie-2: #f08a4b; --pie-3: #f7b98f; --pie-4: #fbe2d0; --pie-gap: #ffffff; --pie-figure: #b5470c; --pie-lead: #2f8f3e; }
+/* Readiness pie infographic: white panel, slices in the site's green ramp
+   (more roles passed = darker), green figures, orange dotted leaders. */
+:root { --pie-1: #1f7a3a; --pie-2: #5cb26c; --pie-3: #a6d6ae; --pie-4: #dcefdf; --pie-gap: #ffffff; --pie-figure: #1d6b34; --pie-lead: #e0661c; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --pie-1: #ff9a5c; --pie-2: #c96a33; --pie-3: #8a4a26; --pie-4: #4d2c1a; --pie-gap: #211b16; --pie-figure: #ffb27f; --pie-lead: #5cc46e; }
+  :root:not([data-theme='light']) { --pie-1: #5cc46e; --pie-2: #3c8f4e; --pie-3: #2a6338; --pie-4: #203a26; --pie-gap: #192019; --pie-figure: #86dc95; --pie-lead: #ff9a5c; }
 }
-:root[data-theme='dark'] { --pie-1: #ff9a5c; --pie-2: #c96a33; --pie-3: #8a4a26; --pie-4: #4d2c1a; --pie-gap: #211b16; --pie-figure: #ffb27f; --pie-lead: #5cc46e; }
+:root[data-theme='dark'] { --pie-1: #5cc46e; --pie-2: #3c8f4e; --pie-3: #2a6338; --pie-4: #203a26; --pie-gap: #192019; --pie-figure: #86dc95; --pie-lead: #ff9a5c; }
 .pie-info { margin: 0; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--ember); border-radius: var(--radius-lg); padding: 20px 22px; }
 .pie-stage { position: relative; }
 .pie-svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
@@ -708,7 +710,7 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 
 /* 3D readiness pie */
 .pie3d .pie-svg { overflow: visible; }
-.pie-floor { fill: rgba(60, 30, 10, 0.16); }
+.pie-floor { fill: rgba(15, 40, 22, 0.16); }
 .pie3d-top { stroke: color-mix(in srgb, var(--panel) 70%, transparent); stroke-width: 1; }
 .pie3d-pin line { stroke: var(--fg); stroke-width: 1.5; }
 .pie3d-pin-foot { fill: var(--fg); }
