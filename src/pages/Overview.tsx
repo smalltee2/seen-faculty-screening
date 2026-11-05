@@ -36,7 +36,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <div className="finding">
         <span>
-          ปีการประเมิน พ.ศ. {Y}: อาจารย์ผ่านคุณสมบัติครบทุกบทบาทของหลักสูตร ป.โท และ ป.เอก <b className="mono">{fullyMet}</b> จาก{' '}
+          ปีการประเมิน พ.ศ. {Y}: อาจารย์ผ่านครบทุกคุณสมบัติของหลักสูตร ป.โท และ ป.เอก <b className="mono">{fullyMet}</b> จาก{' '}
           <span className="mono">{results.length}</span> คน · อาจารย์ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติ ป.โท <b className="mono">{ms.met.length}</b> คน ป.เอก{' '}
           <b className="mono">{phd.met.length}</b> คน (เกณฑ์อย่างน้อย 3 คน)
           {atRisk > 0 && (
@@ -49,7 +49,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       </div>
 
       <div className="metrics">
-        <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกบทบาท ${fullyMet} คน`} />
+        <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกคุณสมบัติ ${fullyMet} คน`} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.โท (ข้อ 9.3.2)" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.เอก (ข้อ 9.4.2)" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
         <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} sub="นับผลงานที่มีผู้เขียนร่วมหลายคนเพียงครั้งเดียว" />
@@ -59,10 +59,10 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <span className="sec-no">1</span>สถานะคุณสมบัติอาจารย์
       </h2>
       <ReadinessPie results={results} />
-      <p className="note pie-note">พิจารณา 10 บทบาทของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4) ปีการประเมิน พ.ศ. {Y}</p>
+      <p className="note pie-note">พิจารณา 10 คุณสมบัติของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4) ปีการประเมิน พ.ศ. {Y}</p>
       <div className="role-summary-panel">
         <section className="panel">
-          <h3>จำนวนอาจารย์ที่ผ่านแต่ละบทบาท</h3>
+          <h3>จำนวนอาจารย์ที่ผ่านแต่ละคุณสมบัติ</h3>
           {SHOWN_LEVELS.map((l) => (
             <div key={l.id} className="role-level">
               <div className="role-level-head">

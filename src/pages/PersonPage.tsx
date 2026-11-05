@@ -48,7 +48,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
       </dl>
 
       <div className="table-head">
-        <h2>ผลตามบทบาท (ปีที่ประเมิน พ.ศ. {toBE(settings.year)})</h2>
+        <h2>ผลการตรวจคุณสมบัติ (ปีที่ประเมิน พ.ศ. {toBE(settings.year)})</h2>
         <div className="actions no-print"><Button onClick={exportRoles}>ดาวน์โหลด CSV</Button></div>
       </div>
       {SHOWN_LEVELS.map((l) => (
@@ -56,7 +56,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
           <table className="data">
             <caption>{l.th} ({l.clause})</caption>
             <thead>
-              <tr><th>ข้อ</th><th>บทบาท (Role)</th><th>ผล</th><th className="num">ผลงาน</th><th className="num">วิจัย</th><th>เหตุผล (Reason)</th></tr>
+              <tr><th>ข้อ</th><th>คุณสมบัติ (Role)</th><th>ผล</th><th className="num">ผลงาน</th><th className="num">วิจัย</th><th>เหตุผล (Reason)</th></tr>
             </thead>
             <tbody>
               {SHOWN_ROLES.filter((r) => r.level === l.id).map((role) => {
