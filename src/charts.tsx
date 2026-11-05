@@ -223,7 +223,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           <i className="swatch swatch-hatch" /> ผลงานอื่น (บทความวิชาการ/ปริทัศน์)
         </span>
         <span>
-          <i className="swatch swatch-rule" /> เกณฑ์ 3 เรื่อง
+          <i className="swatch swatch-rule" /> เกณฑ์ ≥ 3 เรื่อง
         </span>
         <span>
           <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน ถ้าไม่มีผลงานเพิ่ม
@@ -244,10 +244,6 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
             </text>
           </g>
         ))}
-        <line className="rule" x1={sx(3)} x2={sx(3)} y1={m.t - 12} y2={H - m.b} />
-        <text className="rule-label" x={sx(3) + 4} y={m.t - 6}>
-          ≥ 3 เรื่อง
-        </text>
         {rows.map((x, i) => {
           const y = m.t + i * rowH + (rowH - bh) / 2
           const segs = [
@@ -315,6 +311,14 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
             </g>
           )
         })}
+        {/* Threshold drawn over the bars (with a surface halo) so it stays visible across them */}
+        <g className="rule-group">
+          <line className="rule-halo" x1={sx(3)} x2={sx(3)} y1={m.t - 14} y2={H - m.b} />
+          <line className="rule" x1={sx(3)} x2={sx(3)} y1={m.t - 14} y2={H - m.b} />
+          <text className="rule-label" x={sx(3) + 6} y={m.t - 5}>
+            เกณฑ์ ≥ 3 เรื่อง
+          </text>
+        </g>
         <line className="baseline" x1={m.l} x2={m.l} y1={m.t - 6} y2={H - m.b} />
       </svg>
       {el}

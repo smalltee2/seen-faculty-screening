@@ -22,6 +22,7 @@
   --on-ember: #ffffff;
   --rule: #f37225;
   --tab-active-fg: #1d5c33;
+  --rule-line: #1d5c33;
   --band-fg: #ffffff;
   --band-muted: #cde5d3;
   --focus: #2b5fd9;
@@ -78,6 +79,7 @@
     --on-ember: #1f130b;
     --rule: #ff8a3d;
     --tab-active-fg: #eef2ee;
+    --rule-line: #6fd081;
   --band-fg: #ffffff;
     --band-muted: #b9dcc1;
     --focus: #7ea6ff;
@@ -120,6 +122,7 @@
   --band: #123b21;
   --rule: #ff8a3d;
   --tab-active-fg: #eef2ee;
+  --rule-line: #6fd081;
   --band-fg: #ffffff;
   --band-muted: #b9dcc1;
   --focus: #7ea6ff;
@@ -611,8 +614,13 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .clause { color: var(--ember); }
 .window-label, .chart .window-label { fill: var(--gold); }
 .chart .window-band { stroke: var(--gold); }
-.chart .rule, .swatch-rule { stroke: var(--not-mark); background: var(--not-mark); }
-.chart .rule-label { fill: var(--not); }
+/* Threshold line in the band green: distinct from the orange bars and from the red risk frames */
+.chart .rule-group { pointer-events: none; }
+.chart .rule, .swatch-rule { stroke: var(--rule-line); background: var(--rule-line); }
+.chart .rule { stroke-width: 3; }
+.chart .rule-halo { stroke: var(--panel); stroke-width: 7; }
+.swatch-rule { width: 3px; }
+.chart .rule-label { fill: var(--rule-line); font: 700 12px var(--font-body); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
 .swatch-window { border-color: var(--gold); }
 
 .footer { border-top: 3px solid var(--gold); padding-top: 14px; }
