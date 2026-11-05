@@ -87,7 +87,7 @@ const SOURCES = [
   { file: CONFIG.publications, name: 'scholar', label: 'publications.tsv', required: true },
   { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
   { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
-  { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted }) },
+  { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted, issn: p.issn ?? '' }) },
 ]
 const publications = SOURCES.flatMap((src) => {
   if (!src.required && !existsSync(src.file)) return []

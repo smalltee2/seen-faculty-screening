@@ -239,7 +239,23 @@ const FORM = {
   research: 'เป็นงานวิจัยหรือไม่',
 }
 const TYPE_MAP = { 'บทความวารสาร (journal)': 'journal', 'บทความฉบับสมบูรณ์ในงานประชุม (proceedings)': 'proceeding', 'โปสเตอร์/บทคัดย่อในงานประชุม (poster)': 'poster' }
-const MANUAL_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'type', 'is_research', 'submitted']
+const MANUAL_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'type', 'is_research', 'submitted', 'issn']
+
+/** ISSNs of a DOI's journal from OpenAlex, so admin-form rows get the same national /
+ *  international check as fetched rows. Previous answers are reused; '' when unknown. */
+async function issnByDoi(doi, previous) {
+  const key = doi.trim().toLowerCase()
+  if (!key) return ''
+  const seen = previous.find((r) => (r.doi ?? '').trim().toLowerCase() === key && r.issn)
+  if (seen) return seen.issn
+  try {
+    const w = await getJson(`https://api.openalex.org/works/https://doi.org/${encodeURIComponent(key)}?select=primary_location`)
+    await sleep(150)
+    return issnsOf(w.primary_location?.source)
+  } catch {
+    return ''
+  }
+}
 
 async function fetchManual(faculty, url) {
   if (!url) {
@@ -285,13 +301,16 @@ async function fetchManual(faculty, url) {
       venue: `${venue}, ${year}`,
       cites: 0,
       doi: col(r, 'doi'),
+      issn: '',
       type,
       is_research: col(r, 'research').startsWith('ใช่') ? 'yes' : 'no',
       submitted: col(r, 'timestamp'),
     })
   }
+  const previousManual = readTsv(CONFIG.manualOut).rows
+  for (const r of out) r.issn = await issnByDoi(r.doi, previousManual)
   writeTsv(CONFIG.manualOut, MANUAL_HEADER, out)
-  log(`Google Sheet: ${out.length} rows -> data/manual.tsv`)
+  log(`Google Sheet: ${out.length} rows (${out.filter((r) => r.issn).length} with ISSN from DOI) -> data/manual.tsv`)
 }
 
 /** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
