@@ -8,10 +8,12 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
   if (!result) return <p>ไม่พบอาจารย์รายนี้ · <a href="#/">กลับหน้าภาพรวม</a></p>
   const p = result.person
   const [from, to] = [settings.year - 4, settings.year]
-  const evals = result.pubs
+  // Screening view: list only outputs that count (journal, proceedings, poster); the rest are hidden.
+  const inRange = result.pubs
     .map((pub) => evaluatePub(pub, p, settings))
     .filter((e) => allYears || (e.pub.year !== null && e.pub.year >= from && e.pub.year <= to))
-    .sort((a, b) => (b.pub.year ?? 0) - (a.pub.year ?? 0))
+  const evals = inRange.filter((e) => e.eligible !== 'no').sort((a, b) => (b.pub.year ?? 0) - (a.pub.year ?? 0))
+  const hidden = inRange.length - evals.length
   const scholar = p.scholarId ? `https://scholar.google.com/citations?user=${encodeURIComponent(p.scholarId)}` : null
 
   const exportRoles = () =>
@@ -79,8 +81,9 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
 
       <div className="table-head">
         <h2>
-          ผลงาน {allYears ? '(ทุกปี)' : `ในช่วง พ.ศ. ${toBE(from)}–${toBE(to)}`} · {evals.length} รายการ
+          ผลงานที่นับ {allYears ? '(ทุกปี)' : `ในช่วง พ.ศ. ${toBE(from)}–${toBE(to)}`} · {evals.length} รายการ
         </h2>
+        {hidden > 0 && <span className="muted small">ไม่แสดงผลงานที่ไม่เข้าเกณฑ์ {hidden} รายการ</span>}
         <div className="actions no-print">
           <label className="inline-toggle"><input type="checkbox" checked={allYears} onChange={(e) => setAllYears(e.target.checked)} /> แสดงทุกปี</label>
           <Button onClick={exportPubs}>ดาวน์โหลด CSV</Button>
