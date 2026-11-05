@@ -134,20 +134,23 @@ async function scopusGet(url, key) {
   return getJson(url, 3, headers)
 }
 
-/** Scopus author ID from faculty.csv, or a unique name match at University of Phayao. */
-async function scopusAuthorId(f, key) {
-  if (f.scopus_id) return f.scopus_id
-  const parts = f.name_en.split(' ')
-  const q = `AUTHLASTNAME(${parts.slice(1).join(' ')}) AND AUTHFIRST(${parts[0]}) AND AFFIL(Phayao)`
-  const d = await scopusGet(`https://api.elsevier.com/content/search/author?query=${encodeURIComponent(q)}&count=5`, key)
-  const hits = d['search-results']?.entry?.filter((e) => e['dc:identifier']) ?? []
-  if (hits.length !== 1) {
-    warn(`${f.name_en}: Scopus author search found ${hits.length} matches; add scopus_id to faculty.csv`)
-    return ''
+/** Scopus query for one lecturer. The key is not entitled to Elsevier's Author Search
+ *  (AUTHORIZATION_ERROR), so the Scopus author ID comes from faculty.csv (scopus_id) or
+ *  from the lecturer's OpenAlex record; without one, search by name + Phayao affiliation. */
+async function scopusQuery(f) {
+  let id = f.scopus_id
+  if (!id && f.openalex_id) {
+    try {
+      const a = await getJson(`https://api.openalex.org/authors/${encodeURIComponent(f.openalex_id)}?select=ids`)
+      id = String(a.ids?.scopus ?? '').match(/authorID=(\d+)/)?.[1] ?? ''
+    } catch {
+      /* fall back to the name query */
+    }
   }
-  const id = hits[0]['dc:identifier'].replace('AUTHOR_ID:', '')
-  log(`${f.name_en}: Scopus author ${id} (found by name; add it to faculty.csv scopus_id to pin it)`)
-  return id
+  if (id) return { query: `AU-ID(${id})`, id }
+  const parts = f.name_en.split(' ')
+  // Scopus indexes first names as initials: AUTHFIRST(Teerachai) finds nothing, AUTHOR-NAME(Last, T) works.
+  return { query: `AUTHOR-NAME(${parts.slice(1).join(' ')}, ${parts[0][0]}) AND AFFIL(Phayao)`, id: '' }
 }
 
 async function fetchScopus(faculty, key) {
@@ -161,14 +164,10 @@ async function fetchScopus(faculty, key) {
   let ok = 0
   for (const f of faculty) {
     try {
-      const aid = await scopusAuthorId(f, key)
-      if (!aid) {
-        out.push(...previous.filter((r) => r.key === f.name_en))
-        continue
-      }
+      const { query, id: aid } = await scopusQuery(f)
       const rows = []
       for (let start = 0; ; start += 25) {
-        const q = `AU-ID(${aid}) AND PUBYEAR > ${CONFIG.firstYear - 1}`
+        const q = `${query} AND PUBYEAR > ${CONFIG.firstYear - 1}`
         const d = await scopusGet(`https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(q)}&count=25&start=${start}`, key)
         const entries = (d['search-results']?.entry ?? []).filter((e) => e['dc:title'])
         for (const e of entries) {
@@ -198,7 +197,7 @@ async function fetchScopus(faculty, key) {
       }
       out.push(...rows)
       ok++
-      log(`${f.name_en}: ${rows.length} Scopus documents`)
+      log(`${f.name_en}: ${rows.length} Scopus documents (${aid ? `AU-ID ${aid}` : 'name + Phayao'})`)
     } catch (e) {
       if (e.fatal) {
         // The key itself was refused: the same answer would come for everyone, so stop here.
@@ -293,10 +292,9 @@ const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sour
 // --only=openalex|scopus|manual runs one source (the iMac job runs --only=scopus).
 const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? ''
 const run = (name) => !only || only === name
-// Elsevier refuses the key from GitHub's servers without an institutional token, so in
-// GitHub Actions Scopus is fetched only when SCOPUS_INSTTOKEN is set; otherwise the iMac
-// job (scripts/scopus-daily.sh) updates data/scopus.tsv from the university network.
-const scopusHere = !process.env.GITHUB_ACTIONS || !!process.env.SCOPUS_INSTTOKEN
+// Scopus Search accepts the key from any network (only Author Search is refused), so both
+// GitHub Actions and the iMac job (scripts/scopus-daily.sh) can update data/scopus.tsv.
+const scopusHere = true
 
 if (run('openalex')) await fetchOpenAlex(faculty)
 if (run('scopus')) {
