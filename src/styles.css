@@ -938,3 +938,15 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 /* Pie fills its dashboard panel */
 .dash-pie .pie-stage { width: 100%; }
 .dash .pie-svg { width: 100%; height: auto; }
+
+/* Last-updated stamp, top right of the header */
+.updated-at { margin-left: auto; align-self: flex-start; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; color: var(--band-muted); font-size: 0.78rem; white-space: nowrap; }
+.updated-at time { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .updated-at { display: none; } }
+
+/* Type summary table under the per-year chart */
+.type-summary { margin-top: 10px; }
+.type-summary table.data.compact th, .type-summary table.data.compact td { padding: 4px 6px; font-size: 0.78rem; }
+.type-summary td:first-child, .type-summary th:first-child { white-space: nowrap; }
+.type-summary td .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.type-summary tr.total td { border-top: 2px solid var(--line-strong); }

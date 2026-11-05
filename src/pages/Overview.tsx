@@ -148,6 +148,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           </h3>
           <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีเขียว = ช่วง 5 ปีที่ใช้ประเมิน</p>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
+          <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} />
         </section>
       </div>
 
@@ -175,5 +176,59 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <LecturerOutputs key={g.id} results={results} settings={settings} group={g.id} view={view} />
       </section>
     </>
+  )
+}
+
+/** Outputs by type in the 5-year window, per year and total: the same counting as the chart above
+ *  (every lecturer's own list, so a co-authored paper counts once per lecturer). */
+function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings: Settings }) {
+  const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
+  const types = [
+    { id: 'journal', th: 'วารสาร' },
+    { id: 'proceeding', th: 'Proceedings' },
+    { id: 'poster', th: 'โปสเตอร์/บทคัดย่อ' },
+  ] as const
+  const count = (type: string, y: number) => pubs.filter((p) => p.year === y && p.type === type).length
+  const rows = types.map((t) => {
+    const perYear = years.map((y) => count(t.id, y))
+    return { ...t, perYear, total: perYear.reduce((a, b) => a + b, 0) }
+  })
+  const colTotal = years.map((_, i) => rows.reduce((a, r) => a + r.perYear[i], 0))
+  const grand = colTotal.reduce((a, b) => a + b, 0)
+  return (
+    <div className="table-wrap type-summary">
+      <table className="data compact">
+        <caption className="sr-only">จำนวนผลงานแยกตามประเภท ช่วง 5 ปีที่ใช้ประเมิน</caption>
+        <thead>
+          <tr>
+            <th>ประเภท</th>
+            {years.map((y) => (
+              <th key={y} className="num">{toBE(y)}</th>
+            ))}
+            <th className="num">รวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td>
+                <i className={`swatch c-${r.id}`} /> {r.th}
+              </td>
+              {r.perYear.map((n, i) => (
+                <td key={i} className="num mono">{n}</td>
+              ))}
+              <td className="num mono"><b>{r.total}</b></td>
+            </tr>
+          ))}
+          <tr className="total">
+            <td>รวม</td>
+            {colTotal.map((n, i) => (
+              <td key={i} className="num mono"><b>{n}</b></td>
+            ))}
+            <td className="num mono"><b>{grand}</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   )
 }

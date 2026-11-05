@@ -11,6 +11,8 @@ import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 
 const data = raw as DataBundle
+// Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
+const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
@@ -105,6 +107,10 @@ export function App() {
               <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565</small>
             </span>
           </a>
+          <div className="updated-at" title={data.builtAt}>
+            <span className="updated-label">ข้อมูลล่าสุด</span>
+            <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
+          </div>
         </div>
         <nav className="tabsbar no-print" aria-label="หน้า">
           <div className="tabsbar-inner">
