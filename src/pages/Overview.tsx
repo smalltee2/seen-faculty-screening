@@ -28,7 +28,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <div className="min0">
           <h1>รายงานสรุปผลการตรวจสอบคุณสมบัติอาจารย์</h1>
           <p className="lede">
-            อาจารย์ {results.length} คน · ข้อ 10 (ป.ตรี) และข้อ 9 (บัณฑิตศึกษา) ประกาศ กมอ. พ.ศ. 2565 · ผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+            อาจารย์ {results.length} คน · ข้อ 10 (ป.ตรี) และข้อ 9 (บัณฑิตศึกษา) ประกาศ กมอ. พ.ศ. 2565
           </p>
         </div>
         <div className="actions no-print">

@@ -43,8 +43,9 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
       <dl className="profile">
         <div><dt>ตำแหน่งวิชาการ</dt><dd>{p.rank ?? '—'}</dd></div>
         <div><dt>วุฒิสูงสุด</dt><dd>{p.degree ?? '—'}</dd></div>
-        <div><dt>ปีที่สำเร็จการศึกษา</dt><dd>{yearLabel(p.degreeYear)}</dd></div>
-        <div><dt>หลักสูตร (programs)</dt><dd>{p.programs.join(', ') || '—'}</dd></div>
+        {/* Empty fields are hidden; they appear once filled in faculty.csv. */}
+        {p.degreeYear !== null && <div><dt>ปีที่สำเร็จการศึกษา</dt><dd>{yearLabel(p.degreeYear)}</dd></div>}
+        {p.programs.length > 0 && <div><dt>หลักสูตร (programs)</dt><dd>{p.programs.join(', ')}</dd></div>}
         <div><dt>โปรไฟล์ผลงาน</dt><dd>{scholar ? <a href={scholar} target="_blank" rel="noreferrer">Google Scholar ↗</a> : '—'}</dd></div>
         {p.notes && <div><dt>หมายเหตุ</dt><dd>{p.notes}</dd></div>}
       </dl>
