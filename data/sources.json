@@ -1,4 +1,9 @@
 {
   "manualSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtDtTz3U33L8b2WKytmgQcyrReg_ddk8VUNnuO4IsQfbIDtkJXdTTavRnEx2-3JIrPuKGnbtP4N1Pj/pub?gid=2020020635&single=true&output=csv",
-  "googleFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSfjMrTqyiWlVcqWwWm_cOmbeaF4RX0xfDcXRHw9_JYzLKiC4Q/viewform"
+  "adminGate": {
+    "iterations": 210000,
+    "salt": "WtUub4fOqkNPN4FhBKj2Sg==",
+    "iv": "ips++Kj0dTzHNkpS",
+    "data": "1WAmzL1l5KkPF5/KyvNFwxu8jJoohrIfYddT5NSNukZnlRc3LtnJwu6sdJ7GKtzq+X9bl6/fgQF0x2X3uywdSNpp7uzG1+mLCjmIupTEq/L2I2UpA1f8yOvKw2E98pPUSGQoQXLVlRBtiooPo59ojRIJTaKnkg1XGeC7PWpHhMbR"
+  }
 }
