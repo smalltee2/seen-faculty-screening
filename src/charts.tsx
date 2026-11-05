@@ -1,7 +1,7 @@
 // Hand-built SVG charts (no chart library). Colours come from CSS tokens
 // --c-journal / --c-proceeding / --c-poster, validated for colour-blind
 // separation in light and dark themes.
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { displayName } from './ui'
@@ -26,13 +26,27 @@ function useTip() {
   return { show, hide: () => setTip(null), el }
 }
 
-const niceMax = (v: number) => {
-  if (v <= 5) return 5
-  const step = v <= 20 ? 5 : v <= 50 ? 10 : v <= 200 ? 50 : 100
-  return Math.ceil(v / step) * step
+/** Rendered width of the chart container, so the SVG is drawn at 1:1 and text keeps its size on every screen. */
+function useWidth(fallback: number) {
+  const ref = useRef<HTMLElement | null>(null)
+  const [w, setW] = useState(fallback)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const first = Math.round(el.getBoundingClientRect().width)
+    if (first) setW(first)
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width) || fallback))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [fallback])
+  return [ref, w] as const
 }
+
+const stepFor = (v: number) => (v <= 5 ? 1 : v <= 20 ? 5 : v <= 50 ? 10 : v <= 100 ? 20 : v <= 250 ? 50 : 100)
+const niceMax = (v: number) => (v <= 5 ? 5 : Math.ceil(v / stepFor(v)) * stepFor(v))
 const ticks = (max: number) => {
-  const step = max <= 5 ? 1 : max <= 20 ? 5 : max <= 50 ? 10 : max <= 200 ? 50 : 100
+  const step = stepFor(max)
   const out: number[] = []
   for (let t = 0; t <= max; t += step) out.push(t)
   return out
@@ -54,6 +68,7 @@ const SERIES = [
 /** Publications per year by type, all lecturers, with the 5-year window shaded. */
 export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Settings }) {
   const { show, hide, el } = useTip()
+  const [ref, width] = useWidth(640)
   const Y = settings.year
   const years: number[] = []
   for (let y = Y - 9; y <= Y; y++) years.push(y)
@@ -68,8 +83,9 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
     }
   })
   const max = niceMax(Math.max(1, ...rows.map((r) => r.journal + r.proceeding + r.poster)))
-  const W = 640
-  const H = 260
+  const W = Math.max(280, width)
+  const H = W < 480 ? 230 : 260
+  const narrow = W < 480
   const m = { t: 22, r: 8, b: 40, l: 34 }
   const iw = W - m.l - m.r
   const ih = H - m.t - m.b
@@ -79,7 +95,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
   const winX = m.l + band * (years.length - 5)
 
   return (
-    <figure className="chart">
+    <figure className="chart" ref={ref}>
       <div className="chart-legend">
         {SERIES.map((s) => (
           <span key={s.key}>
@@ -129,11 +145,13 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                 </text>
               )}
               <text className="axis" x={m.l + band * i + band / 2} y={H - m.b + 16} textAnchor="middle">
-                {toBE(r.y)}
+                {narrow ? String(toBE(r.y)).slice(2) : toBE(r.y)}
               </text>
-              <text className="axis axis-sub" x={m.l + band * i + band / 2} y={H - m.b + 29} textAnchor="middle">
-                {r.y}
-              </text>
+              {!narrow && (
+                <text className="axis axis-sub" x={m.l + band * i + band / 2} y={H - m.b + 29} textAnchor="middle">
+                  {r.y}
+                </text>
+              )}
               <rect
                 className="hit"
                 x={m.l + band * i}
@@ -169,6 +187,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
 /** Each lecturer's eligible outputs in the window: research, other, and uncertain, against the 3-output line. */
 export function LecturerOutputs({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const { show, hide, el } = useTip()
+  const [ref, width] = useWidth(1000)
   const rows = results
     .map((r) => {
       const c = r.roles.ms_program.counts
@@ -183,16 +202,18 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
     })
     .sort((a, b) => b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th'))
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)))
-  const W = 1000
+  const W = Math.max(280, width)
+  const narrow = W < 600
   const rowH = 26
-  const m = { t: 22, r: 50, b: 26, l: 240 }
+  const m = { t: 22, r: narrow ? 34 : 50, b: 26, l: Math.round(Math.min(240, Math.max(118, W * 0.36))) }
+  const maxChars = Math.floor(m.l / 7)
   const H = m.t + m.b + rows.length * rowH
   const iw = W - m.l - m.r
   const sx = (v: number) => m.l + (v / max) * iw
   const bh = 14
 
   return (
-    <figure className="chart">
+    <figure className="chart" ref={ref}>
       <div className="chart-legend">
         <span>
           <i className="swatch c-journal" /> งานวิจัย
@@ -240,7 +261,11 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
               {x.risk.length > 0 && <rect className="risk-frame" x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />}
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
                 <text className="row-label" x={m.l - 10} y={y + bh - 2} textAnchor="end">
-                  {x.name.length > 34 ? `${x.name.slice(0, 33)}…` : x.name}
+                  {(() => {
+                    // Narrow screens drop the title (รศ.ดร.) so the name itself fits.
+                    const label = narrow ? x.r.person.nameTh || x.name : x.name
+                    return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label
+                  })()}
                 </text>
               </a>
               {segs.map((s, si) => {
@@ -256,7 +281,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
               </text>
               {x.risk.length > 0 && (
                 <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                  ⚠ ปีหน้าอาจไม่ผ่าน
+                  {narrow ? '⚠' : '⚠ ปีหน้าอาจไม่ผ่าน'}
                 </text>
               )}
               <rect

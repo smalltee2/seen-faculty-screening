@@ -7,16 +7,16 @@ type View = 'cards' | 'table'
 type Filter = 'all' | 'not_met'
 
 
-// v2: the column view became the default (2026-11-05), so old saved choices are ignored.
-const STATE_KEY = 'seen-screening-lecturers-v2'
+// v3: "คอลัมน์" (one card column per lecturer) is the default, "ตาราง" the matrix (2026-11-05).
+const STATE_KEY = 'seen-screening-lecturers-v3'
 function loadState(): { view: View } {
   try {
     const s = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null')
-    if (s) return { view: s.view === 'cards' ? 'cards' : 'table' }
+    if (s) return { view: s.view === 'table' ? 'table' : 'cards' }
   } catch {
     /* ignore */
   }
-  return { view: 'table' }
+  return { view: 'cards' }
 }
 
 export function LecturersPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -92,8 +92,8 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
           value={state.view}
           onChange={(v) => update({ ...state, view: v })}
           options={[
-            { id: 'table', label: 'คอลัมน์' },
-            { id: 'cards', label: 'การ์ด' },
+            { id: 'cards', label: 'คอลัมน์' },
+            { id: 'table', label: 'ตาราง' },
           ]}
         />
       </div>

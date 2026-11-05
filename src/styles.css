@@ -476,3 +476,19 @@ tr.greyed td { color: var(--subtle); }
 .person-card:has(.risk-note) { border: 2px solid var(--not-mark); }
 .risk-inline { font-size: 0.74rem; font-weight: 600; color: var(--not); }
 .matrix tr.row-risk td.sticky { box-shadow: inset 3px 0 0 var(--not-mark); }
+
+/* Small screens: let segmented controls scroll instead of widening the page */
+.seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+@media (max-width: 640px) {
+  .toolbar { gap: 8px; }
+  .toolbar .search { flex-basis: 100%; max-width: none; }
+  .person-grid { grid-template-columns: 1fr; }
+  .section-head .actions { width: 100%; }
+  .viz-grid .panel, .panel { padding: 14px 12px; }
+  .chart .tip { max-width: 70vw; }
+  .matrix .sticky { min-width: 150px; }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  .person-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
