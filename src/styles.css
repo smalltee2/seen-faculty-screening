@@ -850,10 +850,9 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --lvl-phd: var(--gold); --lvl-ms: #4a8bd6; --lvl-ms-soft: rgba(74, 139, 214, 0.14); --lvl-ms-line: rgba(74, 139, 214, 0.4); } }
 :root[data-theme='dark'] { --lvl-phd: var(--gold); --lvl-ms: #4a8bd6; --lvl-ms-soft: rgba(74, 139, 214, 0.14); --lvl-ms-line: rgba(74, 139, 214, 0.4); }
 
-.block-head { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 40px; }
+.block-head { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 40px; }
 .block-head .block-title { margin: 0; }
 .chart-switches { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; }
-.block-head + .note { text-align: center; }
 .level-panel { border-left: 5px solid var(--lvl-grad); margin-top: 10px; }
 .level-panel.level-ba { border-left-color: var(--lvl-ba); }
 .level-title { display: flex; gap: 8px; align-items: baseline; margin: 0 0 2px; font-size: 1rem; color: var(--lvl-grad); }
