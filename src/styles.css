@@ -884,3 +884,16 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .finding { flex-direction: column; gap: 4px; }
 .finding p { margin: 0; }
 .finding p + p { margin-top: 4px; }
+
+/* ---------- Fluid type (2026-11-06) ----------
+   The root size follows the viewport width: about 14.4px on a 400px phone,
+   15.7px on a tablet, 17.5px on a 1280px desktop, capped at 18px. Every size
+   written in rem (text, chips, buttons, tabs) scales with it; the SVG charts
+   scale through their viewBox. */
+html { font-size: clamp(14px, 13px + 0.35vw, 18px); }
+body { font-size: 1rem; }
+h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
+.report-head h1 { font-size: clamp(1.3rem, 1.1rem + 0.6vw, 1.7rem); }
+.brand-name { font-size: clamp(1.02rem, 0.9rem + 0.45vw, 1.35rem); }
+@media (max-width: 640px) { .brand-name { font-size: clamp(0.98rem, 0.85rem + 0.5vw, 1.1rem); } }
+.tabsbar a { font-size: clamp(0.95rem, 0.85rem + 0.3vw, 1.12rem); }
