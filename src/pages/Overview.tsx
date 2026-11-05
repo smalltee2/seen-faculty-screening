@@ -1,4 +1,4 @@
-import { programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
+import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessDonut } from '../charts'
 import { Button, Metric, SHOWN_LEVELS, SHOWN_ROLES, StatusBar, StatusChip } from '../ui'
 
@@ -7,6 +7,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ms, phd] = checks
   const fullyMet = results.filter((r) => SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length
+  const atRisk = results.filter((r) => nextYearRisk(r, settings).some((x) => x.level === 'ms' || x.level === 'phd')).length
+  const Y = toBE(settings.year)
 
   return (
     <>
@@ -20,9 +22,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <div className="section-head">
         <div>
-          <h1>ภาพรวม</h1>
+          <h1>รายงานสรุปผลการตรวจสอบคุณสมบัติอาจารย์</h1>
           <p className="lede">
-            อาจารย์ {results.length} คน ประเมินตามข้อ 9 ด้วยผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+            อาจารย์ {results.length} คน · ประเมินตามข้อ 9 ของประกาศ กมอ. พ.ศ. 2565 · ผลงานปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
           </p>
         </div>
         <div className="actions no-print">
@@ -32,58 +34,83 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </div>
       </div>
 
-      <div className="metrics">
-        <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านทุกบทบาท ป.โท/เอก ${fullyMet} คน`} />
-        <Metric label="ผู้รับผิดชอบ ป.โท (9.3.2)" value={<>{ms.met.length}<small>/3</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
-        <Metric label="ผู้รับผิดชอบ ป.เอก (9.4.2)" value={<>{phd.met.length}<small>/3</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
-        <Metric label="ผลงานที่นับได้ใน 5 ปี" value={countedPubs} sub="นับเรื่องที่มีผู้เขียนร่วมหลายคนครั้งเดียว" />
+      <div className="finding">
+        <span>
+          ปีการประเมิน พ.ศ. {Y}: อาจารย์ผ่านคุณสมบัติครบทุกบทบาทของหลักสูตร ป.โท และ ป.เอก <b className="mono">{fullyMet}</b> จาก{' '}
+          <span className="mono">{results.length}</span> คน · อาจารย์ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติ ป.โท <b className="mono">{ms.met.length}</b> คน ป.เอก{' '}
+          <b className="mono">{phd.met.length}</b> คน (เกณฑ์อย่างน้อย 3 คน)
+          {atRisk > 0 && (
+            <>
+              {' '}
+              · <a href="#/lecturers">{atRisk} คน</a> อาจไม่ผ่านในปี พ.ศ. {toBE(settings.year + 1)} ถ้าไม่มีผลงานเพิ่ม
+            </>
+          )}
+        </span>
       </div>
 
+      <div className="metrics">
+        <Metric label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกบทบาท ${fullyMet} คน`} />
+        <Metric label="ผู้รับผิดชอบหลักสูตร ป.โท (ข้อ 9.3.2)" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
+        <Metric label="ผู้รับผิดชอบหลักสูตร ป.เอก (ข้อ 9.4.2)" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
+        <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} sub="นับผลงานที่มีผู้เขียนร่วมหลายคนเพียงครั้งเดียว" />
+      </div>
+
+      <h2 className="block-title">
+        <span className="sec-no">1</span>สถานะคุณสมบัติอาจารย์
+      </h2>
       <div className="viz-grid">
         <section className="panel">
-          <h3>สถานะอาจารย์ (ป.โท + ป.เอก 10 บทบาท)</h3>
+          <h3>สัดส่วนอาจารย์ตามผลการประเมิน</h3>
+          <p className="note">พิจารณา 10 บทบาทของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4)</p>
           <ReadinessDonut results={results} />
         </section>
         <section className="panel">
-          <h3>ผลงานต่อปี แยกตามประเภท (ทุกคนรวมกัน)</h3>
-          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
+          <h3>จำนวนอาจารย์ที่ผ่านแต่ละบทบาท</h3>
+          {SHOWN_LEVELS.map((l) => (
+            <div key={l.id} className="role-level">
+              <div className="role-level-head">
+                {l.th} <span className="eyebrow">ข้อ {l.clause}</span>
+              </div>
+              {SHOWN_ROLES.filter((r) => r.level === l.id).map((role) => {
+                const st = results.map((r) => r.roles[role.id].status)
+                const met = st.filter((x) => x === 'met').length
+                const review = st.filter((x) => x === 'needs_review').length
+                const notMet = st.length - met - review
+                return (
+                  <div key={role.id} className="role-row">
+                    <span className="clause mono">{role.clause}</span>
+                    <span className="role-name">{role.labelTh}</span>
+                    <StatusBar met={met} review={review} notMet={notMet} />
+                    <span className="role-num mono">
+                      <b>{met}</b>/{st.length}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
         </section>
       </div>
 
+      <h2 className="block-title">
+        <span className="sec-no">2</span>ผลงานตีพิมพ์ของคณะ
+      </h2>
       <section className="panel">
-        <h3>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน</h3>
+        <h3>จำนวนผลงานต่อปี แยกตามประเภท</h3>
+        <p className="note">รวมผลงานของอาจารย์ทุกคน (นับผลงานที่มีผู้เขียนร่วมแยกตามอาจารย์แต่ละคน) · แถบสีทองคือช่วง 5 ปีที่ใช้ประเมิน</p>
+        <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
+      </section>
+
+      <h2 className="block-title">
+        <span className="sec-no">3</span>ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน
+      </h2>
+      <section className="panel">
         <p className="note">
-          ป.โท ต้องมีผลงาน ≥ 3 เรื่อง (วิจัย ≥ 1) · ป.เอก ต้องมีงานวิจัย ≥ 3 เรื่อง · คลิกชื่อเพื่อดูรายละเอียด
+          เกณฑ์ ป.โท: ผลงานอย่างน้อย 3 เรื่อง (เป็นงานวิจัยอย่างน้อย 1 เรื่อง) · เกณฑ์ ป.เอก: งานวิจัยอย่างน้อย 3 เรื่อง · กรอบสีแดง = ปีหน้าอาจไม่ผ่าน ·
+          คลิกชื่อเพื่อดูรายละเอียด
         </p>
         <LecturerOutputs results={results} settings={settings} />
       </section>
-
-      <h2 className="block-title">จำนวนอาจารย์ที่ผ่านแต่ละบทบาท</h2>
-      <div className="role-levels">
-        {SHOWN_LEVELS.map((l) => (
-          <section key={l.id} className="panel role-level">
-            <h3>
-              {l.th} <span className="eyebrow">ข้อ {l.clause}</span>
-            </h3>
-            {SHOWN_ROLES.filter((r) => r.level === l.id).map((role) => {
-              const st = results.map((r) => r.roles[role.id].status)
-              const met = st.filter((s) => s === 'met').length
-              const review = st.filter((s) => s === 'needs_review').length
-              const notMet = st.length - met - review
-              return (
-                <div key={role.id} className="role-row">
-                  <span className="clause mono">{role.clause}</span>
-                  <span className="role-name">{role.labelTh}</span>
-                  <StatusBar met={met} review={review} notMet={notMet} />
-                  <span className="role-num mono">
-                    <b>{met}</b>/{st.length}
-                  </span>
-                </div>
-              )
-            })}
-          </section>
-        ))}
-      </div>
       <p className="legend">
         <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ดูรายบุคคลที่แท็บ{' '}
         <a href="#/lecturers">รายชื่ออาจารย์</a>

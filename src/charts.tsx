@@ -82,7 +82,8 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
       excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length,
     }
   })
-  const max = niceMax(Math.max(1, ...rows.map((r) => r.journal + r.proceeding + r.poster)))
+  // 15% headroom so the bar totals never collide with the window label.
+  const max = niceMax(Math.max(1, ...rows.map((r) => r.journal + r.proceeding + r.poster)) * 1.15)
   const W = Math.max(280, width)
   const H = W < 480 ? 230 : 260
   const narrow = W < 480

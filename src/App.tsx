@@ -73,20 +73,26 @@ export function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <a href="#/" className="brand">
-            <span className="brand-name">
-              SEEN<span>·</span>Qualify Screening
+            <span className="brand-mark" aria-hidden="true">
+              SEEN
             </span>
-            <small>ตามเกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565</small>
+            <span className="brand-text">
+              <small className="brand-org">คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</small>
+              <span className="brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์หลักสูตรบัณฑิตศึกษา</span>
+              <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับบัณฑิตศึกษา พ.ศ. 2565 · Qualify Screening</small>
+            </span>
           </a>
-          <nav className="seg no-print" aria-label="หน้า">
+        </div>
+        <nav className="tabsbar no-print" aria-label="หน้า">
+          <div className="tabsbar-inner">
             {tabs.map((t) => (
               <a key={t.id} href={t.href} aria-current={tab === t.id ? 'page' : undefined}>
                 {t.th}
                 {t.count !== undefined && <span className="seg-count">{t.count}</span>}
               </a>
             ))}
-          </nav>
-        </div>
+          </div>
+        </nav>
       </header>
 
       <div className="page">
