@@ -1,5 +1,5 @@
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
-import { LecturerOutputs, PubsPerYear, ReadinessDonut } from '../charts'
+import { LecturerOutputs, PubsPerYear, ReadinessPie } from '../charts'
 import { Button, Metric, SHOWN_LEVELS, SHOWN_ROLES, StatusBar, StatusChip } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -58,12 +58,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <h2 className="block-title">
         <span className="sec-no">1</span>สถานะคุณสมบัติอาจารย์
       </h2>
-      <div className="viz-grid">
-        <section className="panel">
-          <h3>สัดส่วนอาจารย์ตามผลการประเมิน</h3>
-          <p className="note">พิจารณา 10 บทบาทของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4)</p>
-          <ReadinessDonut results={results} />
-        </section>
+      <ReadinessPie results={results} />
+      <p className="note pie-note">พิจารณา 10 บทบาทของหลักสูตร ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4) ปีการประเมิน พ.ศ. {Y}</p>
+      <div className="role-summary-panel">
         <section className="panel">
           <h3>จำนวนอาจารย์ที่ผ่านแต่ละบทบาท</h3>
           {SHOWN_LEVELS.map((l) => (

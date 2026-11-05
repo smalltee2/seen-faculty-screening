@@ -322,52 +322,135 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
   )
 }
 
-/** Donut of people by how many of the 10 degree-level roles they meet. */
-export function ReadinessDonut({ results }: { results: PersonResult[] }) {
+/** Readiness groups over the 10 degree-level roles (strict mode has no needs-review). */
+function readinessGroups(results: PersonResult[]) {
   const ids = Object.keys(results[0]?.roles ?? {}).filter((id) => id.startsWith('ms_') || id.startsWith('phd_'))
   const groups = [
-    { th: 'ผ่านครบทุกบทบาท', cls: 'd-met', n: 0 },
-    { th: 'ผ่านบางบทบาท', cls: 'd-partial', n: 0 },
-    { th: 'ไม่ผ่านเลย', cls: 'd-not', n: 0 },
+    { key: 'all', th: 'ผ่านครบทุกบทบาท', note: 'ทำหน้าที่ได้ทุกบทบาทของ ป.โท และ ป.เอก', icon: 'check', n: 0 },
+    { key: 'some', th: 'ผ่านบางบทบาท', note: 'เช่น สอนได้ แต่เป็นผู้รับผิดชอบหรือที่ปรึกษาไม่ได้', icon: 'partial', n: 0 },
+    { key: 'review', th: 'มีบทบาทรอตรวจสอบ', note: '', icon: 'partial', n: 0 },
+    { key: 'none', th: 'ไม่ผ่านทุกบทบาท', note: 'ยังไม่มีผลงานในช่วง 5 ปีตามเกณฑ์', icon: 'cross', n: 0 },
   ]
   for (const r of results) {
     const st = ids.map((id) => r.roles[id].status)
-    if (st.every((s) => s === 'met')) groups[0].n++
+    if (st.every((x) => x === 'met')) groups[0].n++
+    else if (st.includes('needs_review')) groups[2].n++
     else if (st.includes('met')) groups[1].n++
-    else groups[2].n++
+    else groups[3].n++
   }
+  const shown = groups.filter((g) => g.n > 0 || g.key !== 'review')
+  // Percentages that add up to 100 (largest remainder).
   const total = results.length || 1
-  const R = 52
-  const C = 2 * Math.PI * R
-  let off = 0
+  const raw = shown.map((g) => (g.n / total) * 100)
+  const pct = raw.map(Math.floor)
+  let left = 100 - pct.reduce((a, b) => a + b, 0)
+  raw.map((v, i) => [v - Math.floor(v), i] as const).sort((a, b) => b[0] - a[0]).forEach(([, i]) => {
+    if (left > 0 && shown[i].n > 0) {
+      pct[i]++
+      left--
+    }
+  })
+  return shown.map((g, i) => ({ ...g, pct: g.n ? pct[i] : 0 }))
+}
+
+const SLICE_FILL: Record<string, string> = { all: 'var(--pie-1)', some: 'var(--pie-2)', review: 'var(--pie-3)', none: 'var(--pie-4)' }
+
+function StatusIcon({ kind }: { kind: string }) {
+  const stroke = kind === 'check' ? 'var(--met-mark)' : kind === 'cross' ? 'var(--not-mark)' : 'var(--rev-mark)'
   return (
-    <figure className="donut">
-      <svg viewBox="0 0 140 140" role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมิน">
-        <circle cx="70" cy="70" r={R} className="donut-track" />
-        {groups.map((g) => {
-          if (!g.n) return null
-          const len = (g.n / total) * C
-          const gap = groups.filter((x) => x.n).length > 1 ? 2 : 0
-          const seg = (
-            <circle key={g.cls} cx="70" cy="70" r={R} className={g.cls} strokeDasharray={`${Math.max(0, len - gap)} ${C}`} strokeDashoffset={-off} transform="rotate(-90 70 70)" />
-          )
-          off += len
-          return seg
-        })}
-        <text x="70" y="68" textAnchor="middle" className="donut-num">
-          {groups[0].n}/{results.length}
-        </text>
-        <text x="70" y="86" textAnchor="middle" className="donut-cap">
-          ผ่านครบ
-        </text>
-      </svg>
-      <figcaption>
-        {groups.map((g) => (
-          <span key={g.cls}>
-            <i className={`swatch ${g.cls}-sw`} /> {g.th} <b className="mono">{g.n}</b>
-          </span>
-        ))}
-      </figcaption>
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      {kind === 'check' && <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+      {kind === 'cross' && <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />}
+      {kind === 'partial' && (
+        <>
+          <circle cx="12" cy="12" r="8" fill="none" stroke={stroke} strokeWidth="2.5" />
+          <path d="M12 4a8 8 0 0 1 0 16z" fill={stroke} />
+        </>
+      )}
+    </svg>
+  )
+}
+
+/** Infographic: solid pie of lecturers by readiness, big percentages, dotted leaders. */
+export function ReadinessPie({ results }: { results: PersonResult[] }) {
+  const [ref, width] = useWidth(900)
+  const groups = readinessGroups(results)
+  const total = results.length
+  const wide = width >= 640
+  const R = wide ? 140 : 110
+  const H = wide ? 340 : 2 * R + 24
+  const W = Math.max(280, width)
+  const cx = wide ? W - R - 40 : W / 2
+  const cy = H / 2
+  let a0 = -Math.PI / 2
+  const slices = groups
+    .filter((g) => g.n > 0)
+    .map((g) => {
+      const a1 = a0 + (g.n / total) * Math.PI * 2
+      const mid = (a0 + a1) / 2
+      const large = a1 - a0 > Math.PI ? 1 : 0
+      const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)]
+      const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)]
+      const d = g.n === total ? '' : `M${cx},${cy} L${p0[0]},${p0[1]} A${R},${R} 0 ${large} 1 ${p1[0]},${p1[1]} Z`
+      const anchor = [cx + R * 0.62 * Math.cos(mid), cy + R * 0.62 * Math.sin(mid)]
+      a0 = a1
+      return { g, d, anchor }
+    })
+  // Callout rows on the left (wide layout): evenly spaced, leader goes right then to the slice.
+  const rowsY = groups.map((_, i) => 46 + i * ((H - 70) / Math.max(1, groups.length - 1)))
+  const calloutEnd = Math.min(470, cx - R - 50)
+
+  return (
+    <figure className="pie-info">
+      <div className="pie-stage" ref={ref as React.RefObject<HTMLDivElement>} style={{ height: wide ? H : undefined }}>
+        <svg className="pie-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมิน">
+          {slices.map(({ g, d }) =>
+            d ? <path key={g.key} d={d} fill={SLICE_FILL[g.key]} stroke="var(--pie-gap)" strokeWidth={2} /> : <circle key={g.key} cx={cx} cy={cy} r={R} fill={SLICE_FILL[g.key]} />,
+          )}
+          {wide &&
+            groups.map((g, i) => {
+              const s = slices.find((x) => x.g.key === g.key)
+              if (!s) return null
+              const y = rowsY[i]
+              const [ax, ay] = s.anchor
+              const elbow = Math.max(calloutEnd + 20, ax - 40)
+              return (
+                <g key={g.key}>
+                  <path d={`M${calloutEnd},${y} H${elbow} L${ax},${ay}`} className="pie-leader" />
+                  <circle cx={ax} cy={ay} r={4} className="pie-dot" />
+                </g>
+              )
+            })}
+          {(() => {
+            const big = slices[0]
+            if (!big || !wide) return null
+            return (
+              <text x={cx} y={cy + R + 22} textAnchor="middle" className="pie-total">
+                อาจารย์ทั้งหมด {total} คน
+              </text>
+            )
+          })()}
+        </svg>
+        <ul className={`pie-callouts ${wide ? 'pie-callouts-wide' : ''}`} style={wide ? { width: calloutEnd - 12 } : undefined}>
+          {groups.map((g, i) => (
+            <li key={g.key} style={wide ? { top: rowsY[i] } : undefined}>
+              <span className="pie-icon">
+                <StatusIcon kind={g.icon} />
+              </span>
+              <span className="pie-pct">{g.pct}%</span>
+              <span className="pie-label">
+                <b>
+                  <i className="pie-swatch" style={{ background: SLICE_FILL[g.key] }} />
+                  {g.th}
+                </b>
+                <span>
+                  {g.n} คน{g.note ? ` · ${g.note}` : ''}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </figure>
   )
 }
