@@ -147,7 +147,9 @@ export function evaluatePub(pub: Pub, p: Faculty, s: Settings): PubEval {
     eligible = 'no'
     reasons.unshift('ไม่นับ: ยืนยันประเภทหรือเงื่อนไขไม่ได้')
   }
-  const researchSelf: Tri = pub.isResearch ? (pub.researchUncertain ? 'maybe' : 'yes') : pub.researchUncertain ? 'maybe' : 'no'
+  let researchSelf: Tri = pub.isResearch ? (pub.researchUncertain ? 'maybe' : 'yes') : pub.researchUncertain ? 'maybe' : 'no'
+  // Strict mode has no review queue, so an unconfirmed research flag counts as not research.
+  if (s.strict && researchSelf === 'maybe') researchSelf = 'no'
   if (researchSelf !== 'yes') reasons.push(pub.researchReason)
   return { pub, eligible, research: minTri(eligible, researchSelf), reasons }
 }
@@ -312,7 +314,7 @@ export function nextYearRisk(r: PersonResult, s: Settings): RoleSpec[] {
 
 const LEVEL_PATTERNS: Record<Level, RegExp> = {
   hgd: /higher\s*grad|ป\.?\s?บัณฑิตชั้นสูง|บัณฑิตชั้นสูง/i,
-  gd: /^(?!.*higher).*(grad\.?\s?dip|ป\.?\s?บัณฑิต)/i,
+  gd: /^(?!.*(higher|ชั้นสูง)).*(grad\.?\s?dip|ป\.?\s?บัณฑิต)/i,
   ms: /^m\.|master|^ms\b|ป\.?\s?โท|ปริญญาโท|วท\.?ม|วศ\.?ม/i,
   phd: /ph\.?\s?d|d\.?\s?eng|doctor|ป\.?\s?เอก|ปริญญาเอก|ปร\.?ด/i,
 }

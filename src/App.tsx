@@ -17,7 +17,13 @@ const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/69
 type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string } | { page: 'admin' }
 
 function parseHash(): Route {
-  const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
+  const raw = window.location.hash.replace(/^#\/?/, '')
+  let h: string
+  try {
+    h = decodeURIComponent(raw)
+  } catch {
+    h = raw // a truncated or malformed link (e.g. "%E0") falls through to the overview
+  }
   if (h.startsWith('person/')) return { page: 'person', key: h.slice('person/'.length) }
   if (h === 'lecturers') return { page: 'lecturers' }
   if (h === 'admin') return { page: 'admin' }

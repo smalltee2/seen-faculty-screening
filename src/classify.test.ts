@@ -100,6 +100,20 @@ describe('dedupe', () => {
   it('does not merge the same title across different people', () => {
     expect(dedupe([raw({ key: 'A' }), raw({ key: 'B' })])).toHaveLength(2)
   })
+  it('merges a Scholar title truncated with "…" into the full title from Scopus', () => {
+    const full = 'Using excel solver’s parameter function in predicting and interpretation for kinetic adsorption model via batch experiments of lead removal'
+    const rows = [
+      raw({ source: 'scholar', title: full.slice(0, 120) + ' …' }),
+      raw({ source: 'scopus', title: full, doi: '10.1/x' }),
+    ]
+    const out = dedupe(rows)
+    expect(out).toHaveLength(1)
+    expect(out[0].row.source).toBe('scopus')
+  })
+  it('does not merge a short truncated stem or one that belongs to another paper', () => {
+    expect(dedupe([raw({ title: 'Rice yield …' }), raw({ title: 'Rice yield under climate change in Phayao' })])).toHaveLength(2)
+    expect(dedupe([raw({ title: 'Projection of rice yield under climate change in northern Thailand …' }), raw({ title: 'Projection of maize yield under climate change in northern Thailand' })])).toHaveLength(2)
+  })
 })
 
 describe('preparePubs + overrides', () => {
@@ -174,6 +188,11 @@ describe('errata', () => {
       raw({ source: 'openalex', title: 'Correction to: X', extType: 'erratum', sourceType: 'journal', doi: '10.1/c' }),
     ]
     expect(preparePubs(rows, [])[0].type).toBe('exclude')
+  })
+  it('recognises publisher wording without a colon', () => {
+    for (const t of ['Author Correction: Heat and PM2.5 in Chiang Mai', 'Publisher Correction: Heat and PM2.5', 'Correction to “Heat and PM2.5 in Chiang Mai”', 'Erratum: Heat and PM2.5'])
+      expect(classifyType(t, 'Scientific Reports 13, 1, 2023').type).toBe('exclude')
+    expect(classifyType('Correction factors for PM2.5 monitors', 'Atmosphere 14 (1), 1, 2023').type).toBe('journal')
   })
 })
 

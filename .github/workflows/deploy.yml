@@ -43,6 +43,8 @@ jobs:
             echo "No data changes."
           else
             git commit -m "Daily data refresh $(date -u +%Y-%m-%d)"
+            # The iMac job or a manual push may have landed since checkout.
+            git pull --rebase origin main
             git push
           fi
       - name: Build JSON from data/

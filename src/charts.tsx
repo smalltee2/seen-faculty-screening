@@ -231,7 +231,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         : b.research + b.other - (a.research + a.other) || b.journal - a.journal || a.name.localeCompare(b.name, 'th'),
     )
   const segDefs = OUTPUT_SEGS[view]
-  const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)))
+  const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)) * 1.12)
   const W = Math.max(280, width)
   const narrow = W < 600
   const rowH = 26

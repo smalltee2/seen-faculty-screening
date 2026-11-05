@@ -136,6 +136,8 @@ const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 
 /** Decrypts the admin form link with the passcode; a wrong passcode fails AES-GCM authentication. */
 async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<string> {
+  // WebCrypto is only available on https://, localhost and file:// (not a plain http:// LAN share).
+  if (!globalThis.crypto?.subtle) throw new Error('nocrypto')
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
   const key = await crypto.subtle.deriveKey(
     { name: 'PBKDF2', hash: 'SHA-256', salt: fromB64(gate.salt), iterations: gate.iterations },
@@ -186,8 +188,8 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
       save(url, remember)
       setPass('')
       setFormUrl(url)
-    } catch {
-      setError('รหัสไม่ถูกต้อง')
+    } catch (e) {
+      setError(e instanceof Error && e.message === 'nocrypto' ? 'เบราว์เซอร์นี้ถอดรหัสไม่ได้: ต้องเปิดผ่าน https:// หรือเปิดไฟล์โดยตรง' : 'รหัสไม่ถูกต้อง')
     } finally {
       setBusy(false)
     }

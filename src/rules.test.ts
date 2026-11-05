@@ -251,6 +251,12 @@ describe('strict mode (site setting)', () => {
     expect(r.status).toBe('met')
     expect(r.path).toBe('new_grad')
   })
+  it('treats an unconfirmed research flag as not research', () => {
+    const p = person()
+    const pubs = [...journals(2), pub({ researchUncertain: true })]
+    expect(rule_9_4_1_phdProgramLecturer(p, pubs, T).status).toBe('not_met')
+    expect(rule_9_4_1_phdProgramLecturer(p, pubs, S).status).toBe('needs_review')
+  })
   it('never returns needs review', () => {
     const p = person({ degree: null, degreeYear: 2025 })
     const pubs = [pub({ type: 'unknown', typeUncertain: true }), pub({ researchUncertain: true, isResearch: false }), pub({ year: 2024 })]

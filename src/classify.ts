@@ -20,7 +20,8 @@ function stripYear(venue: string): string {
 }
 
 const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|\bpreprints?\b|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review|\bdiscussions\b/i
-const ERRATUM = /^(correction|erratum|corrigendum|retraction|retracted)( to| notice)?\s*[:.-]/i
+// Also "Author Correction: …" (Springer Nature), "Publisher Correction: …" and "Correction to “X”" (no colon).
+const ERRATUM = /^(author |publisher )?(correction|erratum|corrigendum)( to\b|( notice)?\s*[:.\-–—]|\s*$)|^(retraction( notice)?|retracted|expression of concern)\b/i
 const PATENT = /patent|สิทธิบัตร|อนุสิทธิบัตร/i
 const DATASET = /zenodo|figshare|pangaea|dryad|mendeley data|\bdata\s?set\b/i
 const THESIS = /thesis|dissertation|วิทยานิพนธ์|ปริญญานิพนธ์|การค้นคว้าอิสระ|\bph\.?\s?d\b|master'?s|graduate school|บัณฑิตวิทยาลัย/i
@@ -167,19 +168,40 @@ function richness(p: RawPub): number {
   return (SOURCE_RANK[p.source ?? 'scholar'] ?? 1) * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(p.cites, 99)
 }
 
-/** Merge rows of the same person with the same normalised title or DOI; keep the best row. */
+const TRUNCATED = /(…|\.\.\.)\s*$/
+/** Google Scholar cuts long titles at about 150 characters and ends them with "…".
+ *  Returns the normalised stem of such a title, or null when it is not truncated or too short to be safe. */
+export function truncatedStem(title: string): string | null {
+  if (!TRUNCATED.test(title.trim())) return null
+  const stem = normalizeTitle(title.replace(TRUNCATED, ''))
+  return stem.length >= 30 ? stem : null
+}
+
+/** Merge rows of the same person with the same normalised title or DOI; keep the best row.
+ *  A Scholar title truncated with "…" also merges with a same-person title that starts with its stem. */
 export function dedupe(rows: RawPub[]): { row: RawPub; duplicates: number; members: RawPub[] }[] {
   const parent = rows.map((_, i) => i)
   const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])))
+  const union = (i: number, j: number) => {
+    parent[find(i)] = find(j)
+  }
   const seen = new Map<string, number>()
+  const norms = rows.map((r) => normalizeTitle(r.title))
   rows.forEach((r, i) => {
-    const keys = [`t\u0000${r.key}\u0000${normalizeTitle(r.title)}`]
+    const keys = [`t\u0000${r.key}\u0000${norms[i]}`]
     if (r.doi) keys.push(`d\u0000${r.key}\u0000${r.doi.toLowerCase()}`)
     for (const k of keys) {
       const j = seen.get(k)
       if (j === undefined) seen.set(k, i)
-      else parent[find(i)] = find(j)
+      else union(i, j)
     }
+  })
+  rows.forEach((r, i) => {
+    const stem = truncatedStem(r.title)
+    if (!stem) return
+    rows.forEach((o, j) => {
+      if (j !== i && o.key === r.key && norms[j].startsWith(stem)) union(i, j)
+    })
   })
   const groups = new Map<number, RawPub[]>()
   rows.forEach((r, i) => {

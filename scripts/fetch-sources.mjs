@@ -171,7 +171,7 @@ async function fetchScopus(faculty, key) {
         const d = await scopusGet(`https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(q)}&count=25&start=${start}`, key)
         const entries = (d['search-results']?.entry ?? []).filter((e) => e['dc:title'])
         for (const e of entries) {
-          const year = Number(String(e['prism:coverDate'] ?? '').slice(0, 4))
+          const year = /^\d{4}/.test(String(e['prism:coverDate'] ?? '')) ? Number(String(e['prism:coverDate']).slice(0, 4)) : ''
           let venue = e['prism:publicationName'] ?? ''
           if (e['prism:volume']) venue += ` ${e['prism:volume']}${e['prism:issueIdentifier'] ? ` (${e['prism:issueIdentifier']})` : ''}`
           if (e['prism:pageRange']) venue += `, ${e['prism:pageRange']}`

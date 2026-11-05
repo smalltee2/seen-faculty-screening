@@ -12,6 +12,10 @@ log() { print -r -- "$(date '+%Y-%m-%d %H:%M:%S') $*" }
 KEY=$(security find-generic-password -s seen-scopus-api-key -w 2>/dev/null) || {
   log "ERROR: Scopus key not found in Keychain (service seen-scopus-api-key)"; exit 1; }
 cd "$REPO" || { log "ERROR: $REPO missing; run install-scopus-daily.sh"; exit 1; }
+# A run killed mid-way (sleep, shutdown) leaves unstaged data or a half-done rebase;
+# everything here is regenerated, so start from a clean checkout of origin/main.
+git rebase --abort >/dev/null 2>&1 || true
+git checkout -q -- . 2>/dev/null || true
 git pull --rebase -q || { log "ERROR: git pull failed"; exit 1; }
 
 # Off the university network Elsevier refuses the key; the script then keeps the
@@ -26,6 +30,6 @@ fi
 git commit -q -m "Scopus refresh from iMac $(date +%Y-%m-%d)"
 if ! git push -q; then
   log "Push rejected, rebasing and retrying"
-  git pull --rebase -q && git push -q || { log "ERROR: push failed"; exit 1; }
+  git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; log "ERROR: push failed"; exit 1; }
 fi
 log "Pushed Scopus update"

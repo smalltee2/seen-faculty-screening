@@ -93,7 +93,7 @@ const publications = SOURCES.flatMap((src) => {
   if (!src.required && !existsSync(src.file)) return []
   return toRecords(parseTsv(read(src.file)), ['key', 'year', 'title', 'authors', 'venue', 'cites'], src.label).map((p) => {
     const year = p.year ? Number(p.year) : null
-    if (year !== null && !Number.isInteger(year)) fail(`${src.label} line ${p._line}: year "${p.year}" is not an integer`)
+    if (year !== null && (!Number.isInteger(year) || year < 1900 || year > 2100)) fail(`${src.label} line ${p._line}: year "${p.year}" is not a valid year`)
     return {
       line: p._line,
       source: src.name,
