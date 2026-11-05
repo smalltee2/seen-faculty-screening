@@ -60,7 +60,6 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             สัดส่วนอาจารย์ตามผลการประเมิน
           </h3>
           <ReadinessPie results={results} compact />
-          <p className="note">10 หน้าที่ของ ป.โท (ข้อ 9.3) และ ป.เอก (ข้อ 9.4)</p>
         </section>
 
         <section className="panel dash-roles">
