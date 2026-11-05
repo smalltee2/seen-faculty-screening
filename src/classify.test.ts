@@ -177,3 +177,24 @@ describe('errata', () => {
   })
 })
 
+describe('errata next to their original', () => {
+  const orig = raw({ title: 'Effect of Adding Monohydrocalcite on the Microstructural Change in Cement Hydration', venue: 'ACS Omega 7 (41), 36318-36329, 2022', year: 2022 })
+  const corr = raw({
+    source: 'scopus', extType: 'Erratum', sourceType: 'Journal', year: 2023, venue: 'ACS Omega 8 (7), 7242, 2023',
+    title: 'Correction: Effect of Adding Monohydrocalcite on the Microstructural Change in Cement Hydration (ACS Omega (2022) 7:41 (36318−36329) DOI: 10.1021/acsomega.2c03977)',
+  })
+  it('shows only the original article', () => {
+    const out = preparePubs([orig, corr], [])
+    expect(out).toHaveLength(1)
+    expect(out[0].type).toBe('journal')
+  })
+  it('keeps an erratum whose original is not listed (shown as not counted)', () => {
+    const out = preparePubs([corr], [])
+    expect(out).toHaveLength(1)
+    expect(out[0].type).toBe('exclude')
+  })
+  it('does not hide an erratum of another person', () => {
+    expect(preparePubs([orig, { ...corr, key: 'B' }], [])).toHaveLength(2)
+  })
+})
+

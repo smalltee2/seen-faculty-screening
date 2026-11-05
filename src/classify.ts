@@ -200,7 +200,27 @@ export function overrideKey(key: string, title: string): string {
   return `${key}\u0000${normalizeTitle(title)}`
 }
 
+/** A correction / erratum / retraction notice rather than an article. */
+export function isErratumNotice(p: RawPub): boolean {
+  const ext = (p.extType ?? '').toLowerCase()
+  return ext === 'erratum' || ext === 'retraction' || ERRATUM.test(joinThai(p.title).trim())
+}
+
+/** Drop correction notices whose original article is in the same person's list, so the
+ *  original is shown once (the notice never counts anyway). Unmatched notices stay. */
+export function hideMatchedErrata(pubs: Pub[]): Pub[] {
+  const originals = pubs.filter((p) => !isErratumNotice(p) && p.titleNorm.length >= 20)
+  return pubs.filter((p) => {
+    if (!isErratumNotice(p)) return true
+    return !originals.some((o) => o.key === p.key && p.titleNorm.includes(o.titleNorm))
+  })
+}
+
 export function preparePubs(rows: RawPub[], overrides: Override[]): Pub[] {
+  return hideMatchedErrata(preparePubsAll(rows, overrides))
+}
+
+function preparePubsAll(rows: RawPub[], overrides: Override[]): Pub[] {
   const byKey = new Map(overrides.map((o) => [overrideKey(o.key, o.titleNormalized), o]))
   return dedupe(rows).map(({ row, duplicates, members }) => {
     const titleNorm = normalizeTitle(row.title)
