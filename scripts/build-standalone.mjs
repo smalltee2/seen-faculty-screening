@@ -29,6 +29,8 @@ html = html
   .replace(/<link rel="stylesheet"[^>]*href="\.\/assets\/[^"]*"[^>]*>\s*/g, '')
   .replace('</head>', () => `<style>\n${css}\n</style>\n</head>`)
   .replace('</body>', () => `<script type="module">\n${js}\n</script>\n</body>`)
+  // Small files the HTML links to (the favicon) become data: URIs.
+  .replace(/href="\.\/assets\/([^"]+\.png)"/g, (_, f) => `href="data:image/png;base64,${readFileSync(join(assets, f)).toString('base64')}"`)
 
 mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, html)

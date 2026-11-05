@@ -7,6 +7,7 @@ import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
 import { AdminPage } from './pages/AdminPage'
+import seenLogo from './assets/seen-logo.png'
 
 const data = raw as DataBundle
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
@@ -73,8 +74,8 @@ export function App() {
       <header className="topbar">
         <div className="topbar-inner">
           <a href="#/" className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              SEEN
+            <span className="brand-mark">
+              <img src={seenLogo} alt="ตราสัญลักษณ์คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา (SEEN)" width={262} height={99} />
             </span>
             <span className="brand-text">
               <small className="brand-org">คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</small>
