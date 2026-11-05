@@ -950,3 +950,9 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 .type-summary td:first-child, .type-summary th:first-child { white-space: nowrap; }
 .type-summary td .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
 .type-summary tr.total td { border-top: 2px solid var(--line-strong); }
+
+/* National journals: journal colour, hatched */
+.swatch.c-journal-natl { background: repeating-linear-gradient(45deg, var(--c-journal) 0 2px, transparent 2px 5px); border: 1px solid var(--c-journal); }
+.chart .c-journal-natl { fill: url(#hatch-natl); stroke: var(--c-journal); stroke-width: 1; }
+.chart .hatch-natl-bg { fill: var(--panel); }
+.chart .hatch-natl-line { stroke: var(--c-journal); stroke-width: 2; }

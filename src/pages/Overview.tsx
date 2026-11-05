@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
-import { LecturerOutputs, PubsPerYear, ReadinessPie, type OutputsView } from '../charts'
+import { LecturerOutputs, PubsPerYear, ReadinessPie, isInternational, type OutputsView } from '../charts'
 import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
@@ -184,13 +184,13 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings: Settings }) {
   const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
   const types = [
-    { id: 'journal', th: 'วารสาร' },
-    { id: 'proceeding', th: 'Proceedings' },
-    { id: 'poster', th: 'โปสเตอร์/บทคัดย่อ' },
-  ] as const
-  const count = (type: string, y: number) => pubs.filter((p) => p.year === y && p.type === type).length
+    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ (Scopus)', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && isInternational(p) },
+    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ (ไม่พบใน Scopus)', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && !isInternational(p) },
+    { id: 'proceeding', cls: 'c-proceeding', th: 'Proceedings', match: (p: PersonResult['pubs'][number]) => p.type === 'proceeding' },
+    { id: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ', match: (p: PersonResult['pubs'][number]) => p.type === 'poster' },
+  ]
   const rows = types.map((t) => {
-    const perYear = years.map((y) => count(t.id, y))
+    const perYear = years.map((y) => pubs.filter((p) => p.year === y && t.match(p)).length)
     return { ...t, perYear, total: perYear.reduce((a, b) => a + b, 0) }
   })
   const colTotal = years.map((_, i) => rows.reduce((a, r) => a + r.perYear[i], 0))
@@ -212,7 +212,7 @@ function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings:
           {rows.map((r) => (
             <tr key={r.id}>
               <td>
-                <i className={`swatch c-${r.id}`} /> {r.th}
+                <i className={`swatch ${r.cls}`} /> {r.th}
               </td>
               {r.perYear.map((n, i) => (
                 <td key={i} className="num mono">{n}</td>

@@ -59,8 +59,13 @@ function barPath(x: number, y: number, w: number, h: number, r: number) {
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
 }
 
+// Journals are split by database (decision by Tum, 2026-11-06): found in Scopus = international,
+// otherwise national. Display only; the clause-9/10 evaluation counts every journal alike.
+export const isInternational = (p: Pub) => p.sources.includes('scopus')
+
 const SERIES = [
-  { key: 'journal', th: 'วารสาร', cls: 'c-journal' },
+  { key: 'journalIntl', th: 'วารสารนานาชาติ (Scopus)', cls: 'c-journal' },
+  { key: 'journalNatl', th: 'วารสารระดับชาติ (ไม่พบใน Scopus)', cls: 'c-journal-natl' },
   { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding' },
   { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster' },
 ] as const
@@ -76,14 +81,15 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
     const ofYear = pubs.filter((p) => p.year === y)
     return {
       y,
-      journal: ofYear.filter((p) => p.type === 'journal').length,
+      journalIntl: ofYear.filter((p) => p.type === 'journal' && isInternational(p)).length,
+      journalNatl: ofYear.filter((p) => p.type === 'journal' && !isInternational(p)).length,
       proceeding: ofYear.filter((p) => p.type === 'proceeding').length,
       poster: ofYear.filter((p) => p.type === 'poster').length,
       excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length,
     }
   })
   // 15% headroom so the bar totals never collide with the window label.
-  const max = niceMax(Math.max(1, ...rows.map((r) => r.journal + r.proceeding + r.poster)) * 1.15)
+  const max = niceMax(Math.max(1, ...rows.map((r) => r.journalIntl + r.journalNatl + r.proceeding + r.poster)) * 1.15)
   const W = Math.max(280, width)
   const H = W < 480 ? 230 : 260
   const narrow = W < 480
@@ -108,6 +114,12 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="จำนวนผลงานต่อปีแยกตามประเภท">
+        <defs>
+          <pattern id="hatch-natl" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" className="hatch-natl-bg" />
+            <line x1="0" y1="0" x2="0" y2="6" className="hatch-natl-line" />
+          </pattern>
+        </defs>
         <rect className="window-band" x={winX} y={m.t - 14} width={band * 5} height={ih + 14} rx={6} />
         <text className="window-label" x={winX + band * 2.5} y={m.t - 4} textAnchor="middle">
           ช่วงประเมิน {toBE(Y - 4)}–{toBE(Y)}
@@ -123,7 +135,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
         {rows.map((r, i) => {
           const x = m.l + band * i + (band - bw) / 2
           let acc = 0
-          const total = r.journal + r.proceeding + r.poster
+          const total = r.journalIntl + r.journalNatl + r.proceeding + r.poster
           return (
             <g key={r.y}>
               {SERIES.map((s, si) => {
@@ -166,7 +178,8 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                       <b>
                         พ.ศ. {toBE(r.y)} ({r.y})
                       </b>
-                      <span>วารสาร {r.journal}</span>
+                      <span>วารสารนานาชาติ (Scopus) {r.journalIntl}</span>
+                      <span>วารสารระดับชาติ {r.journalNatl}</span>
                       <span>Proceedings {r.proceeding}</span>
                       <span>โปสเตอร์/บทคัดย่อ {r.poster}</span>
                       <span className="muted">ไม่นับ/ไม่ทราบประเภท {r.excluded}</span>
