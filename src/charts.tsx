@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
-import { Segmented, displayName } from './ui'
+import { SHOWN_ROLES, Segmented, displayName } from './ui'
 
 interface Tip {
   x: number
@@ -221,6 +221,8 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
         risk: nextYearRisk(r, settings).filter((role) => role.level === 'ms' || role.level === 'phd'),
+        // Duties (of the 10 shown) not passed in the evaluation year.
+        failed: SHOWN_ROLES.filter((role) => r.roles[role.id].status !== 'met').length,
       }
     })
     .sort((a, b) =>
@@ -263,6 +265,9 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           <i className="swatch swatch-rule" /> เกณฑ์ ≥ 3 เรื่อง
         </span>
         <span>
+          <i className="swatch swatch-fail" /> ไม่ผ่านบางหน้าที่ในปีที่ประเมิน
+        </span>
+        <span>
           <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน ถ้าไม่มีผลงานเพิ่ม
         </span>
       </div>
@@ -288,7 +293,10 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           const total = x.research + x.other
           return (
             <g key={x.r.person.nameEn}>
-              {x.risk.length > 0 && <rect className="risk-frame" x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />}
+              {/* Red = fails now (takes precedence); yellow = passes now but may fail next year */}
+              {(x.failed > 0 || x.risk.length > 0) && (
+                <rect className={x.failed > 0 ? 'fail-frame' : 'risk-frame'} x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />
+              )}
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
                 <text className="row-label" x={m.l - 10} y={y + bh - 2} textAnchor="end">
                   {(() => {
@@ -309,10 +317,16 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                 {total}
                 {x.maybe ? `+${x.maybe}?` : ''}
               </text>
-              {x.risk.length > 0 && (
-                <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                  {narrow ? '⚠' : '⚠ ปีหน้าอาจไม่ผ่าน'}
+              {x.failed > 0 ? (
+                <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
+                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${SHOWN_ROLES.length} หน้าที่`}
                 </text>
+              ) : (
+                x.risk.length > 0 && (
+                  <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
+                    {narrow ? '⚠' : '⚠ ปีหน้าอาจไม่ผ่าน'}
+                  </text>
+                )
               )}
               <rect
                 className="hit"
@@ -334,6 +348,11 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                       <span className="muted">
                         ปี {toBE(settings.year - 4)}–{toBE(settings.year)}
                       </span>
+                      {x.failed > 0 && (
+                        <span className="tip-fail">
+                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน {x.failed} จาก {SHOWN_ROLES.length} หน้าที่
+                        </span>
+                      )}
                       {x.risk.length > 0 && (
                         <span className="tip-risk">
                           ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน: {x.risk.map((role) => role.clause).join(', ')}
