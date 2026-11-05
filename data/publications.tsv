@@ -1,0 +1,17 @@
+key	year	title	authors	venue	cites
+Example Lecturer A	2025	Example study one on PM2.5 in an example basin	A Example, B Example	Example Journal of Atmospheric Research 12 (3), 45-60, 2025	3
+Example Lecturer A	2024	Example study two on rainfall extremes	A Example	Example Environmental Letters 8, 101234, 2024	5
+Example Lecturer A	2024	Example study two on rainfall extremes	A Example	Research Square, 2024	0
+Example Lecturer A	2023	A review of example air quality models	A Example, C Example	Example Reviews in Environment 4 (1), 1-20, 2023	10
+Example Lecturer A	2022	Example full paper on haze forecasting	A Example	Proceedings of the Example Conference on Environment, 112-118, 2022	1
+Example Lecturer A	2021	Example poster on smoke transport	A Example	AGU Fall Meeting Abstracts 2021, A12B-03, 2021	0
+Example Lecturer A	2020	Example study outside the window	A Example	Example Journal of Atmospheric Research 7 (2), 10-20, 2020	12
+Example Lecturer B	2026	Example study on river temperature	B Example	Example Water Journal 3 (2), 11, 2026	0
+Example Lecturer B	2023	Example study on lake evaporation	B Example, A Example	IOP Conference Series: Earth and Environmental Science 1100 (1), 012001, 2023	2
+Example Lecturer B	2022	Example book chapter on climate	B Example	Example Book of Climate, 33-50, 2022	4
+Example Lecturer B	2022	Example thesis	B Example	Example University, 2022	0
+Example Lecturer C	2023	Example dissertation chapter paper	C Example	Example Journal of Climate Data 2 (1), 5-15, 2023	1
+Example Lecturer C	2025	Example first post-graduate paper	C Example	Example Journal of Climate Data 4 (2), 20-31, 2025	0
+Example Lecturer D	2025	Example study on crop residue burning	D Example	Example Journal of Agriculture 9 (4), 400-410, 2025	1
+Example Lecturer D	2024	Example perspective on burning policy	D Example	Example Policy Journal 2, 15-18, 2024	0
+Example Lecturer D	2023	Example study on ventilation index	D Example	Example Atmosphere Letters	0
