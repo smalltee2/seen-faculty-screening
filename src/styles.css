@@ -707,7 +707,8 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .metrics { gap: 10px; margin-bottom: 12px; }
 .metric { padding: 9px 14px; gap: 2px; }
 .metric-value { font-size: 1.5rem; }
-@media (min-width: 900px) { .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 700px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
 .dash { display: grid; gap: 12px; align-items: stretch; grid-template-columns: 1fr; }
 .dash > .panel { padding: 14px 16px; display: flex; flex-direction: column; min-width: 0; }
@@ -849,9 +850,10 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --lvl-phd: var(--gold); --lvl-ms: #4a8bd6; --lvl-ms-soft: rgba(74, 139, 214, 0.14); --lvl-ms-line: rgba(74, 139, 214, 0.4); } }
 :root[data-theme='dark'] { --lvl-phd: var(--gold); --lvl-ms: #4a8bd6; --lvl-ms-soft: rgba(74, 139, 214, 0.14); --lvl-ms-line: rgba(74, 139, 214, 0.4); }
 
-.block-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 8px; }
+.block-head { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 40px; }
 .block-head .block-title { margin: 0; }
-.chart-switches { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.chart-switches { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; }
+.block-head + .note { text-align: center; }
 .level-panel { border-left: 5px solid var(--lvl-grad); margin-top: 10px; }
 .level-panel.level-ba { border-left-color: var(--lvl-ba); }
 .level-title { display: flex; gap: 8px; align-items: baseline; margin: 0 0 2px; font-size: 1rem; color: var(--lvl-grad); }
@@ -880,3 +882,6 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .lvl-key-ba { color: var(--lvl-ba); background: var(--lvl-ba-soft); border-color: var(--lvl-ba-line); }
 .lvl-key-ms { color: var(--lvl-ms); background: var(--lvl-ms-soft); border-color: var(--lvl-ms-line); }
 .lvl-key-phd { color: var(--lvl-phd); background: var(--lvl-phd-soft); border-color: var(--lvl-phd-line); }
+.finding { flex-direction: column; gap: 4px; }
+.finding p { margin: 0; }
+.finding p + p { margin-top: 4px; }

@@ -39,16 +39,18 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       </div>
 
       <div className="finding">
-        <span>
-          ปีการประเมิน พ.ศ. {Y}: ผ่านครบทุกหน้าที่ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน · ผู้รับผิดชอบหลักสูตรที่มีคุณสมบัติ ป.ตรี{' '}
-          <b className="mono">{ba.met.length}</b> คน (เกณฑ์ ≥ 5) ป.โท <b className="mono">{ms.met.length}</b> คน ป.เอก <b className="mono">{phd.met.length}</b> คน (เกณฑ์ ≥ 3)
-          {atRisk > 0 && (
-            <>
-              {' '}
-              · <a href="#/lecturers">{atRisk} คน</a> อาจไม่ผ่านในปี พ.ศ. {toBE(settings.year + 1)} ถ้าไม่มีผลงานเพิ่ม
-            </>
-          )}
-        </span>
+        <p>
+          ปีการประเมิน พ.ศ. {Y} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
+        </p>
+        <p>
+          อาจารย์ที่มีคุณสมบัติเป็นผู้รับผิดชอบหลักสูตรได้ ระดับปริญญาตรี <b className="mono">{ba.met.length}</b> คน (ต้องมีอย่างน้อย 5 คน) ระดับปริญญาโท{' '}
+          <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอก <b className="mono">{phd.met.length}</b> คน (ต้องมีอย่างน้อย 3 คน)
+        </p>
+        {atRisk > 0 && (
+          <p>
+            หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ <a href="#/lecturers">{atRisk} คน</a> ไม่ผ่านเกณฑ์บางหน้าที่
+          </p>
+        )}
       </div>
 
       <div className="metrics">
@@ -56,7 +58,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.ตรี (ข้อ 10.1.2)" value={<>{ba.met.length}<small> คน</small></>} sub={<StatusChip status={ba.status} />} tone={ba.status} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.โท (ข้อ 9.3.2)" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
         <Metric label="ผู้รับผิดชอบหลักสูตร ป.เอก (ข้อ 9.4.2)" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
-        <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} sub="ผลงานที่มีผู้เขียนร่วมหลายคนนับครั้งเดียว" />
+        <Metric label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} />
       </div>
 
       <div className="dash">
