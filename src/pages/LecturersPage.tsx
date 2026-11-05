@@ -120,8 +120,10 @@ function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof 
   const statuses = levels.flatMap((l) => ROLES.filter((x) => x.level === l.id).map((x) => r.roles[x.id].status))
   const tally = (s: Status) => statuses.filter((x) => x === s).length
   const href = `#/person/${encodeURIComponent(p.nameEn)}`
+  // Red = fails a duty now (takes precedence), yellow = passes now but may fail next year (same as the overview chart).
+  const frame = tally('not_met') > 0 ? 'card-fail' : risk.length > 0 ? 'card-risk' : ''
   return (
-    <article className="panel person-card">
+    <article className={`panel person-card ${frame}`}>
       <header>
         <div className="min0">
           <a href={href} className="person-title">
@@ -211,8 +213,9 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
           <tbody>
             {rows.map((r) => {
               const risk = nextYearRisk(r, settings).filter((x) => x.level === 'ms' || x.level === 'phd')
+              const fails = roles.some((role) => r.roles[role.id].status === 'not_met')
               return (
-              <tr key={r.person.nameEn} className={risk.length ? 'row-risk' : ''}>
+              <tr key={r.person.nameEn} className={fails ? 'row-fail' : risk.length ? 'row-risk' : ''}>
                 <td className="sticky">
                   <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{displayName(r.person)}</a>
                   {risk.length > 0 && (
@@ -240,7 +243,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
         </table>
       </div>
       <p className="legend">
-        <StatusChip status="met" /> <StatusChip status="not_met" /> · <span className="risk-inline">⚠</span> = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
+        <StatusChip status="met" /> <StatusChip status="not_met" /> · แถบซ้ายสีแดง = ไม่ผ่านบางหน้าที่ · <span className="risk-inline">⚠</span> แถบซ้ายสีเหลือง = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
       </p>
     </>
   )

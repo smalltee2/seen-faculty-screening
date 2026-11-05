@@ -535,10 +535,13 @@ tr.greyed td { color: var(--subtle); }
 .chart .risk-frame { fill: color-mix(in srgb, var(--rev-mark) 10%, transparent); stroke: var(--rev-mark); stroke-width: 2; }
 .chart .risk-label { fill: var(--rev); font: 600 11.5px var(--font-body); }
 .tip-risk { color: var(--rev); font-weight: 600; margin-top: 3px; }
-.risk-note { font-size: 0.8rem; font-weight: 600; color: var(--not); background: var(--not-bg); border: 1.5px solid var(--not-mark); border-radius: var(--radius-md); padding: 6px 10px; }
-.person-card:has(.risk-note) { border: 2px solid var(--not-mark); }
-.risk-inline { font-size: 0.74rem; font-weight: 600; color: var(--not); }
-.matrix tr.row-risk td.sticky { box-shadow: inset 3px 0 0 var(--not-mark); }
+/* Same colours as the overview chart: red = fails a duty now, yellow = may fail next year */
+.risk-note { font-size: 0.8rem; font-weight: 600; color: var(--rev); background: var(--rev-bg); border: 1.5px solid var(--rev-mark); border-radius: var(--radius-md); padding: 6px 10px; }
+.person-card.card-fail { border: 2px solid var(--not-mark); }
+.person-card.card-risk { border: 2px solid var(--rev-mark); }
+.risk-inline { font-size: 0.74rem; font-weight: 600; color: var(--rev); }
+.matrix tr.row-fail td.sticky { box-shadow: inset 4px 0 0 var(--not-mark); }
+.matrix tr.row-risk td.sticky { box-shadow: inset 4px 0 0 var(--rev-mark); }
 
 /* Small screens: let segmented controls scroll instead of widening the page */
 .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
