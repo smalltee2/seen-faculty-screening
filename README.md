@@ -18,6 +18,8 @@ Live site (after the first deploy): `https://<github-user>.github.io/seen-facult
 3. Copy lines from the site's **รอตรวจสอบ (review queue)** page into `data/overrides.csv`.
 4. Commit and push to `main`. GitHub Actions runs the tests, builds the JSON and the site, and deploys it. A malformed file stops the build and the error names the file and line.
 
+To view the dashboard on your own computer without a server, run `npm run standalone`. It writes `standalone/index.html`: one file with the data built in, which opens by double-click in any browser. Re-run it after editing `data/`. The file is not committed.
+
 To check locally before pushing:
 
 ```bash

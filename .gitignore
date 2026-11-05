@@ -3,3 +3,4 @@ dist/
 src/generated/
 *.local
 .DS_Store
+standalone/
