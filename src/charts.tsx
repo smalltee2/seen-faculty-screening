@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
-import { displayName } from './ui'
+import { Segmented, displayName } from './ui'
 
 interface Tip {
   x: number
@@ -186,22 +186,49 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
 }
 
 /** Each lecturer's eligible outputs in the window: research, other, and uncertain, against the 3-output line. */
+type OutputsView = 'research' | 'type'
+
+/** Bar segments per view; colours match the per-year chart in the 'type' view. */
+const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journal' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
+  research: [
+    { key: 'research', cls: 'c-journal', th: 'งานวิจัย' },
+    { key: 'other', cls: 'hatched', th: 'ผลงานอื่น (บทความวิชาการ/ปริทัศน์)' },
+  ],
+  type: [
+    { key: 'journal', cls: 'c-journal', th: 'วารสาร' },
+    { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
+    { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
+  ],
+}
+
 export function LecturerOutputs({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const { show, hide, el } = useTip()
   const [ref, width] = useWidth(1000)
+  const [view, setView] = useState<OutputsView>('research')
   const rows = results
     .map((r) => {
       const c = r.roles.ms_program.counts
+      // Counted outputs (eligible = yes) in the 5-year window, the same set the rules use.
+      const used = r.roles.ms_program.used
+      const ofType = (t: string) => used.filter((e) => e.pub.type === t).length
       return {
         r,
         research: c.research,
         other: c.total - c.research,
+        journal: ofType('journal'),
+        proceeding: ofType('proceeding'),
+        poster: ofType('poster'),
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
         risk: nextYearRisk(r, settings).filter((role) => role.level === 'ms' || role.level === 'phd'),
       }
     })
-    .sort((a, b) => b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th'))
+    .sort((a, b) =>
+      view === 'research'
+        ? b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th')
+        : b.research + b.other - (a.research + a.other) || b.journal - a.journal || a.name.localeCompare(b.name, 'th'),
+    )
+  const segDefs = OUTPUT_SEGS[view]
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)))
   const W = Math.max(280, width)
   const narrow = W < 600
@@ -215,13 +242,23 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
 
   return (
     <figure className="chart" ref={ref}>
+      <div className="chart-toolbar no-print">
+        <Segmented
+          label="มุมมองกราฟผลงาน"
+          value={view}
+          onChange={setView}
+          options={[
+            { id: 'research', label: 'งานวิจัย / ผลงานอื่น' },
+            { id: 'type', label: 'แยกตามประเภทผลงาน' },
+          ]}
+        />
+      </div>
       <div className="chart-legend">
-        <span>
-          <i className="swatch c-journal" /> งานวิจัย
-        </span>
-        <span>
-          <i className="swatch swatch-hatch" /> ผลงานอื่น (บทความวิชาการ/ปริทัศน์)
-        </span>
+        {segDefs.map((s) => (
+          <span key={s.key}>
+            <i className={`swatch ${s.cls === 'hatched' ? 'swatch-hatch' : s.cls}`} /> {s.th}
+          </span>
+        ))}
         <span>
           <i className="swatch swatch-rule" /> เกณฑ์ ≥ 3 เรื่อง
         </span>
@@ -246,11 +283,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         ))}
         {rows.map((x, i) => {
           const y = m.t + i * rowH + (rowH - bh) / 2
-          const segs = [
-            { v: x.research, cls: 'c-journal' },
-            { v: x.other, cls: 'hatched' },
-            { v: x.maybe, cls: 'maybe' },
-          ]
+          const segs = [...segDefs.map((s) => ({ v: x[s.key], cls: s.cls })), { v: x.maybe, cls: 'maybe' }]
           let acc = 0
           const total = x.research + x.other
           return (
@@ -292,8 +325,11 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                     e,
                     <>
                       <b>{x.name}</b>
-                      <span>งานวิจัย {x.research}</span>
-                      <span>ผลงานอื่น {x.other}</span>
+                      {segDefs.map((s) => (
+                        <span key={s.key}>
+                          {s.th} {x[s.key]}
+                        </span>
+                      ))}
                       {x.maybe > 0 && <span>ยังไม่แน่ใจ {x.maybe}</span>}
                       <span className="muted">
                         ปี {toBE(settings.year - 4)}–{toBE(settings.year)}
