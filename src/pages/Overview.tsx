@@ -184,8 +184,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings: Settings }) {
   const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
   const types = [
-    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ (Scopus)', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && isInternational(p) },
-    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ (ไม่พบใน Scopus)', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && !isInternational(p) },
+    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && isInternational(p) },
+    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ', match: (p: PersonResult['pubs'][number]) => p.type === 'journal' && !isInternational(p) },
     { id: 'proceeding', cls: 'c-proceeding', th: 'Proceedings', match: (p: PersonResult['pubs'][number]) => p.type === 'proceeding' },
     { id: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ', match: (p: PersonResult['pubs'][number]) => p.type === 'poster' },
   ]

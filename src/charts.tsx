@@ -64,8 +64,8 @@ function barPath(x: number, y: number, w: number, h: number, r: number) {
 export const isInternational = (p: Pub) => p.sources.includes('scopus')
 
 const SERIES = [
-  { key: 'journalIntl', th: 'วารสารนานาชาติ (Scopus)', cls: 'c-journal' },
-  { key: 'journalNatl', th: 'วารสารระดับชาติ (ไม่พบใน Scopus)', cls: 'c-journal-natl' },
+  { key: 'journalIntl', th: 'วารสารนานาชาติ', cls: 'c-journal' },
+  { key: 'journalNatl', th: 'วารสารระดับชาติ', cls: 'c-journal-natl' },
   { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding' },
   { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster' },
 ] as const
@@ -178,7 +178,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                       <b>
                         พ.ศ. {toBE(r.y)} ({r.y})
                       </b>
-                      <span>วารสารนานาชาติ (Scopus) {r.journalIntl}</span>
+                      <span>วารสารนานาชาติ {r.journalIntl}</span>
                       <span>วารสารระดับชาติ {r.journalNatl}</span>
                       <span>Proceedings {r.proceeding}</span>
                       <span>โปสเตอร์/บทคัดย่อ {r.poster}</span>
