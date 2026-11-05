@@ -27,11 +27,12 @@ function parseHash(): Route {
 function loadSettings(): Settings {
   try {
     const s = JSON.parse(localStorage.getItem('seen-screening-settings') ?? 'null')
-    if (s && Number.isInteger(s.year)) return { year: s.year, countPosters: s.countPosters === true }
+    if (s && Number.isInteger(s.year)) return { year: s.year, countPosters: true }
   } catch {
     /* storage unavailable: use defaults */
   }
-  return { year: CURRENT_YEAR, countPosters: false }
+  // Posters/abstracts always count (decision by the programme, 2026-11-05).
+  return { year: CURRENT_YEAR, countPosters: true }
 }
 
 export function App() {
@@ -108,16 +109,10 @@ export function App() {
               {toBE(settings.year - 4)}–{toBE(settings.year)} <span className="muted">({settings.year - 4}–{settings.year})</span>
             </span>
           </div>
-          <label className="control switch">
-            <input id="count-posters" type="checkbox" checked={settings.countPosters} onChange={(e) => setSettings({ ...settings, countPosters: e.target.checked })} />
-            <span className="switch-track" aria-hidden="true" />
-            <span>
-              <span className="control-label">นับโปสเตอร์ / บทคัดย่อ</span>
-              <small className="warn-text">
-                ⚠ ประกาศนับผลงานตามหลักเกณฑ์การแต่งตั้งตำแหน่งทางวิชาการ ซึ่งโดยปกติผลงานในที่ประชุมวิชาการนับเฉพาะบทความฉบับสมบูรณ์ใน proceedings
-              </small>
-            </span>
-          </label>
+          <div className="control">
+            <span className="control-label">ผลงานที่นับ</span>
+            <span className="control-text">วารสาร · proceedings · โปสเตอร์/บทคัดย่อในงานประชุม</span>
+          </div>
         </section>
 
         <main>

@@ -199,6 +199,7 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
 .control { display: flex; flex-direction: column; gap: 4px; }
 .control-label { font: 600 0.68rem/1.2 var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .control-value { font: 600 0.95rem/1.6 var(--font-data); }
+.control-text { font-size: 0.88rem; line-height: 1.6; font-weight: 500; }
 select, input[type='search'], input:not([type]) {
   font-size: 0.85rem; padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
   background: var(--panel); color: var(--fg); box-shadow: var(--shadow-sm);

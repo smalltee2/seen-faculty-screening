@@ -268,7 +268,6 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                       {x.maybe > 0 && <span>ยังไม่แน่ใจ {x.maybe}</span>}
                       <span className="muted">
                         ปี {toBE(settings.year - 4)}–{toBE(settings.year)}
-                        {settings.countPosters ? ' · นับโปสเตอร์' : ''}
                       </span>
                     </>,
                   )

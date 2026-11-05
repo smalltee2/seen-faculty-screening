@@ -59,7 +59,7 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
       <div className="print-only print-header">
         <h1>คุณสมบัติอาจารย์รายบุคคล</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับโปสเตอร์: {settings.countPosters ? 'นับ' : 'ไม่นับ'}
+          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร proceedings และโปสเตอร์
         </p>
       </div>
       <div className="section-head">

@@ -12,7 +12,7 @@ export function Overview({ results, queueCount, settings }: { results: PersonRes
       <div className="print-only print-header">
         <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับโปสเตอร์: {settings.countPosters ? 'นับ' : 'ไม่นับ'} ·
+          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร proceedings และโปสเตอร์ ·
           พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH')}
         </p>
       </div>
