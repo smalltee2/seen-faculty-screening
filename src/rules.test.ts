@@ -4,6 +4,9 @@ import {
   nextYearRisk,
   programmeCheck,
   qualifies,
+  rule_10_1_1_baProgramLecturer,
+  rule_10_1_2_baResponsibleLecturer,
+  rule_10_1_3_baTeacher,
   rule_9_1_1_gdProgramLecturer,
   rule_9_1_2_gdResponsibleLecturer,
   rule_9_1_3_gdTeacher,
@@ -53,6 +56,35 @@ describe('window', () => {
   })
   it('an output in Y−4 is inside the window', () => {
     expect(rule_9_3_1_msProgramLecturer(person(), journals(3, { year: 2022 }), S).status).toBe('met')
+  })
+})
+
+describe('10.1 bachelor’s (เกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี พ.ศ. 2565)', () => {
+  const lecturerMs = person({ rank: 'อาจารย์', degree: 'ปริญญาโท', degreeYear: 2010 })
+  it('10.1.1 / 10.1.2 met with 1 non-research output in the window', () => {
+    const pubs = [pub({ isResearch: false, researchReason: 'review' })]
+    expect(rule_10_1_1_baProgramLecturer(lecturerMs, pubs, S).status).toBe('met')
+    expect(rule_10_1_2_baResponsibleLecturer(lecturerMs, pubs, S).status).toBe('met')
+  })
+  it('10.1.1 not met with no output in the past 5 years', () => {
+    const r = rule_10_1_1_baProgramLecturer(lecturerMs, [pub({ year: 2021 })], S)
+    expect(r.status).toBe('not_met')
+    expect(r.reasons.join(' ')).toContain('ผลงาน ≥ 1 เรื่อง')
+  })
+  it('10.1.3 teaching lecturer needs the degree only', () => {
+    expect(rule_10_1_3_baTeacher(lecturerMs, [], S).status).toBe('met')
+    expect(rule_10_1_3_baTeacher(person({ degree: null, rank: 'อาจารย์' }), [], { ...S, strict: true }).status).toBe('not_met')
+  })
+  it('qualification: ปริญญาโท or ผศ. ขึ้นไป', () => {
+    expect(qualifies(person({ degree: 'ปริญญาโท', rank: 'อาจารย์' }), 'master_or_asst').ok).toBe('yes')
+    expect(qualifies(person({ degree: 'ปริญญาเอก', rank: 'อาจารย์' }), 'master_or_asst').ok).toBe('yes')
+    expect(qualifies(person({ degree: null }), 'master_or_asst').ok).toBe('maybe')
+  })
+  it('no new-graduate path for bachelor’s roles', () => {
+    const fresh = person({ degree: 'ปริญญาเอก', degreeYear: 2025 })
+    const r = rule_10_1_1_baProgramLecturer(fresh, [], { ...S, strict: true })
+    expect(r.status).toBe('not_met')
+    expect(r.path).toBe('regular')
   })
 })
 
@@ -240,6 +272,10 @@ describe('programme check', () => {
     const c = programmeCheck('ms', res)
     expect(c.status).toBe('not_met')
     expect(c.met).toHaveLength(2)
+  })
+  it('a bachelor’s programme needs 5 responsible lecturers (10.1.2)', () => {
+    expect(programmeCheck('ba', evalAll(ppl(4, ['B.Sc.']), true)).status).toBe('not_met')
+    expect(programmeCheck('ba', evalAll(ppl(5, ['B.Sc.']), true)).status).toBe('met')
   })
 })
 

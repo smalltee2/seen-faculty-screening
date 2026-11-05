@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, roleShort } from '../ui'
 
 type View = 'cards' | 'table'
 type Filter = 'all' | 'not_met'
@@ -114,7 +114,7 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
 }
 
 function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof LEVELS)[number][]; settings: Settings }) {
-  const risk = nextYearRisk(r, settings).filter((x) => x.level === 'ms' || x.level === 'phd')
+  const risk = nextYearRisk(r, settings).filter((x) => isShownLevel(x.level))
   const p = r.person
   const c = r.roles.ms_program.counts
   const statuses = levels.flatMap((l) => ROLES.filter((x) => x.level === l.id).map((x) => r.roles[x.id].status))
@@ -212,7 +212,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
           </thead>
           <tbody>
             {rows.map((r) => {
-              const risk = nextYearRisk(r, settings).filter((x) => x.level === 'ms' || x.level === 'phd')
+              const risk = nextYearRisk(r, settings).filter((x) => isShownLevel(x.level))
               const fails = roles.some((role) => r.roles[role.id].status === 'not_met')
               return (
               <tr key={r.person.nameEn} className={fails ? 'row-fail' : risk.length ? 'row-risk' : ''}>

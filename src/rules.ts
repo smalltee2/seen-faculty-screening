@@ -1,5 +1,6 @@
 // Step 2: clause 9 of ประกาศคณะกรรมการมาตรฐานการอุดมศึกษา เรื่อง เกณฑ์มาตรฐานหลักสูตร
-// ระดับบัณฑิตศึกษา พ.ศ. 2565 (ราชกิจจานุเบกษา เล่ม 139 ตอนพิเศษ 212 ง, 9 ก.ย. 2565, หน้า 25–31).
+// ระดับบัณฑิตศึกษา พ.ศ. 2565 (ราชกิจจานุเบกษา เล่ม 139 ตอนพิเศษ 212 ง, 9 ก.ย. 2565, หน้า 25–31)
+// and clause 10 of เกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี พ.ศ. 2565 (same issue, หน้า 11–20).
 // Pure functions: every result is recomputed in the browser when the evaluation
 // year or the poster switch changes.
 //
@@ -10,7 +11,7 @@ import type { Faculty, Pub, Rank } from './types'
 
 export type Status = 'met' | 'not_met' | 'needs_review'
 export type Tri = 'yes' | 'maybe' | 'no'
-export type Level = 'gd' | 'hgd' | 'ms' | 'phd'
+export type Level = 'ba' | 'gd' | 'hgd' | 'ms' | 'phd'
 
 export interface Settings {
   /** Evaluation year Y (CE). The window is Y−4 … Y inclusive. */
@@ -22,8 +23,8 @@ export interface Settings {
   strict?: boolean
 }
 
-/** Degree/rank requirement of a role. */
-type Qual = 'master' | 'doc_or_assoc' | 'doc_or_full'
+/** Degree/rank requirement of a role. `master_or_asst` = ปริญญาโท หรือ ผศ. ขึ้นไป (clause 10). */
+type Qual = 'master_or_asst' | 'master' | 'doc_or_assoc' | 'doc_or_full'
 
 export interface RoleSpec {
   id: string
@@ -44,6 +45,14 @@ export interface RoleSpec {
 const RANK_ORDER: Rank[] = ['อาจารย์', 'ผศ.', 'รศ.', 'ศ.']
 
 export const ROLES: RoleSpec[] = [
+  // 10.1 ปริญญาตรีทางวิชาการ (เกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี พ.ศ. 2565). The per-person
+  // requirements of 10.2 (ทางวิชาชีพหรือปฏิบัติการ) are identical; 10.2's practical-experience
+  // quota (2 in 5 responsible lecturers) is a programme-level condition and is not checked here.
+  // 10.1.1: ปริญญาโท หรือ ผศ. ขึ้นไป, and ≥ 1 published academic work (not degree work) in the past 5 years.
+  { id: 'ba_program', level: 'ba', clause: '10.1.1', labelTh: 'อาจารย์ประจำหลักสูตร', labelEn: 'Programme lecturer', qual: 'master_or_asst', minOutputs: 1, minResearch: 0, researchOnly: false, newGrad: null },
+  { id: 'ba_responsible', level: 'ba', clause: '10.1.2', labelTh: 'อาจารย์ผู้รับผิดชอบหลักสูตร', labelEn: 'Responsible lecturer', qual: 'master_or_asst', minOutputs: 1, minResearch: 0, researchOnly: false, newGrad: null },
+  // 10.1.3 asks for the degree/rank only; no output requirement.
+  { id: 'ba_teacher', level: 'ba', clause: '10.1.3', labelTh: 'อาจารย์ผู้สอน', labelEn: 'Teaching lecturer', qual: 'master_or_asst', minOutputs: 0, minResearch: 0, researchOnly: false, newGrad: null },
   // 9.1 ประกาศนียบัตรบัณฑิต
   { id: 'gd_program', level: 'gd', clause: '9.1.1', labelTh: 'อาจารย์ประจำหลักสูตร', labelEn: 'Programme lecturer', qual: 'master', minOutputs: 3, minResearch: 1, researchOnly: false, newGrad: { clause: '9.1.4', mode: 'outputs' } },
   { id: 'gd_responsible', level: 'gd', clause: '9.1.2', labelTh: 'อาจารย์ผู้รับผิดชอบหลักสูตร', labelEn: 'Responsible lecturer', qual: 'doc_or_assoc', minOutputs: 3, minResearch: 1, researchOnly: false, newGrad: { clause: '9.1.4', mode: 'outputs' } },
@@ -67,11 +76,13 @@ export const ROLES: RoleSpec[] = [
   { id: 'phd_teacher', level: 'phd', clause: '9.4.5', labelTh: 'อาจารย์ผู้สอน', labelEn: 'Teaching lecturer', qual: 'doc_or_assoc', minOutputs: 1, minResearch: 0, researchOnly: false, newGrad: { clause: '9.4.6', mode: 'teach' } },
 ]
 
-export const LEVELS: { id: Level; th: string; en: string; clause: string; responsible: string }[] = [
-  { id: 'ms', th: 'ปริญญาโท', en: "Master's", clause: '9.3', responsible: 'ms_responsible' },
-  { id: 'phd', th: 'ปริญญาเอก', en: 'Doctoral', clause: '9.4', responsible: 'phd_responsible' },
-  { id: 'gd', th: 'ประกาศนียบัตรบัณฑิต', en: 'Graduate diploma', clause: '9.1', responsible: 'gd_responsible' },
-  { id: 'hgd', th: 'ประกาศนียบัตรบัณฑิตชั้นสูง', en: 'Higher graduate diploma', clause: '9.2', responsible: 'hgd_responsible' },
+/** `minResponsible`: responsible lecturers a programme needs (10.1.2: 5 คน; 9.x.2: 3 คน). */
+export const LEVELS: { id: Level; th: string; en: string; clause: string; responsible: string; minResponsible: number }[] = [
+  { id: 'ba', th: 'ปริญญาตรี', en: "Bachelor's", clause: '10.1', responsible: 'ba_responsible', minResponsible: 5 },
+  { id: 'ms', th: 'ปริญญาโท', en: "Master's", clause: '9.3', responsible: 'ms_responsible', minResponsible: 3 },
+  { id: 'phd', th: 'ปริญญาเอก', en: 'Doctoral', clause: '9.4', responsible: 'phd_responsible', minResponsible: 3 },
+  { id: 'gd', th: 'ประกาศนียบัตรบัณฑิต', en: 'Graduate diploma', clause: '9.1', responsible: 'gd_responsible', minResponsible: 3 },
+  { id: 'hgd', th: 'ประกาศนียบัตรบัณฑิตชั้นสูง', en: 'Higher graduate diploma', clause: '9.2', responsible: 'hgd_responsible', minResponsible: 3 },
 ]
 
 export const roleById = (id: string): RoleSpec => {
@@ -94,6 +105,13 @@ export function rankAtLeast(rank: Rank | null, min: Rank): boolean {
 export function qualifies(p: Faculty, qual: Qual): { ok: Tri; reason: string } {
   if (!p.degree) return { ok: 'maybe', reason: 'ไม่มีข้อมูลวุฒิการศึกษาใน faculty.csv' }
   if (p.degree === 'ปริญญาเอก') return { ok: 'yes', reason: 'วุฒิปริญญาเอก' }
+  // Clause 10: ปริญญาโท หรือ ผศ. ขึ้นไป. Every degree in faculty.csv is โท or เอก, so โท satisfies it;
+  // a lecturer without a master's would need ผศ. or above.
+  if (qual === 'master_or_asst') {
+    if (p.degree === 'ปริญญาโท') return { ok: 'yes', reason: 'วุฒิปริญญาโท' }
+    if (rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง ${p.rank}` }
+    return { ok: 'no', reason: 'ต้องมีวุฒิปริญญาโท หรือตำแหน่ง ผศ. ขึ้นไป' }
+  }
   if (qual === 'master') return { ok: 'yes', reason: 'วุฒิปริญญาโท' }
   const min: Rank = qual === 'doc_or_full' ? 'ศ.' : 'รศ.'
   if (!p.rank) return { ok: 'maybe', reason: 'วุฒิปริญญาโท แต่ไม่มีข้อมูลตำแหน่งวิชาการ' }
@@ -240,11 +258,13 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
     ? `ผลงานวิจัย ≥ ${role.minOutputs} เรื่อง`
     : role.minResearch > 0
       ? `ผลงาน ≥ ${role.minOutputs} เรื่อง (วิจัย ≥ ${role.minResearch})`
-      : `ผลงาน ≥ ${role.minOutputs} เรื่อง`
+      : role.minOutputs === 0
+        ? 'ไม่กำหนดจำนวนผลงาน'
+        : `ผลงาน ≥ ${role.minOutputs} เรื่อง`
   const have = role.researchOnly
     ? `มีผลงานวิจัย ${counts.research}${counts.researchPossible > counts.research ? ` (อาจถึง ${counts.researchPossible})` : ''}`
     : `มีผลงาน ${counts.total}${counts.totalPossible > counts.total ? ` (อาจถึง ${counts.totalPossible})` : ''}, วิจัย ${counts.research}${counts.researchPossible > counts.research ? ` (อาจถึง ${counts.researchPossible})` : ''}`
-  const reasons = [`คุณวุฒิ: ${q.reason}`, `ต้องการ ${need} ในปี ${from}–${to}; ${have}`]
+  const reasons = [`คุณวุฒิ: ${q.reason}`, role.minOutputs === 0 ? `${need} (ข้อ ${role.clause}); ${have} ในปี ${from}–${to}` : `ต้องการ ${need} ในปี ${from}–${to}; ${have}`]
 
   let status: Status = q.ok === 'no' || o === 'no' ? 'not_met' : q.ok === 'yes' && o === 'yes' ? 'met' : 'needs_review'
   let path: RoleResult['path'] = 'regular'
@@ -276,6 +296,9 @@ type RuleFn = (p: Faculty, pubs: Pub[], s: Settings) => RoleResult
 const rule = (id: string): RuleFn => (p, pubs, s) => evaluateRole(roleById(id), p, pubs, s)
 
 // One function per role, named by clause.
+export const rule_10_1_1_baProgramLecturer = rule('ba_program')
+export const rule_10_1_2_baResponsibleLecturer = rule('ba_responsible')
+export const rule_10_1_3_baTeacher = rule('ba_teacher')
 export const rule_9_1_1_gdProgramLecturer = rule('gd_program')
 export const rule_9_1_2_gdResponsibleLecturer = rule('gd_responsible')
 export const rule_9_1_3_gdTeacher = rule('gd_teacher')
@@ -313,6 +336,7 @@ export function nextYearRisk(r: PersonResult, s: Settings): RoleSpec[] {
 }
 
 const LEVEL_PATTERNS: Record<Level, RegExp> = {
+  ba: /bachelor|^b\.|^bs\b|^bsc\b|^beng\b|ป\.?\s?ตรี|ปริญญาตรี|วท\.?บ|วศ\.?บ/i,
   hgd: /higher\s*grad|ป\.?\s?บัณฑิตชั้นสูง|บัณฑิตชั้นสูง/i,
   gd: /^(?!.*(higher|ชั้นสูง)).*(grad\.?\s?dip|ป\.?\s?บัณฑิต)/i,
   ms: /^m\.|master|^ms\b|ป\.?\s?โท|ปริญญาโท|วท\.?ม|วศ\.?ม/i,
@@ -334,7 +358,8 @@ export interface ProgrammeCheck {
   usedAll: boolean
 }
 
-/** A programme passes only if at least 3 people meet the responsible-lecturer criterion (9.x.2). */
+/** A programme passes only if enough people meet the responsible-lecturer criterion
+ *  (9.x.2: 3 คน; 10.1.2: 5 คน). */
 export function programmeCheck(level: Level, results: PersonResult[]): ProgrammeCheck {
   const lv = LEVELS.find((l) => l.id === level)!
   const listedPeople = results.filter((r) => inProgramme(r.person, level))
@@ -342,7 +367,8 @@ export function programmeCheck(level: Level, results: PersonResult[]): Programme
   const pool = usedAll ? results : listedPeople
   const met = pool.filter((r) => r.roles[lv.responsible].status === 'met')
   const review = pool.filter((r) => r.roles[lv.responsible].status === 'needs_review')
-  const status: Status = met.length >= 3 ? 'met' : met.length + review.length >= 3 ? 'needs_review' : 'not_met'
+  const n = lv.minResponsible
+  const status: Status = met.length >= n ? 'met' : met.length + review.length >= n ? 'needs_review' : 'not_met'
   const metNotListed = usedAll ? [] : results.filter((r) => !inProgramme(r.person, level) && r.roles[lv.responsible].status === 'met')
   return { level: lv, status, listed: listedPeople.length, met, review, metNotListed, usedAll }
 }
