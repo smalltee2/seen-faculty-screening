@@ -37,7 +37,11 @@ async function getJson(url, tries = 3, headers = {}) {
   for (let i = 1; ; i++) {
     try {
       const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent, ...headers } })
-      if (res.status === 401 || res.status === 403) throw Object.assign(new Error(`HTTP ${res.status} (key not accepted from this network?)`), { fatal: true })
+      if (res.status === 401 || res.status === 403) {
+        // Elsevier explains the refusal in the body (invalid key, no entitlement from this IP, …).
+        const body = (await res.text()).replace(/\s+/g, ' ').slice(0, 300)
+        throw Object.assign(new Error(`HTTP ${res.status}: ${body}`), { fatal: true })
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return await res.json()
     } catch (e) {
@@ -124,7 +128,10 @@ async function fetchOpenAlex(faculty) {
 const SC_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'sc_type', 'source_type', 'eid', 'scopus_author_id']
 
 async function scopusGet(url, key) {
-  return getJson(url, 3, { 'X-ELS-APIKey': key, Accept: 'application/json' })
+  const headers = { 'X-ELS-APIKey': key, Accept: 'application/json' }
+  // An institutional token lets the key work outside the university network.
+  if (process.env.SCOPUS_INSTTOKEN) headers['X-ELS-Insttoken'] = process.env.SCOPUS_INSTTOKEN
+  return getJson(url, 3, headers)
 }
 
 /** Scopus author ID from faculty.csv, or a unique name match at University of Phayao. */
@@ -193,6 +200,12 @@ async function fetchScopus(faculty, key) {
       ok++
       log(`${f.name_en}: ${rows.length} Scopus documents`)
     } catch (e) {
+      if (e.fatal) {
+        // The key itself was refused: the same answer would come for everyone, so stop here.
+        warn(`Scopus refused the request (${e.message}). Kept all previous Scopus rows. From outside the university network Elsevier usually needs an institutional token (SCOPUS_INSTTOKEN secret).`)
+        writeTsv(CONFIG.scopusOut, SC_HEADER, previous)
+        return
+      }
       const kept = previous.filter((r) => r.key === f.name_en)
       out.push(...kept)
       warn(`${f.name_en}: Scopus request failed (${e.message}); kept ${kept.length} previous rows`)
