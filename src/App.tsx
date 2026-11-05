@@ -8,6 +8,7 @@ import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
 import { AdminPage } from './pages/AdminPage'
 import seenLogo from './assets/seen-logo.png'
+import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 
 const data = raw as DataBundle
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
@@ -56,6 +57,9 @@ export function App() {
   }, [])
 
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [settings])
+  // Reload by itself when a newer build is published; on the admin tab only offer it,
+  // so a passcode being typed is not lost.
+  const newerBuild = useAutoRefresh(data.builtAt, route.page !== 'admin')
 
   const pubYears = pubs.map((p) => p.year).filter((y): y is number => y !== null)
   const minYear = Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4))
@@ -97,6 +101,14 @@ export function App() {
       </header>
 
       <div className="page">
+        {newerBuild && (
+          <div className="update-banner no-print" role="status">
+            <span>มีข้อมูลเวอร์ชันใหม่ ({new Date(newerBuild).toLocaleString('th-TH')})</span>
+            <button type="button" className="btn btn-primary" onClick={() => reloadForBuild(newerBuild)}>
+              โหลดหน้าใหม่
+            </button>
+          </div>
+        )}
         <section className="controls no-print">
           <label className="control">
             <span className="control-label">ปีที่ประเมิน</span>

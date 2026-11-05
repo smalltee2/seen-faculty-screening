@@ -830,3 +830,10 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
   .metrics { gap: 12px; }
   .metric-value { font-size: 1.5rem; }
 }
+
+/* Shown when a newer build is published (auto-reload except on the admin tab) */
+.update-banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 16px 0 0; padding: 10px 16px; border-radius: var(--radius-md);
+  background: var(--gold-soft); border: 1px solid var(--gold); color: var(--fg); font-size: 0.95rem;
+}
