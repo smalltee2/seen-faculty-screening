@@ -1,13 +1,24 @@
-name_en,name_th,scholar_id,academic_rank,highest_degree,degree_year_ce,programs,notes
-Example Lecturer A,อาจารย์ตัวอย่าง ก,,รศ.,ปริญญาเอก,2008,M.Sc.;Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer B,อาจารย์ตัวอย่าง ข,,ผศ.,ปริญญาเอก,2012,M.Sc.,EXAMPLE ROW - replace with real data
-Example Lecturer C,อาจารย์ตัวอย่าง ค,,อาจารย์,ปริญญาเอก,2024,M.Sc.;Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer D,อาจารย์ตัวอย่าง ง,,รศ.,ปริญญาโท,2000,M.Sc.,EXAMPLE ROW - replace with real data
-Example Lecturer E,อาจารย์ตัวอย่าง จ,,ศ.,ปริญญาเอก,1998,Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer F,อาจารย์ตัวอย่าง ฉ,,ผศ.,ปริญญาเอก,2010,M.Sc.;Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer G,อาจารย์ตัวอย่าง ช,,ผศ.,ปริญญาเอก,2015,M.Sc.,EXAMPLE ROW - replace with real data
-Example Lecturer H,อาจารย์ตัวอย่าง ซ,,อาจารย์,ปริญญาเอก,2019,Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer I,อาจารย์ตัวอย่าง ฌ,,รศ.,ปริญญาเอก,2006,M.Sc.;Ph.D.,EXAMPLE ROW - replace with real data
-Example Lecturer J,อาจารย์ตัวอย่าง ญ,,อาจารย์,ปริญญาโท,2016,M.Sc.,EXAMPLE ROW - replace with real data
-Example Lecturer K,อาจารย์ตัวอย่าง ฎ,,ผศ.,ปริญญาเอก,2013,M.Sc.,EXAMPLE ROW - replace with real data
-Example Lecturer L,อาจารย์ตัวอย่าง ฏ,,อาจารย์,ปริญญาเอก,2025,M.Sc.,EXAMPLE ROW - replace with real data
+﻿name_en,name_th,scholar_id,academic_rank,highest_degree,degree_year_ce,programs,notes
+Teerachai Amnuaylojaroen,,x2B8hBkAAAAJ,รศ.,ปริญญาเอก,,,
+Torpong Kreetachat,,UORF4PQAAAAJ,,,,,
+Nopparat Suriyachai,,RnwHzsgAAAAJ,,,,,
+Saksit Imman,,C4qADGsAAAAJ,,,,,
+Sittichai Pimonsree,,IKO6SLsAAAAJ,,,,,
+Chatkaew Chailuecha,,3ybnZWoAAAAJ,,,,,
+Surat Sedpho,,psZYnMoAAAAJ,,,,,
+Kritchaya Issakul,,cgc87H4AAAAJ,,,,,
+Supreeda Homklin,,t5MgqswAAAAJ,,,,,
+Bunyawat Vichanpol,,kJEUzk4AAAAJ,,,,,
+Wanawan Pragot,,CbGh5XwAAAAJ,,,,,
+Watchara Wongpanyo,,ox2gTBwAAAAJ,,,,,
+Anusorn Boonpoke,,sQGtXMoAAAAJ,,,,,
+Sukthai Pongpattanasiri,,aV9deG8AAAAJ,,,,,
+Poramate Sittisun,,X-e108QAAAAJ,,,,,
+Nathiya Kreetachat,,dZGJHXMAAAAJ,,,,,
+Sukhuma Chitapornpan,,HbpJCkEAAAAJ,,,,,
+Somanat Somprasert,,Z1bqHqIAAAAJ,,,,,
+Satawat Tanarat,,dt0aVkoAAAAJ,,,,,
+Buran Phansawan,,0vbBfygAAAAJ,,,,,
+Chaiwat Photong,,01-VXucAAAAJ,,,,,
+Rattapoom Prommana,,CrOzkjIAAAAJ,,,,,
+Suchanya Thongkrua,,aaCbV6EAAAAJ,,,,,

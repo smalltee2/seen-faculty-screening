@@ -9,24 +9,35 @@ export function normalizeTitle(title: string): string {
   return title.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
 }
 
-/** Scholar appends ", <year>" to the venue; drop it before pattern matching. */
+/** Scholar inserts spaces between Thai syllables ("บัณฑิต วิทยาลัย"); join them so Thai keywords match. */
+function joinThai(s: string): string {
+  return s.normalize('NFKC').replace(/(?<=[\u0E00-\u0E7F])\s+(?=[\u0E00-\u0E7F])/g, '')
+}
+
+/** Scholar appends ", <year>" (or ", 0" when unknown) to the venue; drop it before pattern matching. */
 function stripYear(venue: string): string {
-  return venue.replace(/,?\s*(19|20)\d{2}\s*$/, '').trim()
+  return joinThai(venue).replace(/,?\s*((19|20)\d{2}|0)\s*$/, '').trim()
 }
 
 const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|\bpreprints?\b|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review|\bdiscussions\b/i
 const PATENT = /patent|สิทธิบัตร|อนุสิทธิบัตร/i
 const DATASET = /zenodo|figshare|pangaea|dryad|mendeley data|\bdata\s?set\b/i
-const THESIS = /thesis|dissertation|วิทยานิพนธ์|ปริญญานิพนธ์|การค้นคว้าอิสระ|\bph\.?\s?d\b|master'?s/i
+const THESIS = /thesis|dissertation|วิทยานิพนธ์|ปริญญานิพนธ์|การค้นคว้าอิสระ|\bph\.?\s?d\b|master'?s|graduate school|บัณฑิตวิทยาลัย/i
 const POSTER = /poster|abstracts?\b|agu fall meeting|egu general assembly|ams annual meeting|goldschmidt|บทคัดย่อ|โปสเตอร์/i
 const PROCEEDING = /proceedings?|\bproc\.|conference|symposium|congress|workshop|e3s web of|matec web of|\bspie\b|การประชุมวิชาการ|ประชุมวิชาการ|รายงานสืบเนื่อง/i
 const LECTURE_NOTES = /lecture notes in/i
-const BOOK = /\bbook\b|chapter|handbook|encyclopedia|\bisbn\b|^in:|หนังสือ|ตำรา|intechopen/i
-const PUBLISHER_ONLY = /^(springer( nature)?( international publishing)?|elsevier|wiley|crc press|routledge|taylor\s*&\s*francis|cambridge university press|oxford university press|academic press|iwa publishing)$/i
-const REPORT = /\breport\b|technical note|white paper|working paper|policy brief|รายงาน(?!การประชุม|สืบเนื่อง)/i
+const BOOK = /\bbook\b|chapter|handbook|encyclopedia|\bisbn\b|^in:|หนังสือ|ต(?:ำ|ํา)รา|intechopen/i
+const PUBLISHER_ONLY = /^(springer( nature)?( international publishing)?|elsevier|wiley|crc press|routledge|taylor\s*&\s*francis|cambridge university press|oxford university press|academic press|iwa publishing|cuvillier verlag|lap lambert( academic publishing)?)$/i
+const REPORT = /\breport\b|technical note|white paper|working paper|policy brief|報告|รายงาน(?!การประชุม|สืบเนื่อง)/i
+// Final reports to funding agencies (TSRI / สกสว.), not publications under the rank criteria.
+const FUNDER_REPORT = /^(thailand science research and innovation|ส(?:ำ|ํา)นักงานคณะกรรมการส่งเสริมวิทยาศาสตร์วิจัยและนวัตกรรม|สกสว\.?|สกว\.?|thailand research fund)$/i
+// IEEE-style conference names start with the year, e.g. "2024 Geoinformatics for Spatial-Infrastructure …".
+const YEAR_PREFIX_CONF = /^(19|20)\d{2}\s+\p{L}/u
 const UNIVERSITY_ONLY = /^[^\d]*(universit|institute of technology|มหาวิทยาลัย|สถาบัน)[^\d]*$/i
 // Volume (issue), page range, or article number, e.g. "12 (3), 45-60", "8, 101234".
 const VOL_ISSUE = /\d+\s*\([^)]+\)/
+// Scholar truncates long venues: "… Management 7 (3-4 …" still shows a volume and issue.
+const VOL_TRUNCATED = /\d+\s*\([^)]*(…|\.\.\.)/ // NFKC turns … into ...
 const PAGES = /\d+\s*,\s*[a-z]?\d+\s*[-–]\s*[a-z]?\d+/i
 const ARTICLE_NO = /\b\d+\s*,\s*[a-z]?\d{3,}\b/i
 // Article number without volume (online first), e.g. "Geophysical Research Letters, e2022GL100223".
@@ -43,12 +54,12 @@ export interface TypeResult {
 
 export function hasVolumeOrPages(venue: string): boolean {
   const v = stripYear(venue)
-  return VOL_ISSUE.test(v) || PAGES.test(v) || ARTICLE_NO.test(v) || ARTICLE_NO_ONLY.test(v)
+  return VOL_ISSUE.test(v) || VOL_TRUNCATED.test(v) || PAGES.test(v) || ARTICLE_NO.test(v) || ARTICLE_NO_ONLY.test(v)
 }
 
 export function classifyType(title: string, venue: string): TypeResult {
   const v = stripYear(venue)
-  const both = `${title} ${venue}`
+  const both = joinThai(`${title} ${venue}`)
   if (!v) return { type: 'exclude', reason: 'ไม่มีชื่อแหล่งตีพิมพ์ (no venue)', uncertain: false }
   if (PREPRINT.test(both)) return { type: 'exclude', reason: 'ฉบับก่อนตีพิมพ์ (preprint)', uncertain: false }
   if (PATENT.test(v)) return { type: 'exclude', reason: 'สิทธิบัตร (patent)', uncertain: false }
@@ -60,8 +71,11 @@ export function classifyType(title: string, venue: string): TypeResult {
     return { type: 'proceeding', reason: 'Lecture Notes series — อาจเป็น proceedings หรือหนังสือ', uncertain: true }
   if (BOOK.test(v) || PUBLISHER_ONLY.test(v)) return { type: 'exclude', reason: 'หนังสือ/บทในหนังสือ (book/chapter)', uncertain: false }
   if (REPORT.test(v)) return { type: 'exclude', reason: 'รายงาน (report)', uncertain: false }
+  if (FUNDER_REPORT.test(v)) return { type: 'exclude', reason: 'รายงานวิจัยถึงแหล่งทุน (funder report)', uncertain: false }
   if (PAGES_ONLY.test(v)) return { type: 'exclude', reason: 'มีแต่เลขหน้า ไม่มีเล่ม — น่าจะเป็นบทในหนังสือ', uncertain: true }
   if (hasVolumeOrPages(v)) return { type: 'journal', reason: 'มีเล่ม/ฉบับ/หน้า (volume/issue/pages)', uncertain: false }
+  if (YEAR_PREFIX_CONF.test(v))
+    return { type: 'proceeding', reason: 'ชื่อขึ้นต้นด้วยปี — มักเป็นการประชุมวิชาการ (เช่น IEEE)', uncertain: true }
   if (JOURNAL_NAME.test(v))
     return { type: 'journal', reason: 'ชื่อคล้ายวารสาร แต่ไม่มีเล่ม/หน้า (journal name, no volume/pages)', uncertain: true }
   if (UNIVERSITY_ONLY.test(v)) return { type: 'exclude', reason: 'มีแต่ชื่อมหาวิทยาลัย — อาจเป็นวิทยานิพนธ์', uncertain: true }
@@ -82,6 +96,7 @@ export interface ResearchResult {
 
 /** Clause 9.4 counts only research outputs (ผลงานวิจัย); review/academic articles are not. */
 export function classifyResearch(title: string, venue: string): ResearchResult {
+  title = joinThai(title)
   if (SYSTEMATIC.test(title))
     return { isResearch: false, reason: 'systematic review / meta-analysis — ต้องตัดสินว่าเป็นงานวิจัยหรือไม่', uncertain: true }
   if (NOT_RESEARCH.test(title)) return { isResearch: false, reason: 'บทความปริทัศน์/วิชาการ (review/academic article)', uncertain: false }

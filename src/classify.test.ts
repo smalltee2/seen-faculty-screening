@@ -42,6 +42,19 @@ describe('classifyType', () => {
     expect(r.type).toBe(type)
     expect(r.uncertain).toBe(false)
   })
+  it.each([
+    ['International Journal of Environmental Technology and Management 7 (3-4 …, 2007', 'journal', false],
+    ['เชียงใหม่: บัณฑิต วิทยาลัย มหาวิทยาลัย เชียงใหม่, 2553, 0', 'exclude', false],
+    ['Chiang Mai: Graduate School, Chiang Mai University, 2006, 2006', 'exclude', false],
+    ['Thailand Science Research and Innovation, 2019', 'exclude', false],
+    ['สํา นักงาน คณะ กรรมการ ส่งเสริม วิทยาศาสตร์ วิจัย และ นวัตกรรม, 2018', 'exclude', false],
+    ['旭硝子財団助成成果報告書 (Web) 2013, 90, 2013', 'exclude', false],
+    ['Cuvillier Verlag, 2007', 'exclude', false],
+    ['2024 Geoinformatics for Spatial-Infrastructure Development in Earth and …, 2024', 'proceeding', true],
+    ['มหาวิทยาลัย พะเยา, 0', 'exclude', true],
+  ])('real Scholar venue %s → %s (uncertain %s)', (venue, type, uncertain) => {
+    expect(t(venue)).toMatchObject({ type, uncertain })
+  })
   it('flags a journal name without volume/pages as uncertain', () => {
     expect(t('International Journal of Climatology, 2025')).toMatchObject({ type: 'journal', uncertain: true })
   })
