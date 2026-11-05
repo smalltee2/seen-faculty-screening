@@ -16,7 +16,7 @@
 // A failed request for one lecturer keeps that lecturer's previous rows, so one bad
 // day never empties anyone's record. The script exits non-zero only if every
 // OpenAlex request fails.
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
@@ -29,6 +29,9 @@ const CONFIG = {
   scopusOut: join(ROOT, 'data/scopus.tsv'),
   manualOut: join(ROOT, 'data/manual.tsv'),
   tciOut: join(ROOT, 'data/tci_journals.csv'),
+  // One file per calendar year with the list as last seen in that year, so a journal's
+  // กลุ่ม at the time an article appeared can be looked up later (stored, not displayed yet).
+  tciSnapshotDir: join(ROOT, 'data/tci_snapshots'),
   scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
   tciUrl: 'https://tci-thailand.org/backend/journal/list_all_journal',
   firstYear: new Date().getFullYear() - 11, // ten years for the chart plus one
@@ -362,7 +365,10 @@ async function fetchTci() {
   if (js.length < 500) throw new Error(`TCI returned only ${js.length} journals; keeping the previous file`)
   const header = ['id', 'name_eng', 'name_local', 'abbrev_name', 'issn', 'eissn', 'tci_tier', 'status', 'main_area']
   const lines = js.map((j) => header.map((h) => csvCell(j[h])).join(','))
-  writeFileSync(CONFIG.tciOut, [header.join(','), ...lines].join('\n') + '\n')
+  const csv = [header.join(','), ...lines].join('\n') + '\n'
+  writeFileSync(CONFIG.tciOut, csv)
+  mkdirSync(CONFIG.tciSnapshotDir, { recursive: true })
+  writeFileSync(join(CONFIG.tciSnapshotDir, `${new Date().getFullYear()}.csv`), csv)
   const tiers = js.reduce((m, j) => ((m[j.tci_tier] = (m[j.tci_tier] ?? 0) + 1), m), {})
   log(`TCI: ${js.length} journals (กลุ่ม 1: ${tiers['1'] ?? 0}, 2: ${tiers['2'] ?? 0}, 3: ${tiers['3'] ?? 0}) -> data/tci_journals.csv`)
 }

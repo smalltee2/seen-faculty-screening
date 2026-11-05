@@ -32,7 +32,7 @@ npm run dev        # http://localhost:5173/seen-faculty-screening/
 
 GitHub Actions runs every day at 03:00 (Thailand time). It does three things:
 
-- refreshes `data/openalex.tsv`, `data/scopus.tsv`, `data/manual.tsv`, the TCI journal list `data/tci_journals.csv` (tci-thailand.org) and the Scopus journal cache `data/scopus_journals.csv` (one `ISSN(x)` query per new ISSN)
+- refreshes `data/openalex.tsv`, `data/scopus.tsv`, `data/manual.tsv`, the TCI journal list `data/tci_journals.csv` (tci-thailand.org) plus a yearly copy `data/tci_snapshots/<year>.csv` (the list as last seen that year; `2025.csv` was reconstructed once by `scripts/tci-backfill-2025.mjs` from the 2569 re-grading and new-journal announcements; stored for a future "กลุ่ม ณ ปีที่ตีพิมพ์" view, not displayed yet) and the Scopus journal cache `data/scopus_journals.csv` (one `ISSN(x)` query per new ISSN)
 - commits whatever changed
 - rebuilds and redeploys the site
 
