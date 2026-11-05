@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, type OutputsView } from '../charts'
-import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort } from '../ui'
+import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const [view, setView] = useState<OutputsView>('research')
+  const [group, setGroup] = useState<LevelGroup>('grad')
+  const g = LEVEL_GROUPS.find((x) => x.id === group)!
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
@@ -70,7 +72,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่
           </h3>
           {SHOWN_LEVELS.map((l) => (
-            <div key={l.id} className={`role-level level-${levelGroup(l.id)}`}>
+            <div key={l.id} className={`role-level level-${l.id}`}>
               <div className="role-level-head">
                 {l.th} <span className="eyebrow">ข้อ {l.clause}</span>
               </div>
@@ -110,7 +112,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <div className="block-head">
         <h2 className="block-title">ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน</h2>
-        <div className="no-print">
+        <div className="no-print chart-switches">
+          <Segmented label="ระดับหลักสูตร" value={group} onChange={setGroup} options={LEVEL_GROUPS.map((x) => ({ id: x.id, label: x.th }))} />
           <Segmented
             label="มุมมองกราฟผลงาน"
             value={view}
@@ -123,15 +126,13 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </div>
       </div>
       <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น · กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน · คลิกชื่อเพื่อดูรายละเอียด</p>
-      {LEVEL_GROUPS.map((g) => (
-        <section key={g.id} className={`panel level-panel level-${g.id}`}>
-          <h3 className="level-title">
-            {g.th} <span className="eyebrow">{g.clause}</span>
-          </h3>
-          <p className="note">เกณฑ์: {g.ruleTh}</p>
-          <LecturerOutputs results={results} settings={settings} group={g.id} view={view} />
-        </section>
-      ))}
+      <section className={`panel level-panel level-${g.id}`}>
+        <h3 className="level-title">
+          {g.th} <span className="eyebrow">{g.clause}</span>
+        </h3>
+        <p className="note">เกณฑ์: {g.ruleTh}</p>
+        <LecturerOutputs key={g.id} results={results} settings={settings} group={g.id} view={view} />
+      </section>
     </>
   )
 }
