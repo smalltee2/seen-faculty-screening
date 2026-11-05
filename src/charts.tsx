@@ -4,6 +4,7 @@
 import { useState, type ReactNode } from 'react'
 import { toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
+import { displayName } from './ui'
 
 interface Tip {
   x: number
@@ -176,14 +177,14 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         research: c.research,
         other: c.total - c.research,
         maybe: c.totalPossible - c.total,
-        name: r.person.nameTh || r.person.nameEn,
+        name: displayName(r.person),
       }
     })
     .sort((a, b) => b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th'))
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)))
   const W = 1000
   const rowH = 26
-  const m = { t: 22, r: 50, b: 26, l: 190 }
+  const m = { t: 22, r: 50, b: 26, l: 240 }
   const H = m.t + m.b + rows.length * rowH
   const iw = W - m.l - m.r
   const sx = (v: number) => m.l + (v / max) * iw
@@ -237,7 +238,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
             <g key={x.r.person.nameEn}>
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
                 <text className="row-label" x={m.l - 10} y={y + bh - 2} textAnchor="end">
-                  {x.name.length > 24 ? `${x.name.slice(0, 23)}…` : x.name}
+                  {x.name.length > 34 ? `${x.name.slice(0, 33)}…` : x.name}
                 </text>
               </a>
               {segs.map((s, si) => {

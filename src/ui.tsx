@@ -1,7 +1,17 @@
 import type { ReactNode } from 'react'
 import type { Status } from './rules'
 import { toBE } from './rules'
-import type { PubType } from './types'
+import type { Faculty, PubType } from './types'
+
+/** Thai academic title as used on official documents: ศ./รศ./ผศ. plus ดร. for a doctorate. */
+export function thaiTitle(p: Faculty): string {
+  const dr = p.degree === 'ปริญญาเอก' ? 'ดร.' : ''
+  if (p.rank && p.rank !== 'อาจารย์') return `${p.rank}${dr}`
+  return dr || 'อ.'
+}
+
+/** Thai name with title when name_th is filled, otherwise the English name. */
+export const displayName = (p: Faculty) => (p.nameTh ? `${thaiTitle(p)}${p.nameTh}` : p.nameEn)
 
 export const STATUS_LABEL: Record<Status, { th: string; sym: string }> = {
   met: { th: 'ผ่าน', sym: '✓' },

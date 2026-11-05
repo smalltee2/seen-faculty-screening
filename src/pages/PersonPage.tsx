@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { LEVELS, ROLES, evaluatePub, toBE, type PersonResult, type Settings } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, STATUS_LABEL, StatusChip, TYPE_LABEL, yearLabel } from '../ui'
+import { Button, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
 
 export function PersonPage({ result, settings }: { result: PersonResult | undefined; settings: Settings }) {
   const [allYears, setAllYears] = useState(false)
@@ -36,7 +36,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
         <a href="#/lecturers">← รายชื่ออาจารย์</a>
       </p>
       <h1 className="person-name">
-        {p.nameTh || p.nameEn} <span className="muted">({p.nameEn})</span>
+        {displayName(p)}
       </h1>
       <dl className="profile">
         <div><dt>ตำแหน่งวิชาการ</dt><dd>{p.rank ?? '—'}</dd></div>

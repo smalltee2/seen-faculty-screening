@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { LEVELS, ROLES, toBE, type Level, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, STATUS_LABEL, Segmented, StatusChip, roleShort } from '../ui'
+import { Button, STATUS_LABEL, Segmented, StatusChip, displayName, roleShort } from '../ui'
 
 type LevelSet = 'degree' | 'diploma'
 type View = 'cards' | 'table'
@@ -43,10 +43,10 @@ export function LecturersPage({ results, settings }: { results: PersonResult[]; 
   const exportCsv = () =>
     downloadCsv(
       `seen-lecturers-${state.levels}-${settings.year}.csv`,
-      ['name_en', 'name_th', 'rank', 'degree', 'degree_year_ce', 'outputs_in_window', 'research_in_window', ...roles.map((r) => `${r.clause} ${r.labelEn}`)],
+      ['name_th', 'name_en', 'rank', 'degree', 'degree_year_ce', 'outputs_in_window', 'research_in_window', ...roles.map((r) => `${r.clause} ${r.labelEn}`)],
       shown.map((r) => [
+        displayName(r.person),
         r.person.nameEn,
-        r.person.nameTh,
         r.person.rank,
         r.person.degree,
         r.person.degreeYear,
@@ -135,9 +135,8 @@ function PersonCard({ r, levels }: { r: PersonResult; levels: (typeof LEVELS)[nu
       <header>
         <div className="min0">
           <a href={href} className="person-title">
-            {p.nameTh || p.nameEn}
+            {displayName(p)}
           </a>
-          <div className="muted small">{p.nameEn}</div>
         </div>
         <div className="person-score mono" title="จำนวนบทบาทที่ผ่าน">
           <b>{tally('met')}</b>/{statuses.length}
@@ -218,7 +217,7 @@ function MatrixTable({ rows, levels, roles }: { rows: PersonResult[]; levels: (t
             {rows.map((r) => (
               <tr key={r.person.nameEn}>
                 <td className="sticky">
-                  <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{r.person.nameTh || r.person.nameEn}</a>
+                  <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{displayName(r.person)}</a>
                   <div className="muted small">
                     {r.person.rank ?? '—'} · {r.person.degree ?? 'ไม่ระบุวุฒิ'}
                   </div>

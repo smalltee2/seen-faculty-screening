@@ -1,10 +1,10 @@
 import { LEVELS, ROLES, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessDonut } from '../charts'
-import { Button, Metric, StatusBar, StatusChip } from '../ui'
+import { Button, Metric, StatusBar, StatusChip, displayName } from '../ui'
 
 const personLink = (r: PersonResult) => (
   <a key={r.person.nameEn} href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>
-    {r.person.nameTh || r.person.nameEn}
+    {displayName(r.person)}
   </a>
 )
 

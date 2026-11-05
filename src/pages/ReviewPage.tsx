@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { copyText, downloadCsv } from '../download'
 import { defaultChoice, overrideLine, type OverrideChoice, type ReviewItem } from '../review'
-import { Button, TYPE_LABEL, yearLabel } from '../ui'
+import { Button, TYPE_LABEL, displayName, yearLabel } from '../ui'
 
 const HEADER = 'key,title_normalized,type_override,is_research,part_of_own_degree,note'
 
@@ -61,7 +61,7 @@ function ReviewRow({ item, onAdd }: { item: ReviewItem; onAdd: (line: string) =>
   return (
     <article className="review-item">
       <div className="review-meta">
-        <a href={`#/person/${encodeURIComponent(item.person.nameEn)}`}>{item.person.nameTh || item.person.nameEn}</a> · {yearLabel(p.year)} · ตอนนี้: {TYPE_LABEL[p.type]}
+        <a href={`#/person/${encodeURIComponent(item.person.nameEn)}`}>{displayName(item.person)}</a> · {yearLabel(p.year)} · ตอนนี้: {TYPE_LABEL[p.type]}
       </div>
       <div className="pub-title">{p.title}</div>
       <div className="muted small">{p.venue || '—'}</div>
