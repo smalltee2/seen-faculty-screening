@@ -9,6 +9,14 @@ export const isShownLevel = (level: Level) => level === 'ba' || level === 'ms' |
 export const SHOWN_LEVELS = LEVELS.filter((l) => isShownLevel(l.id))
 export const SHOWN_ROLES = ROLES.filter((r) => isShownLevel(r.level))
 
+/** Colour group of a level on the pages: bachelor's (orange) vs graduate (green). */
+export type LevelGroup = 'ba' | 'grad'
+export const levelGroup = (level: Level): LevelGroup => (level === 'ba' ? 'ba' : 'grad')
+export const LEVEL_GROUPS: { id: LevelGroup; th: string; clause: string; rule: number; ruleTh: string }[] = [
+  { id: 'ba', th: 'ระดับปริญญาตรี', clause: 'ข้อ 10.1', rule: 1, ruleTh: 'ผลงานทางวิชาการอย่างน้อย 1 เรื่อง' },
+  { id: 'grad', th: 'ระดับบัณฑิตศึกษา', clause: 'ข้อ 9.3–9.4', rule: 3, ruleTh: 'ป.โท ผลงานอย่างน้อย 3 เรื่อง (วิจัยอย่างน้อย 1) · ป.เอก งานวิจัยอย่างน้อย 3 เรื่อง' },
+]
+
 /** Thai academic title as used on official documents: ศ./รศ./ผศ. plus ดร. for a doctorate. */
 export function thaiTitle(p: Faculty): string {
   const dr = p.degree === 'ปริญญาเอก' ? 'ดร.' : ''

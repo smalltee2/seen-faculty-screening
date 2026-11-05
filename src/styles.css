@@ -837,3 +837,36 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
   margin: 16px 0 0; padding: 10px 16px; border-radius: var(--radius-md);
   background: var(--gold-soft); border: 1px solid var(--gold); color: var(--fg); font-size: 0.95rem;
 }
+
+/* Level groups: ปริญญาตรี (orange, clause 10.1) vs บัณฑิตศึกษา (green, clauses 9.3–9.4) */
+:root {
+  --lvl-ba: var(--ember); --lvl-ba-soft: var(--ember-soft); --lvl-ba-line: color-mix(in srgb, var(--ember) 35%, transparent);
+  --lvl-grad: var(--band); --lvl-grad-soft: var(--gold-soft); --lvl-grad-line: color-mix(in srgb, var(--band) 35%, transparent);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --lvl-grad: var(--gold); } }
+:root[data-theme='dark'] { --lvl-grad: var(--gold); }
+
+.block-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 8px; }
+.block-head .block-title { margin: 0; }
+.level-panel { border-left: 5px solid var(--lvl-grad); margin-top: 10px; }
+.level-panel.level-ba { border-left-color: var(--lvl-ba); }
+.level-title { display: flex; gap: 8px; align-items: baseline; margin: 0 0 2px; font-size: 1rem; color: var(--lvl-grad); }
+.level-ba .level-title { color: var(--lvl-ba); }
+.level-panel > .note { margin-top: 0; }
+
+.dash .role-level { padding-left: 10px; border-left: 4px solid var(--lvl-grad); }
+.dash .role-level.level-ba { border-left-color: var(--lvl-ba); }
+
+.person-card .role-list { padding: 6px 8px 4px; border-radius: 8px; border: 1px solid var(--lvl-grad-line); background: var(--lvl-grad-soft); }
+.person-card .role-list.level-ba { border-color: var(--lvl-ba-line); background: var(--lvl-ba-soft); }
+.person-card .role-list-head { color: var(--lvl-grad); border-bottom-color: var(--lvl-grad-line); }
+.person-card .role-list.level-ba .role-list-head { color: var(--lvl-ba); }
+
+.matrix th.group-grad { background: var(--lvl-grad-soft); color: var(--lvl-grad); border-top: 3px solid var(--lvl-grad); }
+.matrix th.group-ba { background: var(--lvl-ba-soft); color: var(--lvl-ba); border-top: 3px solid var(--lvl-ba); }
+.matrix th.col-grad, .matrix td.col-grad { background: var(--lvl-grad-soft); }
+.matrix th.col-ba, .matrix td.col-ba { background: var(--lvl-ba-soft); }
+.matrix th.col-ba, .matrix td.col-ba { border-right: 1px solid var(--lvl-ba-line); }
+.lvl-key { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; border: 1px solid; }
+.lvl-key-ba { color: var(--lvl-ba); background: var(--lvl-ba-soft); border-color: var(--lvl-ba-line); }
+.lvl-key-grad { color: var(--lvl-grad); background: var(--lvl-grad-soft); border-color: var(--lvl-grad-line); }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
-import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, roleShort } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, levelGroup, roleShort } from '../ui'
 
 type View = 'cards' | 'table'
 type Filter = 'all' | 'not_met'
@@ -160,7 +160,7 @@ function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof 
         </span>
       </div>
       {levels.map((l) => (
-        <div key={l.id} className="role-list">
+        <div key={l.id} className={`role-list level-${levelGroup(l.id)}`}>
           <div className="role-list-head">
             {l.th} <span className="eyebrow">ข้อ {l.clause}</span>
           </div>
@@ -196,14 +196,14 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
                 อาจารย์
               </th>
               {levels.map((l) => (
-                <th key={l.id} colSpan={roles.filter((r) => r.level === l.id).length} className="group">
+                <th key={l.id} colSpan={roles.filter((r) => r.level === l.id).length} className={`group group-${levelGroup(l.id)}`}>
                   {l.th} ({l.clause})
                 </th>
               ))}
             </tr>
             <tr>
               {roles.map((r) => (
-                <th key={r.id} className="role-col" title={r.labelEn}>
+                <th key={r.id} className={`role-col col-${levelGroup(r.level)}`} title={r.labelEn}>
                   <span className="clause mono">{r.clause}</span>
                   <span>{roleShort(r.id)}</span>
                 </th>
@@ -230,7 +230,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
                 {roles.map((role) => {
                   const res = r.roles[role.id]
                   return (
-                    <td key={role.id} className="cell">
+                    <td key={role.id} className={`cell col-${levelGroup(role.level)}`}>
                       <StatusChip status={res.status} compact title={res.reasons.join('\n')} />
                       {res.path === 'new_grad' && <sup title="ผ่านทางเกณฑ์อาจารย์ใหม่">ใหม่</sup>}
                     </td>
@@ -243,7 +243,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
         </table>
       </div>
       <p className="legend">
-        <StatusChip status="met" /> <StatusChip status="not_met" /> · แถบซ้ายสีแดง = ไม่ผ่านบางหน้าที่ · <span className="risk-inline">⚠</span> แถบซ้ายสีเหลือง = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
+        <span className="lvl-key lvl-key-ba">ปริญญาตรี ข้อ 10.1</span> <span className="lvl-key lvl-key-grad">บัณฑิตศึกษา ข้อ 9.3–9.4</span> · <StatusChip status="met" /> <StatusChip status="not_met" /> · แถบซ้ายสีแดง = ไม่ผ่านบางหน้าที่ · <span className="risk-inline">⚠</span> แถบซ้ายสีเหลือง = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
       </p>
     </>
   )

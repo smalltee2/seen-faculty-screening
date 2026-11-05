@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
-import { SHOWN_ROLES, Segmented, displayName, isShownLevel } from './ui'
+import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup } from './ui'
 
 interface Tip {
   x: number
@@ -201,10 +201,14 @@ const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journal' |
   ],
 }
 
-export function LecturerOutputs({ results, settings }: { results: PersonResult[]; settings: Settings }) {
+export type { OutputsView }
+
+/** One chart per level group: `group` picks the duties (10.1.x or 9.3–9.4) and the threshold line. */
+export function LecturerOutputs({ results, settings, group, view }: { results: PersonResult[]; settings: Settings; group: LevelGroup; view: OutputsView }) {
   const { show, hide, el } = useTip()
   const [ref, width] = useWidth(1000)
-  const [view, setView] = useState<OutputsView>('research')
+  const roles = SHOWN_ROLES.filter((role) => levelGroup(role.level) === group)
+  const threshold = group === 'ba' ? 1 : 3
   const rows = results
     .map((r) => {
       const c = r.roles.ms_program.counts
@@ -220,9 +224,9 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         poster: ofType('poster'),
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
-        risk: nextYearRisk(r, settings).filter((role) => isShownLevel(role.level)),
-        // Duties (of the 10 shown) not passed in the evaluation year.
-        failed: SHOWN_ROLES.filter((role) => r.roles[role.id].status !== 'met').length,
+        risk: nextYearRisk(r, settings).filter((role) => levelGroup(role.level) === group),
+        // Duties of this level group not passed in the evaluation year.
+        failed: roles.filter((role) => r.roles[role.id].status !== 'met').length,
       }
     })
     .sort((a, b) =>
@@ -244,17 +248,6 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
 
   return (
     <figure className="chart" ref={ref}>
-      <div className="chart-toolbar no-print">
-        <Segmented
-          label="มุมมองกราฟผลงาน"
-          value={view}
-          onChange={setView}
-          options={[
-            { id: 'research', label: 'งานวิจัย / ผลงานอื่น' },
-            { id: 'type', label: 'แยกตามประเภทผลงาน' },
-          ]}
-        />
-      </div>
       <div className="chart-legend">
         {segDefs.map((s) => (
           <span key={s.key}>
@@ -262,7 +255,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           </span>
         ))}
         <span>
-          <i className="swatch swatch-rule" /> เกณฑ์ ≥ 3 เรื่อง
+          <i className="swatch swatch-rule" /> เกณฑ์ ≥ {threshold} เรื่อง
         </span>
         <span>
           <i className="swatch swatch-fail" /> ไม่ผ่านบางหน้าที่ในปีที่ประเมิน
@@ -271,7 +264,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
           <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน ถ้าไม่มีผลงานเพิ่ม
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน (${group === 'ba' ? 'ระดับปริญญาตรี' : 'ระดับบัณฑิตศึกษา'})`}>
         <defs>
           <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="6" height="6" className="hatch-bg" />
@@ -319,7 +312,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
               </text>
               {x.failed > 0 ? (
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${SHOWN_ROLES.length} หน้าที่`}
+                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${roles.length} หน้าที่`}
                 </text>
               ) : (
                 x.risk.length > 0 && (
@@ -350,7 +343,7 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
                       </span>
                       {x.failed > 0 && (
                         <span className="tip-fail">
-                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน {x.failed} จาก {SHOWN_ROLES.length} หน้าที่
+                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน {x.failed} จาก {roles.length} หน้าที่
                         </span>
                       )}
                       {x.risk.length > 0 && (
@@ -368,10 +361,10 @@ export function LecturerOutputs({ results, settings }: { results: PersonResult[]
         })}
         {/* Threshold drawn over the bars (with a surface halo) so it stays visible across them */}
         <g className="rule-group">
-          <line className="rule-halo" x1={sx(3)} x2={sx(3)} y1={m.t - 14} y2={H - m.b} />
-          <line className="rule" x1={sx(3)} x2={sx(3)} y1={m.t - 14} y2={H - m.b} />
-          <text className="rule-label" x={sx(3) + 6} y={m.t - 5}>
-            เกณฑ์ ≥ 3 เรื่อง
+          <line className="rule-halo" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
+          <line className="rule" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
+          <text className="rule-label" x={sx(threshold) + 6} y={m.t - 5}>
+            เกณฑ์ ≥ {threshold} เรื่อง
           </text>
         </g>
         <line className="baseline" x1={m.l} x2={m.l} y1={m.t - 6} y2={H - m.b} />
