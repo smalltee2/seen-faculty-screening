@@ -135,11 +135,6 @@ export function App() {
               ฉบับเต็ม (PDF, สป.อว.)
             </a>
           </p>
-          <p className="disclaimer">
-            ผลการคัดกรองนี้คำนวณอัตโนมัติจากข้อมูล Google Scholar ต้องตรวจสอบกับฐานข้อมูลผลงานอย่างเป็นทางการก่อนนำไปใช้ในเอกสารทางราชการ (The screening is automated from
-            Google Scholar data and must be checked against the official publication records before being used in official documents.)
-          </p>
-          <p className="mono muted">ข้อมูลสร้างเมื่อ {new Date(data.builtAt).toLocaleString('th-TH')}</p>
         </footer>
       </div>
     </>
