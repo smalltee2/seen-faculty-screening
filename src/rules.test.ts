@@ -202,6 +202,18 @@ describe('new doctoral graduate (9.3.6 / 9.4.6)', () => {
     const r = rule_9_3_2_msResponsibleLecturer(p, journals(2, { year: 2026 }), S)
     expect(r.path).toBe('new_grad')
   })
+  it('the tier follows the years since the degree: 5 years after graduating needs 3 outputs', () => {
+    const p = person({ rank: 'อาจารย์', degreeYear: 2021 })
+    // 1 output in 2022 satisfied the 2-year tier then, but not the 5-year tier now.
+    expect(rule_9_3_2_msResponsibleLecturer(p, [pub({ year: 2022 })], S).status).toBe('not_met')
+    expect(rule_9_3_2_msResponsibleLecturer(p, journals(2, { year: 2022 }), S).status).toBe('not_met')
+    // Outputs in the degree year itself count for the clause but sit outside the 5-year window.
+    expect(rule_9_3_2_msResponsibleLecturer(p, journals(3, { year: 2021 }), S).path).toBe('new_grad')
+  })
+  it('3 years after graduating needs 2 outputs, not 1', () => {
+    const p = person({ rank: 'อาจารย์', degreeYear: 2023 })
+    expect(rule_9_3_1_msProgramLecturer(p, journals(2, { year: 2025 }), S).path).toBe('new_grad')
+  })
   it('9.4.6 needs research outputs: a review article does not open the path', () => {
     expect(rule_9_4_1_phdProgramLecturer(fresh, [pub({ year: 2026, isResearch: false })], S).status).toBe('not_met')
     expect(rule_9_4_1_phdProgramLecturer(fresh, [pub({ year: 2026 })], S).status).toBe('needs_review')

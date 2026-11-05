@@ -213,18 +213,18 @@ function newGradPath(role: RoleSpec, p: Faculty, evals: PubEval[], s: Settings):
   // because Scholar gives only the year; outputs in the degree year itself are included.
   const D = p.degreeYear as number
   const pick = (e: PubEval) => (role.researchOnly ? e.research : e.eligible)
+  // The tier is the one that matches the years since the degree (decision by Tum, 2026-11-05):
+  // within 2 years 1 output, within 4 years 2, within 5 years 3. Outputs from the degree
+  // year through the evaluation year count.
+  const elapsed = s.year - D
+  const [years, n] = NEW_GRAD_TIERS.find(([y]) => elapsed <= y) ?? NEW_GRAD_TIERS[NEW_GRAD_TIERS.length - 1]
   const after = evals.filter((e) => e.pub.year !== null && e.pub.year >= D && e.pub.year <= s.year)
-  let best: Tri = 'no'
-  for (const [years, n] of NEW_GRAD_TIERS) {
-    const inTier = after.filter((e) => (e.pub.year as number) - D <= years)
-    const sure = inTier.filter((e) => pick(e) === 'yes').length
-    const possible = inTier.filter((e) => pick(e) !== 'no').length
-    if (sure >= n) best = 'yes'
-    else if (possible >= n && best === 'no') best = 'maybe'
-  }
-  if (best === 'no') return { ok: 'no', reason: `ข้อ ${clause}: ผลงานหลังจบ (${D}) ยังไม่ถึง 1 เรื่องใน 2 ปี / 2 เรื่องใน 4 ปี / 3 เรื่องใน 5 ปี` }
+  const sure = after.filter((e) => pick(e) === 'yes').length
+  const possible = after.filter((e) => pick(e) !== 'no').length
+  const best: Tri = sure >= n ? 'yes' : possible >= n ? 'maybe' : 'no'
   const kind = role.researchOnly ? 'ผลงานวิจัย' : 'ผลงาน'
-  return { ok: 'maybe', reason: `ข้อ ${clause}: อาจผ่านในฐานะอาจารย์ใหม่ (${kind}หลังจบ ${D} ถึงเกณฑ์ 1/2 ปี, 2/4 ปี หรือ 3/5 ปี) — ต้องยืนยันว่าเป็น "อาจารย์ใหม่"` }
+  if (best === 'no') return { ok: 'no', reason: `ข้อ ${clause}: จบ ${D} (${elapsed} ปี) ต้องมี${kind}หลังจบอย่างน้อย ${n} เรื่องภายใน ${years} ปี; มี ${sure}` }
+  return { ok: 'maybe', reason: `ข้อ ${clause}: อาจผ่านในฐานะอาจารย์ใหม่ (${kind}หลังจบ ${D} มี ${sure} เรื่อง ถึงเกณฑ์ ${n} เรื่องภายใน ${years} ปี) — ต้องยืนยันว่าเป็น "อาจารย์ใหม่"` }
 }
 
 export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Settings): RoleResult {
