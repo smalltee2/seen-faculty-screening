@@ -389,7 +389,7 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
     const h = g === biggest ? base : base + lift
     return { g, a0, a1, h, mid: (a0 + a1) / 2, no: String(i + 1).padStart(2, '0'), fill: SLICE_FILL[g.key] }
   })
-  const shade = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, #1a1030)`
+  const shade = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, #2a1205)`
   // Back slices first: depth grows with sin(mid) (lower on screen = nearer).
   const order = [...slices].sort((p, q) => Math.sin(p.mid) - Math.sin(q.mid))
 

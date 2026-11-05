@@ -1,27 +1,27 @@
-/* Formal academic style for an institutional report (University of Phayao colours):
-   warm paper ground, deep purple band with a gold rule, Noto Serif Thai for headings,
+/* Formal academic style in the SEEN logo colours (orange, with the logo's green as
+   the second accent): warm paper ground, orange band with a green rule, Noto Serif Thai for headings,
    Sarabun for text (the face of Thai official documents), IBM Plex Mono for figures.
    Chart palette validated for colour-blind separation in light and dark themes. */
 :root {
   --bg: #f6f4ef;
   --panel: #ffffff;
-  --panel-hover: #f3f0f8;
-  --sub-panel: #faf8f4;
+  --panel-hover: #fbf1ea;
+  --sub-panel: #fbf8f5;
   --line: #e3dfd6;
   --line-strong: #cbc5b8;
   --fg: #1f1b2b;
   --muted: #5d5868;
   --subtle: #8c8796;
-  --ember: #4b2e83;
-  --ember-hover: #3a2266;
-  --ember-soft: rgba(75, 46, 131, 0.07);
-  --ember-glow: rgba(75, 46, 131, 0.22);
-  --gold: #b07a1f;
-  --gold-soft: rgba(176, 122, 31, 0.12);
-  --band: #3b2470;
+  --ember: #c4510f;
+  --ember-hover: #a2420b;
+  --ember-soft: rgba(243, 114, 37, 0.08);
+  --ember-glow: rgba(243, 114, 37, 0.26);
+  --gold: #2f8f3e;
+  --gold-soft: rgba(57, 181, 74, 0.12);
+  --band: #c4510f;
   --on-ember: #ffffff;
   --band-fg: #ffffff;
-  --band-muted: #d9cfee;
+  --band-muted: #ffe1cc;
   --focus: #2b5fd9;
   --glass-bg: rgba(255, 255, 255, 0.92);
 
@@ -36,10 +36,10 @@
   --rev-mark: #d4a017;
   --partial-mark: #8c8796;
 
-  --c-journal: #5a43a8;
-  --c-proceeding: #008e9a;
-  --c-poster: #b07a1f;
-  --window: rgba(176, 122, 31, 0.08);
+  --c-journal: #d9601a;
+  --c-proceeding: #2b6cb0;
+  --c-poster: #2f9e44;
+  --window: rgba(57, 181, 74, 0.08);
 
   --shadow-sm: 0 1px 1px rgba(31, 27, 43, 0.04);
   --shadow-md: 0 2px 8px rgba(31, 27, 43, 0.08);
@@ -57,26 +57,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #141219;
-    --panel: #1c1924;
-    --panel-hover: #25212f;
-    --sub-panel: #191621;
+    --bg: #17130f;
+    --panel: #211b16;
+    --panel-hover: #2c241d;
+    --sub-panel: #1c1712;
     --line: rgba(255, 255, 255, 0.09);
     --line-strong: rgba(255, 255, 255, 0.18);
     --fg: #f3f0f8;
     --muted: #b3adc2;
     --subtle: #827c92;
-    --ember: #b9a3ee;
-    --ember-hover: #cdbcf5;
-    --ember-soft: rgba(185, 163, 238, 0.1);
-    --ember-glow: rgba(185, 163, 238, 0.28);
-    --gold: #d6a648;
-    --gold-soft: rgba(214, 166, 72, 0.14);
-    --band: #241640;
-  --on-ember: #1a1326;
-    --on-ember: #1a1326;
+    --ember: #ff9a5c;
+    --ember-hover: #ffb27f;
+    --ember-soft: rgba(255, 154, 92, 0.1);
+    --ember-glow: rgba(255, 154, 92, 0.28);
+    --gold: #5cc46e;
+    --gold-soft: rgba(92, 196, 110, 0.14);
+    --band: #3a1d0c;
+  --on-ember: #1f130b;
+    --on-ember: #1f130b;
     --band-fg: #ffffff;
-    --band-muted: #c7b8e8;
+    --band-muted: #f5cdb3;
     --focus: #7ea6ff;
     --glass-bg: rgba(28, 25, 36, 0.92);
     --met: #6fcf97;
@@ -89,34 +89,34 @@
     --rev-bg: rgba(212, 160, 23, 0.14);
     --rev-mark: #d4a017;
     --partial-mark: #827c92;
-    --c-journal: #8a74e0;
-    --c-proceeding: #14a3a3;
-    --c-poster: #b8852b;
-    --window: rgba(214, 166, 72, 0.1);
+    --c-journal: #e06c27;
+    --c-proceeding: #4a8bd6;
+    --c-poster: #3fae5a;
+    --window: rgba(92, 196, 110, 0.1);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --bg: #141219;
-  --panel: #1c1924;
-  --panel-hover: #25212f;
-  --sub-panel: #191621;
+  --bg: #17130f;
+  --panel: #211b16;
+  --panel-hover: #2c241d;
+  --sub-panel: #1c1712;
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.18);
   --fg: #f3f0f8;
   --muted: #b3adc2;
   --subtle: #827c92;
-  --ember: #b9a3ee;
-  --ember-hover: #cdbcf5;
-  --ember-soft: rgba(185, 163, 238, 0.1);
-  --ember-glow: rgba(185, 163, 238, 0.28);
-  --gold: #d6a648;
-  --gold-soft: rgba(214, 166, 72, 0.14);
-  --band: #241640;
+  --ember: #ff9a5c;
+  --ember-hover: #ffb27f;
+  --ember-soft: rgba(255, 154, 92, 0.1);
+  --ember-glow: rgba(255, 154, 92, 0.28);
+  --gold: #5cc46e;
+  --gold-soft: rgba(92, 196, 110, 0.14);
+  --band: #3a1d0c;
   --band-fg: #ffffff;
-  --band-muted: #c7b8e8;
+  --band-muted: #f5cdb3;
   --focus: #7ea6ff;
   --glass-bg: rgba(28, 25, 36, 0.92);
   --met: #6fcf97;
@@ -129,10 +129,10 @@
   --rev-bg: rgba(212, 160, 23, 0.14);
   --rev-mark: #d4a017;
   --partial-mark: #827c92;
-  --c-journal: #8a74e0;
-  --c-proceeding: #14a3a3;
-  --c-poster: #b8852b;
-  --window: rgba(214, 166, 72, 0.1);
+  --c-journal: #e06c27;
+  --c-proceeding: #4a8bd6;
+  --c-poster: #3fae5a;
+  --window: rgba(92, 196, 110, 0.1);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
   color-scheme: dark;
@@ -326,8 +326,8 @@ select, input[type='search'], input:not([type]) {
 .clause { color: var(--ember); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .role-num { text-align: right; color: var(--muted); font-size: 0.8rem; }
 .role-num b { color: var(--pie-figure); }
-/* Role pass bars in the purple ramp shared with the readiness pie:
-   passed = deep purple, needs review = mid, not passed = pale lilac. */
+/* Role pass bars in the orange ramp shared with the readiness pie:
+   passed = deep orange, needs review = mid, not passed = pale peach. */
 .sbar { display: flex; gap: 2px; height: 12px; border-radius: var(--radius-sm); overflow: hidden; background: var(--pie-4); }
 .sbar span { display: block; height: 100%; }
 .sbar-met { background: var(--pie-1); }
@@ -613,13 +613,13 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .role-level-head { font: 600 0.92rem/1.4 var(--font-display); display: flex; gap: 8px; align-items: baseline; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
 @media (min-width: 861px) { .viz-grid { grid-template-columns: minmax(260px, 1fr) minmax(0, 1.6fr); } }
 
-/* Readiness pie infographic: white panel, slices in the site's purple ramp
-   (more roles passed = darker), purple figures, gold dotted leaders. */
-:root { --pie-1: #4b2e83; --pie-2: #9b86cf; --pie-3: #c3b5e3; --pie-4: #e4ddf1; --pie-gap: #ffffff; --pie-figure: #4b2e83; --pie-lead: #b07a1f; }
+/* Readiness pie infographic: white panel, slices in the site's orange ramp
+   (more roles passed = darker), orange figures, green dotted leaders. */
+:root { --pie-1: #c4510f; --pie-2: #f08a4b; --pie-3: #f7b98f; --pie-4: #fbe2d0; --pie-gap: #ffffff; --pie-figure: #b5470c; --pie-lead: #2f8f3e; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --pie-1: #b9a3ee; --pie-2: #7f6bc0; --pie-3: #5c4a96; --pie-4: #3d3266; --pie-gap: #1c1924; --pie-figure: #cdbcf5; --pie-lead: #d6a648; }
+  :root:not([data-theme='light']) { --pie-1: #ff9a5c; --pie-2: #c96a33; --pie-3: #8a4a26; --pie-4: #4d2c1a; --pie-gap: #211b16; --pie-figure: #ffb27f; --pie-lead: #5cc46e; }
 }
-:root[data-theme='dark'] { --pie-1: #b9a3ee; --pie-2: #7f6bc0; --pie-3: #5c4a96; --pie-4: #3d3266; --pie-gap: #1c1924; --pie-figure: #cdbcf5; --pie-lead: #d6a648; }
+:root[data-theme='dark'] { --pie-1: #ff9a5c; --pie-2: #c96a33; --pie-3: #8a4a26; --pie-4: #4d2c1a; --pie-gap: #211b16; --pie-figure: #ffb27f; --pie-lead: #5cc46e; }
 .pie-info { margin: 0; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--ember); border-radius: var(--radius-lg); padding: 20px 22px; }
 .pie-stage { position: relative; }
 .pie-svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
@@ -708,7 +708,7 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 
 /* 3D readiness pie */
 .pie3d .pie-svg { overflow: visible; }
-.pie-floor { fill: rgba(31, 27, 43, 0.16); }
+.pie-floor { fill: rgba(60, 30, 10, 0.16); }
 .pie3d-top { stroke: color-mix(in srgb, var(--panel) 70%, transparent); stroke-width: 1; }
 .pie3d-pin line { stroke: var(--fg); stroke-width: 1.5; }
 .pie3d-pin-foot { fill: var(--fg); }

@@ -100,7 +100,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           <h3>
             จำนวนผลงานต่อปี แยกตามประเภท
           </h3>
-          <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีทอง = ช่วง 5 ปีที่ใช้ประเมิน</p>
+          <p className="note">รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีเขียว = ช่วง 5 ปีที่ใช้ประเมิน</p>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
         </section>
       </div>
