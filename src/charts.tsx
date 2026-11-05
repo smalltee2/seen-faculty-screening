@@ -67,7 +67,7 @@ export const levelOf = (p: Pub) => journalLevel(p, TCI)?.level ?? null
 const SERIES = [
   { key: 'journalIntl', th: 'วารสารนานาชาติ', cls: 'c-journal' },
   { key: 'journalNatl', th: 'วารสารระดับชาติ', cls: 'c-journal-natl' },
-  { key: 'journalNone', th: 'วารสารนอกฐานข้อมูล', cls: 'c-journal-none' },
+  { key: 'journalNone', th: 'วารสารอื่น ๆ', cls: 'c-journal-none' },
   { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding' },
   { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster' },
 ] as const
@@ -183,7 +183,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                       </b>
                       <span>วารสารนานาชาติ {r.journalIntl}</span>
                       <span>วารสารระดับชาติ {r.journalNatl}</span>
-                      <span>วารสารนอกฐานข้อมูล {r.journalNone}</span>
+                      <span>วารสารอื่น ๆ {r.journalNone}</span>
                       <span>Proceedings {r.proceeding}</span>
                       <span>โปสเตอร์/บทคัดย่อ {r.poster}</span>
                       <span className="muted">ไม่นับ/ไม่ทราบประเภท {r.excluded}</span>
@@ -214,7 +214,7 @@ const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalInt
   type: [
     { key: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ' },
     { key: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ' },
-    { key: 'journalNone', cls: 'c-journal-none', th: 'วารสารนอกฐานข้อมูล' },
+    { key: 'journalNone', cls: 'c-journal-none', th: 'วารสารอื่น ๆ' },
     { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
     { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
   ],
