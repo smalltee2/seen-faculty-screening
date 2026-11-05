@@ -20,6 +20,7 @@ function stripYear(venue: string): string {
 }
 
 const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|\bpreprints?\b|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review|\bdiscussions\b/i
+const ERRATUM = /^(correction|erratum|corrigendum|retraction|retracted)( to| notice)?\s*[:.-]/i
 const PATENT = /patent|สิทธิบัตร|อนุสิทธิบัตร/i
 const DATASET = /zenodo|figshare|pangaea|dryad|mendeley data|\bdata\s?set\b/i
 const THESIS = /thesis|dissertation|วิทยานิพนธ์|ปริญญานิพนธ์|การค้นคว้าอิสระ|\bph\.?\s?d\b|master'?s|graduate school|บัณฑิตวิทยาลัย/i
@@ -61,6 +62,7 @@ export function classifyType(title: string, venue: string): TypeResult {
   const v = stripYear(venue)
   const both = joinThai(`${title} ${venue}`)
   if (!v) return { type: 'exclude', reason: 'ไม่มีชื่อแหล่งตีพิมพ์ (no venue)', uncertain: false }
+  if (ERRATUM.test(joinThai(title).trim())) return { type: 'exclude', reason: 'คำแก้ไข/ถอนบทความ (erratum)', uncertain: false }
   if (PREPRINT.test(both)) return { type: 'exclude', reason: 'ฉบับก่อนตีพิมพ์ (preprint)', uncertain: false }
   if (PATENT.test(v)) return { type: 'exclude', reason: 'สิทธิบัตร (patent)', uncertain: false }
   if (DATASET.test(v)) return { type: 'exclude', reason: 'ชุดข้อมูล (dataset)', uncertain: false }
@@ -108,27 +110,89 @@ export function classifyResearch(title: string, venue: string): ResearchResult {
   return { isResearch: true, reason: 'งานวิจัย (default)', uncertain: false }
 }
 
-/** Higher = richer venue string: prefer a counted type with volume/pages, then the longer venue, then more citations. */
-function richness(p: RawPub): number {
-  const t = classifyType(p.title, p.venue)
-  const typeScore = t.type === 'journal' || t.type === 'proceeding' ? 2 : t.type === 'poster' ? 1 : 0
-  return typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + p.venue.length * 100 + Math.min(p.cites, 99)
+// OpenAlex work types that are never counted.
+const OA_EXCLUDE: Record<string, string> = {
+  dataset: 'ชุดข้อมูล (dataset)',
+  preprint: 'ฉบับก่อนตีพิมพ์ (preprint)',
+  dissertation: 'วิทยานิพนธ์ (dissertation)',
+  book: 'หนังสือ (book)',
+  'book-chapter': 'บทในหนังสือ (book chapter)',
+  paratext: 'ส่วนประกอบของวารสาร (paratext)',
+  'peer-review': 'รายงานผู้ทบทวน (peer review)',
+  erratum: 'คำแก้ไข (erratum)',
+  retraction: 'ถูกถอนบทความ (retraction)',
+  'supplementary-materials': 'ข้อมูลเสริม (supplementary)',
+  standard: 'มาตรฐาน (standard)',
+  grant: 'ทุนวิจัย (grant)',
+  report: 'รายงาน (report)',
+}
+const SCOPUS_JOURNAL = ['article', 'review', 'letter', 'note', 'short survey', 'data paper', 'editorial']
+const SCOPUS_EXCLUDE = ['book chapter', 'book', 'erratum', 'conference review', 'retracted']
+
+/** Type from the row's source: structured types from OpenAlex, Scopus or the admin form first, then the venue string. */
+export function classifyRow(p: RawPub): TypeResult {
+  const ext = (p.extType ?? '').toLowerCase()
+  const st = (p.sourceType ?? '').toLowerCase()
+  const isPoster = POSTER.test(joinThai(`${p.title} ${p.venue}`))
+  if (p.source === 'manual' && (ext === 'journal' || ext === 'proceeding' || ext === 'poster'))
+    return { type: ext, reason: 'เพิ่มโดยผู้ดูแล (Google Form)', uncertain: false }
+  if (p.source === 'openalex') {
+    if (OA_EXCLUDE[ext]) return { type: 'exclude', reason: `OpenAlex: ${OA_EXCLUDE[ext]}`, uncertain: false }
+    if (st === 'repository') return { type: 'exclude', reason: 'OpenAlex: คลังเอกสาร/preprint (repository)', uncertain: false }
+    if (st === 'conference')
+      return isPoster
+        ? { type: 'poster', reason: 'OpenAlex: งานประชุม — บทคัดย่อ/โปสเตอร์', uncertain: false }
+        : { type: 'proceeding', reason: 'OpenAlex: งานประชุมวิชาการ (conference)', uncertain: false }
+    if ((st === 'journal' || st === 'book series') && ['article', 'review', 'letter', 'editorial'].includes(ext))
+      return { type: 'journal', reason: `OpenAlex: วารสาร (${ext})`, uncertain: false }
+  }
+  if (p.source === 'scopus') {
+    if (SCOPUS_EXCLUDE.includes(ext)) return { type: 'exclude', reason: `Scopus: ${p.extType}`, uncertain: false }
+    if (ext === 'conference paper')
+      return isPoster
+        ? { type: 'poster', reason: 'Scopus: งานประชุม — บทคัดย่อ/โปสเตอร์', uncertain: false }
+        : { type: 'proceeding', reason: 'Scopus: conference paper', uncertain: false }
+    if (SCOPUS_JOURNAL.includes(ext) && st === 'journal') return { type: 'journal', reason: `Scopus: วารสาร (${p.extType})`, uncertain: false }
+  }
+  return classifyType(p.title, p.venue)
 }
 
-/** Merge rows with the same person and normalised title; keep the richest venue. */
-export function dedupe(rows: RawPub[]): { row: RawPub; duplicates: number }[] {
-  const groups = new Map<string, RawPub[]>()
-  for (const r of rows) {
-    const k = `${r.key}\u0000${normalizeTitle(r.title)}`
-    const g = groups.get(k)
+const SOURCE_RANK: Record<string, number> = { manual: 4, scopus: 3, openalex: 2, scholar: 1 }
+
+/** Higher = better row to keep: a structured source, then a counted type, then volume/pages, the longer venue, more citations. */
+function richness(p: RawPub): number {
+  const t = classifyRow(p)
+  const typeScore = t.type === 'journal' || t.type === 'proceeding' ? 2 : t.type === 'poster' ? 1 : 0
+  // A structured source (admin form, Scopus, OpenAlex) decides the type over Scholar's venue string.
+  return (SOURCE_RANK[p.source ?? 'scholar'] ?? 1) * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(p.cites, 99)
+}
+
+/** Merge rows of the same person with the same normalised title or DOI; keep the best row. */
+export function dedupe(rows: RawPub[]): { row: RawPub; duplicates: number; members: RawPub[] }[] {
+  const parent = rows.map((_, i) => i)
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])))
+  const seen = new Map<string, number>()
+  rows.forEach((r, i) => {
+    const keys = [`t\u0000${r.key}\u0000${normalizeTitle(r.title)}`]
+    if (r.doi) keys.push(`d\u0000${r.key}\u0000${r.doi.toLowerCase()}`)
+    for (const k of keys) {
+      const j = seen.get(k)
+      if (j === undefined) seen.set(k, i)
+      else parent[find(i)] = find(j)
+    }
+  })
+  const groups = new Map<number, RawPub[]>()
+  rows.forEach((r, i) => {
+    const g = groups.get(find(i))
     if (g) g.push(r)
-    else groups.set(k, [r])
-  }
+    else groups.set(find(i), [r])
+  })
   return [...groups.values()].map((g) => {
     const best = g.reduce((a, b) => (richness(b) > richness(a) ? b : a))
-    // A duplicate without a year inherits one from its siblings.
+    // A duplicate without a year or DOI inherits one from its siblings.
     const year = best.year ?? g.find((r) => r.year !== null)?.year ?? null
-    return { row: { ...best, year }, duplicates: g.length - 1 }
+    const doi = best.doi || g.find((r) => r.doi)?.doi || ''
+    return { row: { ...best, year, doi }, duplicates: g.length - 1, members: g }
   })
 }
 
@@ -138,11 +202,17 @@ export function overrideKey(key: string, title: string): string {
 
 export function preparePubs(rows: RawPub[], overrides: Override[]): Pub[] {
   const byKey = new Map(overrides.map((o) => [overrideKey(o.key, o.titleNormalized), o]))
-  return dedupe(rows).map(({ row, duplicates }) => {
+  return dedupe(rows).map(({ row, duplicates, members }) => {
     const titleNorm = normalizeTitle(row.title)
-    const t = classifyType(row.title, row.venue)
-    const r = classifyResearch(row.title, row.venue)
-    const o = byKey.get(overrideKey(row.key, row.title)) ?? null
+    const t = classifyRow(row)
+    const r =
+      row.source === 'manual' && row.manualResearch !== undefined
+        ? { isResearch: row.manualResearch, reason: 'ระบุโดยผู้ดูแล (Google Form)', uncertain: false }
+        : (row.extType ?? '').toLowerCase() === 'editorial'
+          ? { isResearch: false, reason: 'บทบรรณาธิการ (editorial)', uncertain: false }
+          : classifyResearch(row.title, row.venue)
+    // An override written for any version of the title applies to the merged work.
+    const o = members.map((m) => byKey.get(overrideKey(row.key, m.title))).find(Boolean) ?? null
     const pub: Pub = {
       ...row,
       id: `${row.key}|${titleNorm}`,
@@ -155,6 +225,7 @@ export function preparePubs(rows: RawPub[], overrides: Override[]): Pub[] {
       researchUncertain: r.uncertain,
       ownDegree: null,
       duplicates,
+      sources: [...new Set(members.map((m) => m.source ?? 'scholar'))],
       override: o,
     }
     if (o?.type) Object.assign(pub, { type: o.type, typeReason: `แก้ไขด้วยมือ (override)${o.note ? `: ${o.note}` : ''}`, typeUncertain: false })

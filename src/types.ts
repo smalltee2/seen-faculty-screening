@@ -5,6 +5,8 @@ export interface Faculty {
   nameEn: string
   nameTh: string
   scholarId: string
+  openalexId?: string
+  scopusId?: string
   rank: Rank | null
   degree: Degree | null
   degreeYear: number | null
@@ -12,15 +14,27 @@ export interface Faculty {
   notes: string
 }
 
-/** One row of data/publications.tsv as parsed by scripts/build-data.mjs. */
+export type PubSource = 'scholar' | 'openalex' | 'scopus' | 'manual'
+
+/** One publication row from any data file, as parsed by scripts/build-data.mjs. */
 export interface RawPub {
   line: number
+  /** Which data file the row came from (scholar = data/publications.tsv). */
+  source?: PubSource
   key: string
   year: number | null
   title: string
   authors: string
   venue: string
   cites: number
+  doi?: string
+  /** OpenAlex work type, Scopus subtype, or the type chosen in the admin form. */
+  extType?: string
+  /** OpenAlex source type / Scopus aggregation type (journal, conference, repository …). */
+  sourceType?: string
+  /** Admin form answer to "เป็นงานวิจัยหรือไม่". */
+  manualResearch?: boolean
+  submitted?: string
 }
 
 export interface Override {
@@ -34,6 +48,7 @@ export interface Override {
 
 export interface DataBundle {
   builtAt: string
+  sources: { manualSheetCsvUrl?: string; googleFormUrl?: string }
   faculty: Faculty[]
   publications: RawPub[]
   overrides: Override[]
@@ -56,5 +71,7 @@ export interface Pub extends RawPub {
   ownDegree: boolean | null
   /** Number of duplicate rows merged into this one. */
   duplicates: number
+  /** Every source that listed this work. */
+  sources: PubSource[]
   override: Override | null
 }

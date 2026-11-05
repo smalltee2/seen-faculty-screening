@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classifyResearch, classifyType, dedupe, normalizeTitle, preparePubs } from './classify'
+import { classifyResearch, classifyRow, classifyType, dedupe, normalizeTitle, preparePubs } from './classify'
 import type { RawPub } from './types'
 
 const raw = (over: Partial<RawPub>): RawPub => ({
@@ -116,3 +116,64 @@ describe('preparePubs + overrides', () => {
     expect(p.type).toBe('exclude')
   })
 })
+
+describe('structured sources', () => {
+  const oa = (extType: string, sourceType: string, venue = 'Some Venue 1 (1), 1-2, 2024') => classifyRow(raw({ source: 'openalex', extType, sourceType, venue }))
+  it('maps OpenAlex types', () => {
+    expect(oa('article', 'journal').type).toBe('journal')
+    expect(oa('review', 'journal').type).toBe('journal')
+    expect(oa('article', 'conference').type).toBe('proceeding')
+    expect(oa('article', 'conference', 'AGU Fall Meeting Abstracts 2024').type).toBe('poster')
+    expect(oa('preprint', 'repository').type).toBe('exclude')
+    expect(oa('book-chapter', 'book series').type).toBe('exclude')
+    expect(oa('dissertation', '').type).toBe('exclude')
+    expect(oa('article', 'repository').type).toBe('exclude')
+  })
+  it('maps Scopus subtypes', () => {
+    const sc = (extType: string, sourceType: string) => classifyRow(raw({ source: 'scopus', extType, sourceType })).type
+    expect(sc('Article', 'Journal')).toBe('journal')
+    expect(sc('Conference Paper', 'Conference Proceeding')).toBe('proceeding')
+    expect(sc('Book Chapter', 'Book')).toBe('exclude')
+  })
+  it('trusts the type chosen in the admin form', () => {
+    expect(classifyRow(raw({ source: 'manual', extType: 'poster', venue: 'Anything, 2025' })).type).toBe('poster')
+  })
+  it('merges the same work from Scholar and OpenAlex and keeps the structured row', () => {
+    const rows = [
+      raw({ source: 'scholar', title: 'Heat Extremes in Asia', venue: 'Int J Climatol, 2025' }),
+      raw({ source: 'openalex', title: 'Heat extremes in Asia', venue: 'International Journal of Climatology 45 (3), e8907, 2025', extType: 'article', sourceType: 'journal', doi: '10.1002/joc.8907' }),
+    ]
+    const [p] = preparePubs(rows, [])
+    expect(p.source).toBe('openalex')
+    expect(p.sources.sort()).toEqual(['openalex', 'scholar'])
+    expect(p.type).toBe('journal')
+  })
+  it('merges by DOI when titles differ', () => {
+    const rows = [
+      raw({ source: 'openalex', title: 'Old title', doi: '10.1/x', extType: 'article', sourceType: 'journal' }),
+      raw({ source: 'scopus', title: 'Revised title', doi: '10.1/X', extType: 'Article', sourceType: 'Journal' }),
+    ]
+    expect(dedupe(rows)).toHaveLength(1)
+  })
+  it('an override written for the Scholar title still applies after the merge', () => {
+    const rows = [
+      raw({ source: 'scholar', title: 'Scholar Title', venue: 'X, 2024' }),
+      raw({ source: 'openalex', title: 'Different OpenAlex Title', doi: '10.1/y', extType: 'article', sourceType: 'journal' }),
+      raw({ source: 'openalex', title: 'Scholar Title', doi: '10.1/y', extType: 'article', sourceType: 'journal' }),
+    ]
+    const [p] = preparePubs(rows, [{ key: 'A', titleNormalized: 'scholartitle', type: 'exclude', isResearch: null, ownDegree: null, note: '' }])
+    expect(p.type).toBe('exclude')
+  })
+})
+
+describe('errata', () => {
+  it('a correction notice is not counted, from any source', () => {
+    expect(classifyType('Correction to: effect of heating time', 'Silicon 15 (11), 4773-4774, 2023').type).toBe('exclude')
+    const rows = [
+      raw({ source: 'scholar', title: 'Correction to: X', venue: 'Silicon 15 (11), 4773-4774, 2023' }),
+      raw({ source: 'openalex', title: 'Correction to: X', extType: 'erratum', sourceType: 'journal', doi: '10.1/c' }),
+    ]
+    expect(preparePubs(rows, [])[0].type).toBe('exclude')
+  })
+})
+

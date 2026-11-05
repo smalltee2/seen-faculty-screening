@@ -2,9 +2,10 @@
 // into src/generated/data.json for the site. Classification and screening run
 // in the browser (src/classify.ts, src/rules.ts); this script only parses and
 // validates, and fails loudly on malformed input.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseCsv } from './csv.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CONFIG = {
@@ -22,31 +23,6 @@ const log = (msg) => console.log(`[build-data] ${msg}`)
 const warn = (msg) => console.warn(`[build-data] WARNING: ${msg}`)
 const errors = []
 const fail = (msg) => errors.push(msg)
-
-/** RFC 4180-style CSV parser: quoted fields, doubled quotes, CRLF, BOM. */
-export function parseCsv(text) {
-  text = text.replace(/^﻿/, '')
-  const rows = []
-  let row = []
-  let field = ''
-  let quoted = false
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++ }
-      else if (c === '"') quoted = false
-      else field += c
-    } else if (c === '"' && field === '') quoted = true
-    else if (c === ',') { row.push(field); field = '' }
-    else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++
-      row.push(field); rows.push(row); row = []; field = ''
-    } else field += c
-  }
-  if (quoted) throw new Error('unterminated quoted field')
-  if (field !== '' || row.length) { row.push(field); rows.push(row) }
-  return rows.filter((r) => r.some((f) => f.trim() !== ''))
-}
 
 function parseTsv(text) {
   return text
@@ -90,6 +66,8 @@ const faculty = toRecords(
     nameEn: f.name_en,
     nameTh: f.name_th,
     scholarId: f.scholar_id,
+    openalexId: f.openalex_id ?? '',
+    scopusId: f.scopus_id ?? '',
     rank: f.academic_rank || null,
     degree: f.highest_degree || null,
     degreeYear,
@@ -104,22 +82,30 @@ for (const f of faculty) {
   names.add(f.nameEn)
 }
 
-const publications = toRecords(
-  parseTsv(read(CONFIG.publications)),
-  ['key', 'year', 'title', 'authors', 'venue', 'cites'],
-  'publications.tsv',
-).map((p) => {
-  const year = p.year ? Number(p.year) : null
-  if (year !== null && !Number.isInteger(year)) fail(`publications.tsv line ${p._line}: year "${p.year}" is not an integer`)
-  return {
-    line: p._line,
-    key: p.key,
-    year,
-    title: p.title,
-    authors: p.authors,
-    venue: p.venue,
-    cites: p.cites ? Number(p.cites) || 0 : 0,
-  }
+// All publication sources share the Scholar columns; the structured ones add a type.
+const SOURCES = [
+  { file: CONFIG.publications, name: 'scholar', label: 'publications.tsv', required: true },
+  { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type }) },
+  { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type }) },
+  { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted }) },
+]
+const publications = SOURCES.flatMap((src) => {
+  if (!src.required && !existsSync(src.file)) return []
+  return toRecords(parseTsv(read(src.file)), ['key', 'year', 'title', 'authors', 'venue', 'cites'], src.label).map((p) => {
+    const year = p.year ? Number(p.year) : null
+    if (year !== null && !Number.isInteger(year)) fail(`${src.label} line ${p._line}: year "${p.year}" is not an integer`)
+    return {
+      line: p._line,
+      source: src.name,
+      key: p.key,
+      year,
+      title: p.title,
+      authors: p.authors,
+      venue: p.venue,
+      cites: p.cites ? Number(p.cites) || 0 : 0,
+      ...(src.ext ? src.ext(p) : {}),
+    }
+  })
 })
 
 const unknownKeys = [...new Set(publications.map((p) => p.key).filter((k) => !names.has(k)))]
@@ -155,6 +141,6 @@ if (errors.length) {
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), faculty, publications, overrides }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides }, null, 1),
 )
 log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides -> src/generated/data.json`)

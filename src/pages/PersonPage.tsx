@@ -99,7 +99,15 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
                   <td className="nowrap">{yearLabel(e.pub.year)}</td>
                   <td>
                     <div className="pub-title">{e.pub.title}</div>
-                    <div className="muted small">{e.pub.venue || '—'}{e.pub.duplicates > 0 && ` · รวมรายการซ้ำ ${e.pub.duplicates}`}</div>
+                    <div className="muted small">{e.pub.venue || '—'}{` · แหล่ง: ${e.pub.sources.map((x) => SRC[x]).join(', ')}`}
+                      {e.pub.doi && (
+                        <>
+                          {' · '}
+                          <a href={`https://doi.org/${e.pub.doi}`} target="_blank" rel="noreferrer">
+                            DOI
+                          </a>
+                        </>
+                      )}</div>
                   </td>
                   <td>{TYPE_LABEL[e.pub.type]}{e.pub.typeUncertain && ' ?'}</td>
                   <td>{triLabel(e.research)}</td>
@@ -114,5 +122,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
     </>
   )
 }
+
+const SRC = { scholar: 'Scholar', openalex: 'OpenAlex', scopus: 'Scopus', manual: 'แบบฟอร์ม' } as const
 
 const triLabel = (t: 'yes' | 'maybe' | 'no') => (t === 'yes' ? 'ใช่' : t === 'maybe' ? 'ไม่แน่ใจ' : 'ไม่')

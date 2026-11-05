@@ -6,18 +6,20 @@ import type { DataBundle } from './types'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
+import { AdminPage } from './pages/AdminPage'
 
 const data = raw as DataBundle
 const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 
-type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string }
+type Route = { page: 'overview' } | { page: 'lecturers' } | { page: 'person'; key: string } | { page: 'admin' }
 
 function parseHash(): Route {
   const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
   if (h.startsWith('person/')) return { page: 'person', key: h.slice('person/'.length) }
   if (h === 'lecturers') return { page: 'lecturers' }
+  if (h === 'admin') return { page: 'admin' }
   return { page: 'overview' }
 }
 
@@ -63,6 +65,7 @@ export function App() {
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
     { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length },
+    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงาน', en: 'Add works' },
   ]
 
   return (
@@ -113,6 +116,7 @@ export function App() {
         <main>
           {route.page === 'overview' && <Overview results={results} settings={settings} />}
           {route.page === 'lecturers' && <LecturersPage results={results} settings={settings} />}
+          {route.page === 'admin' && <AdminPage data={data} pubs={pubs} faculty={data.faculty} />}
           {route.page === 'person' && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
         </main>
 

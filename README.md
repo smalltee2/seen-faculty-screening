@@ -28,6 +28,60 @@ npm test
 npm run dev        # http://localhost:5173/seen-faculty-screening/
 ```
 
+## Daily update
+
+GitHub Actions runs every day at 03:00 (Thailand time). It does three things:
+
+- refreshes `data/openalex.tsv`, `data/scopus.tsv` and `data/manual.tsv`
+- commits whatever changed
+- rebuilds and redeploys the site
+
+Pushing to `main` also rebuilds the site, but without fetching. You can also start a run by hand: Actions → "Test, build and deploy" → Run workflow.
+
+| Source | How it updates | Notes |
+|---|---|---|
+| OpenAlex | automatic, daily | Free, no key. Uses `openalex_id` in `faculty.csv`. Gives DOI and journal/conference type. |
+| Scopus | automatic, daily | Needs the `SCOPUS_API_KEY` repository secret. Uses `scopus_id`, or finds the author by name + Phayao. |
+| Admin Google Form | automatic, daily | Reads the response sheet published as CSV (`manualSheetCsvUrl` in `data/sources.json`). |
+| Google Scholar | by hand | No API. Re-export with the console snippet into `publications.tsv` now and then. |
+
+The same work from several sources is merged by DOI or normalised title. The type from OpenAlex, Scopus or the form decides over Scholar's venue text.
+
+### Scopus key (never commit it)
+
+Save the key as a repository secret, then run the workflow once:
+
+```bash
+gh secret set SCOPUS_API_KEY --repo smalltee2/seen-faculty-screening
+```
+
+Elsevier may accept the key only from the university network. If the daily log shows `HTTP 401/403`, ask the library for an institutional token. Until then, Scopus is skipped and the other sources still update.
+
+### Admin Google Form
+
+Create a Google Form whose question titles match these exactly:
+
+| Question title | Type |
+|---|---|
+| `อาจารย์ (name_en)` | Dropdown: the `name_en` values from `faculty.csv` |
+| `ปีที่ตีพิมพ์ (ค.ศ.)` | Short answer (number) |
+| `ชื่อผลงาน` | Short answer |
+| `ผู้แต่ง` | Short answer |
+| `ประเภทผลงาน` | Multiple choice: `บทความวารสาร (journal)` / `บทความฉบับสมบูรณ์ในงานประชุม (proceedings)` / `โปสเตอร์/บทคัดย่อในงานประชุม (poster)` |
+| `ชื่อวารสารหรืองานประชุม` | Short answer |
+| `ปีที่/ฉบับที่/หน้า` | Short answer (optional) |
+| `DOI หรือ URL` | Short answer (optional) |
+| `เป็นงานวิจัยหรือไม่` | Multiple choice: `ใช่` / `ไม่ใช่` |
+
+Then set it up:
+
+1. In Settings, restrict responses to University of Phayao accounts, and do not collect email addresses.
+2. Link the form to a response sheet.
+3. In the sheet, choose File → Share → Publish to web → the responses tab → CSV, and copy the URL. The published sheet can be read by anyone with that URL.
+4. Put the CSV URL in `manualSheetCsvUrl`, and the form link in `googleFormUrl`, in `data/sources.json`.
+
+To remove an entry, delete its row in the sheet.
+
 ## Data files
 
 All files are UTF-8. CSV files may quote fields with `"`.

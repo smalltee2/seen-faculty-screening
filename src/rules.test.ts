@@ -37,7 +37,7 @@ const pub = (over: Partial<Pub> = {}): Pub => {
   return {
     line: n, key: 'P', year: 2025, title: `t${n}`, authors: '', venue: 'J 1 (1), 1-2', cites: 0, id: `P|t${n}`, titleNorm: `t${n}`,
     type: 'journal', typeReason: '', typeUncertain: false, isResearch: true, researchReason: '', researchUncertain: false,
-    ownDegree: null, duplicates: 0, override: null, ...over,
+    ownDegree: null, duplicates: 0, sources: ['scholar'], override: null, ...over,
   }
 }
 const journals = (k: number, over: Partial<Pub> = {}) => Array.from({ length: k }, () => pub(over))
