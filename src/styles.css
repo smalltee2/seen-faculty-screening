@@ -325,17 +325,19 @@ select, input[type='search'], input:not([type]) {
 .role-row:first-of-type { border-top: none; }
 .clause { color: var(--ember); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .role-num { text-align: right; color: var(--muted); font-size: 0.8rem; }
-.role-num b { color: var(--fg); }
-.sbar { display: flex; gap: 2px; height: 10px; border-radius: var(--radius-pill); overflow: hidden; background: var(--panel-hover); }
+.role-num b { color: var(--pie-figure); }
+/* Role pass bars in the purple ramp shared with the readiness pie:
+   passed = deep purple, needs review = mid, not passed = pale lilac. */
+.sbar { display: flex; gap: 2px; height: 12px; border-radius: var(--radius-sm); overflow: hidden; background: var(--pie-4); }
 .sbar span { display: block; height: 100%; }
-.sbar-met { background: var(--met-mark); }
-.sbar-review { background: var(--rev-mark); }
-.sbar-not { background: var(--not-mark); opacity: 0.75; }
+.sbar-met { background: var(--pie-1); }
+.sbar-review { background: var(--pie-2); }
+.sbar-not { background: var(--pie-4); }
 .legend { font-size: 0.8rem; color: var(--muted); display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
-.dot-met { background: var(--met-mark); }
+.dot-met { background: var(--pie-1); }
 .dot-review { background: var(--rev-mark); }
-.dot-not { background: var(--not-mark); }
+.dot-not { background: var(--pie-4); box-shadow: inset 0 0 0 1px var(--line-strong); }
 
 /* Charts */
 .chart { position: relative; margin: 0; min-width: 0; }
@@ -642,3 +644,5 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
   .pie-callouts li { grid-template-columns: 42px auto minmax(0, 1fr); gap: 10px; }
 }
 .pie-note { margin: 8px 0 14px; }
+.bar-legend .dot { width: 12px; height: 12px; border-radius: 2px; }
+.bar-legend { margin-top: 12px; }

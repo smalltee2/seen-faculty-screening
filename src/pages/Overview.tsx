@@ -86,6 +86,10 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
               })}
             </div>
           ))}
+          <p className="legend bar-legend">
+            <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ตัวเลขด้านขวา = จำนวนที่ผ่าน / อาจารย์ทั้งหมด · ดูรายบุคคลที่แท็บ{' '}
+            <a href="#/lecturers">รายชื่ออาจารย์</a>
+          </p>
         </section>
       </div>
 
@@ -108,10 +112,6 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </p>
         <LecturerOutputs results={results} settings={settings} />
       </section>
-      <p className="legend">
-        <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ดูรายบุคคลที่แท็บ{' '}
-        <a href="#/lecturers">รายชื่ออาจารย์</a>
-      </p>
     </>
   )
 }
