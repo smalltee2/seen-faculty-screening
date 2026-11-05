@@ -371,85 +371,112 @@ function StatusIcon({ kind }: { kind: string }) {
   )
 }
 
-/** Infographic: solid pie of lecturers by readiness, big percentages, dotted leaders. */
-/** compact: always pie-then-labels and shorter notes, for a dashboard column. */
+/** Infographic: 3D extruded pie of lecturers by readiness, numbered pins, callouts below.
+ *  Drawn back-to-front (painter's order) on a tilted ellipse; smaller slices are raised. */
 export function ReadinessPie({ results, compact = false }: { results: PersonResult[]; compact?: boolean }) {
-  const [ref, width] = useWidth(900)
+  const [ref, width] = useWidth(420)
   const groups = readinessGroups(results)
-  const total = results.length
-  const wide = width >= 640 && !compact
-  const R = wide ? 140 : compact ? 84 : 110
-  const H = wide ? 340 : 2 * R + 24
-  const W = Math.max(280, width)
-  const cx = wide ? W - R - 40 : W / 2
-  const cy = H / 2
-  let a0 = -Math.PI / 2
-  const slices = groups
-    .filter((g) => g.n > 0)
-    .map((g) => {
-      const a1 = a0 + (g.n / total) * Math.PI * 2
-      const mid = (a0 + a1) / 2
-      const large = a1 - a0 > Math.PI ? 1 : 0
-      const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)]
-      const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)]
-      const d = g.n === total ? '' : `M${cx},${cy} L${p0[0]},${p0[1]} A${R},${R} 0 ${large} 1 ${p1[0]},${p1[1]} Z`
-      const anchor = [cx + R * 0.62 * Math.cos(mid), cy + R * 0.62 * Math.sin(mid)]
-      a0 = a1
-      return { g, d, anchor }
-    })
-  // Callout rows on the left (wide layout): evenly spaced, leader goes right then to the slice.
-  const rowsY = groups.map((_, i) => 46 + i * ((H - 70) / Math.max(1, groups.length - 1)))
-  const calloutEnd = Math.min(470, cx - R - 50)
+  const total = results.length || 1
+  const W = Math.max(260, width)
+  const R = Math.min(compact ? 96 : 150, W / 2 - 18)
+  const tilt = 0.5 // vertical squash of the top face
+  const base = Math.round(R * 0.22) // extrusion of the largest slice
+  const lift = Math.round(R * 0.14) // extra height of the other slices
+  const top = 44 // room for pins above the pie
+  const cx = W / 2
+  const cy = top + R * tilt + lift
+  const H = cy + R * tilt + base + 22
+  const pt = (a: number, r: number, z: number) => [cx + r * Math.cos(a), cy + r * tilt * Math.sin(a) - z] as const
+  const arc = (a0: number, a1: number, r: number, z: number) => {
+    const n = Math.max(2, Math.ceil(((a1 - a0) / Math.PI) * 36))
+    return Array.from({ length: n + 1 }, (_, i) => pt(a0 + ((a1 - a0) * i) / n, r, z))
+  }
+  const poly = (ps: readonly (readonly [number, number])[]) => 'M' + ps.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L') + 'Z'
+
+  const shown = groups.filter((g) => g.n > 0)
+  const biggest = shown.reduce((m, g) => (g.n > m.n ? g : m), shown[0])
+  let a = -Math.PI / 2
+  const slices = shown.map((g, i) => {
+    const a0 = a
+    const a1 = a + (g.n / total) * Math.PI * 2
+    a = a1
+    const h = g === biggest ? base : base + lift
+    return { g, a0, a1, h, mid: (a0 + a1) / 2, no: String(i + 1).padStart(2, '0'), fill: SLICE_FILL[g.key] }
+  })
+  const shade = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, #1a1030)`
+  // Back slices first: depth grows with sin(mid) (lower on screen = nearer).
+  const order = [...slices].sort((p, q) => Math.sin(p.mid) - Math.sin(q.mid))
 
   return (
-    <figure className="pie-info">
-      <div className="pie-stage" ref={ref as React.RefObject<HTMLDivElement>} style={{ height: wide ? H : undefined }}>
+    <figure className="pie-info pie3d">
+      <div className="pie-stage" ref={ref as React.RefObject<HTMLDivElement>}>
         <svg className="pie-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมิน">
-          {slices.map(({ g, d }) =>
-            d ? <path key={g.key} d={d} fill={SLICE_FILL[g.key]} stroke="var(--pie-gap)" strokeWidth={2} /> : <circle key={g.key} cx={cx} cy={cy} r={R} fill={SLICE_FILL[g.key]} />,
-          )}
-          {wide &&
-            groups.map((g, i) => {
-              const s = slices.find((x) => x.g.key === g.key)
-              if (!s) return null
-              const y = rowsY[i]
-              const [ax, ay] = s.anchor
-              const elbow = Math.max(calloutEnd + 20, ax - 40)
-              return (
-                <g key={g.key}>
-                  <path d={`M${calloutEnd},${y} H${elbow} L${ax},${ay}`} className="pie-leader" />
-                  <circle cx={ax} cy={ay} r={4} className="pie-dot" />
-                </g>
-              )
-            })}
-          {(() => {
-            const big = slices[0]
-            if (!big || !wide) return null
+          <defs>
+            <filter id="pie-shadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="8" />
+            </filter>
+          </defs>
+          <ellipse cx={cx + 8} cy={cy + base + 6} rx={R * 1.02} ry={R * tilt * 0.95} className="pie-floor" filter="url(#pie-shadow)" />
+          {order.map((sl) => {
+            const { a0, a1, h, fill } = sl
+            const full = a1 - a0 >= Math.PI * 2 - 1e-6
+            // Front part of the outer wall lies where sin(angle) > 0 (0..π).
+            const f0 = Math.max(a0, 0)
+            const f1 = Math.min(a1, Math.PI)
+            const wraps = a1 > Math.PI * 2 ? [Math.max(a0, Math.PI * 2), Math.min(a1, Math.PI * 3)] : null
+            const walls = [[f0, f1], wraps].filter((w): w is number[] => !!w && w[1] > w[0])
             return (
-              <text x={cx} y={cy + R + 22} textAnchor="middle" className="pie-total">
-                อาจารย์ทั้งหมด {total} คน
-              </text>
+              <g key={sl.g.key}>
+                {!full &&
+                  [a0, a1].map((e, k) => (
+                    <path key={k} d={poly([pt(e, 0, 0), pt(e, R, 0), pt(e, R, h), pt(e, 0, h)])} style={{ fill: shade(fill, 62) }} />
+                  ))}
+                {walls.map(([w0, w1], k) => (
+                  <path key={`w${k}`} d={poly([...arc(w0, w1, R, h), ...arc(w0, w1, R, 0).reverse()])} style={{ fill: shade(fill, 78) }} />
+                ))}
+                <path d={poly([pt(0, 0, h), ...arc(a0, a1, R, h)])} style={{ fill }} className="pie3d-top" />
+              </g>
             )
-          })()}
+          })}
+          {slices.map((sl) => {
+            const r = sl.a1 - sl.a0 > 5 ? R * 0.45 : R * 0.62
+            const [x, y] = pt(sl.mid, r, sl.h)
+            const yTop = Math.max(14, y - 40)
+            return (
+              <g key={`pin-${sl.g.key}`} className="pie3d-pin">
+                <line x1={x} y1={y} x2={x} y2={yTop} />
+                <circle cx={x} cy={y} r={3} className="pie3d-pin-foot" />
+                <circle cx={x} cy={yTop} r={11} className="pie3d-pin-head" />
+                <text x={x} y={yTop + 4} textAnchor="middle">
+                  {sl.no}
+                </text>
+              </g>
+            )
+          })}
         </svg>
-        <ul className={`pie-callouts ${wide ? 'pie-callouts-wide' : ''}`} style={wide ? { width: calloutEnd - 12 } : undefined}>
-          {groups.map((g, i) => (
-            <li key={g.key} style={wide ? { top: rowsY[i] } : undefined}>
-              <span className="pie-icon">
-                <StatusIcon kind={g.icon} />
-              </span>
-              <span className="pie-pct">{g.pct}%</span>
-              <span className="pie-label">
-                <b>
-                  <i className="pie-swatch" style={{ background: SLICE_FILL[g.key] }} />
-                  {g.th}
-                </b>
-                <span>
-                  {g.n} คน{g.note && !compact ? ` · ${g.note}` : ''}
+        <ul className="pie-callouts">
+          {groups.map((g) => {
+            const sl = slices.find((x) => x.g.key === g.key)
+            return (
+              <li key={g.key}>
+                <span className="pie-icon">
+                  <StatusIcon kind={g.icon} />
                 </span>
-              </span>
-            </li>
-          ))}
+                <span className="pie-pct">{g.pct}%</span>
+                <span className="pie-label">
+                  <b>
+                    <i className="pie-no" style={{ borderLeftColor: SLICE_FILL[g.key] }}>
+                      {sl?.no ?? '–'}
+                    </i>
+                    {g.th}
+                  </b>
+                  <span>
+                    {g.n} คน{g.note && !compact ? ` · ${g.note}` : ''}
+                  </span>
+                </span>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </figure>

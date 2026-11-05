@@ -705,3 +705,51 @@ caption { background: var(--sub-panel); color: var(--ember); border-bottom: 1px 
 .report-head .lede { padding-left: 0; }
 .dash .role-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dash .pie-svg { margin-top: 2px; }
+
+/* 3D readiness pie */
+.pie3d .pie-svg { overflow: visible; }
+.pie-floor { fill: rgba(31, 27, 43, 0.16); }
+.pie3d-top { stroke: color-mix(in srgb, var(--panel) 70%, transparent); stroke-width: 1; }
+.pie3d-pin line { stroke: var(--fg); stroke-width: 1.5; }
+.pie3d-pin-foot { fill: var(--fg); }
+.pie3d-pin-head { fill: var(--panel); stroke: var(--fg); stroke-width: 1.5; }
+.pie3d-pin text { fill: var(--fg); font: 600 10.5px var(--font-data); }
+.pie-no {
+  display: inline-grid; place-items: center; min-width: 26px; height: 18px; padding: 0 4px; border-radius: 3px;
+  font: 600 0.72rem/1 var(--font-data); font-style: normal; color: var(--fg); border: 1px solid var(--line-strong);
+  border-left-width: 5px; background: var(--panel);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .pie-floor { fill: rgba(0, 0, 0, 0.45); } }
+:root[data-theme='dark'] .pie-floor { fill: rgba(0, 0, 0, 0.45); }
+.gate-remember { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.92rem; }
+.gate-remember input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--ember); }
+.gate-remember small { display: block; color: var(--muted); font-size: 0.78rem; }
+
+/* Larger header type (2026-11-05) */
+.topbar-inner { padding-top: 10px; padding-bottom: 8px; }
+.brand { gap: 16px; }
+.brand-mark img { height: 54px; }
+.brand-org { font-size: 0.95rem; }
+.brand-name { font-size: 1.55rem; line-height: 1.25; }
+.brand-sub { font-size: 0.95rem; }
+.tabsbar a { font-size: 1.08rem; padding: 8px 16px 9px; }
+.tabsbar .seg-count { font-size: 0.8rem; }
+@media (max-width: 640px) {
+  .brand-mark img { height: 38px; }
+  .brand-name { font-size: 1.12rem; }
+  .tabsbar a { font-size: 0.98rem; padding: 7px 10px 8px; }
+}
+.dash .pie-callouts { gap: 4px; margin-top: 2px; }
+.dash .pie-icon { width: 36px; height: 36px; }
+.dash .pie-icon svg { width: 22px; height: 22px; }
+.dash .pie-pct { font-size: 1.75rem; }
+.dash .pie-callouts li { grid-template-columns: 36px auto minmax(0, 1fr); }
+.controls { margin-top: 8px; }
+.report-head { margin: 8px 0 8px; }
+.finding { margin-bottom: 8px; }
+.metrics { margin-bottom: 10px; }
+.dash .role-row { padding: 3px 0; }
+@media (max-width: 640px) {
+  .dash .role-row { grid-template-columns: 64px minmax(0, 1fr) 44px; }
+  .dash .role-name { white-space: normal; }
+}

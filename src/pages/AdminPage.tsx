@@ -108,6 +108,30 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
 }
 
 const SESSION_KEY = 'seen-admin-form'
+
+/** Read/write the unlocked form link: localStorage when "remember on this device", else sessionStorage. */
+function readSaved(): string | null {
+  try {
+    return localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
+  } catch {
+    return null
+  }
+}
+function save(url: string, remember: boolean) {
+  try {
+    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, url)
+  } catch {
+    /* storage unavailable: stays unlocked until reload */
+  }
+}
+function forget() {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* ignore */
+  }
+}
 const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 
 /** Decrypts the admin form link with the passcode; a wrong passcode fails AES-GCM authentication. */
@@ -129,12 +153,9 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
   const gate = props.data.sources.adminGate
   const [formUrl, setFormUrl] = useState<string | null>(() => {
     if (!gate) return props.data.sources.googleFormUrl ?? ''
-    try {
-      return sessionStorage.getItem(SESSION_KEY)
-    } catch {
-      return null
-    }
+    return readSaved()
   })
+  const [remember, setRemember] = useState(false)
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -147,11 +168,7 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
         onLock={
           gate
             ? () => {
-                try {
-                  sessionStorage.removeItem(SESSION_KEY)
-                } catch {
-                  /* ignore */
-                }
+                forget()
                 setFormUrl(null)
               }
             : undefined
@@ -166,11 +183,7 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
     setError('')
     try {
       const url = await unlock(gate, pass)
-      try {
-        sessionStorage.setItem(SESSION_KEY, url)
-      } catch {
-        /* ignore */
-      }
+      save(url, remember)
       setPass('')
       setFormUrl(url)
     } catch {
@@ -188,6 +201,13 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
         <label className="control" htmlFor="admin-pass">
           <span className="control-label">รหัสผู้ดูแล</span>
           <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
+        </label>
+        <label className="gate-remember" htmlFor="admin-remember">
+          <input id="admin-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <span>
+            จำรหัสบนเครื่องนี้
+            <small>ติ๊กเฉพาะเครื่องส่วนตัว ถ้าไม่ติ๊ก ระบบจำไว้จนปิดเบราว์เซอร์</small>
+          </span>
         </label>
         {error && (
           <p className="gate-error" role="alert">
