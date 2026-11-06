@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
 import type { Level, Status } from './rules'
 import { LEVELS, ROLES, toBE } from './rules'
@@ -63,10 +64,18 @@ export const TYPE_LABEL: Record<PubType, string> = {
 
 export const yearLabel = (ce: number | null) => (ce === null ? '—' : `${toBE(ce)} (${ce})`)
 
-export function Metric({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Status }) {
+/** Summary card. `badge` + `color` give the coloured badge and back plate (2026-11-07 card style). */
+export function Metric({ label, value, sub, tone, badge, color }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Status; badge?: string; color?: string }) {
   return (
-    <div className={`metric ${tone ? `metric-${tone}` : ''}`}>
-      <span className="metric-label">{label}</span>
+    <div className={`metric ${tone ? `metric-${tone}` : ''}${badge ? ' metric-card' : ''}`} style={color ? ({ '--card': color } as React.CSSProperties) : undefined}>
+      {badge ? (
+        <span className="metric-head">
+          <span className="metric-badge">{badge}</span>
+          <span className="metric-label">{label}</span>
+        </span>
+      ) : (
+        <span className="metric-label">{label}</span>
+      )}
       <b className="metric-value">{value}</b>
       {sub && <span className="metric-sub">{sub}</span>}
     </div>

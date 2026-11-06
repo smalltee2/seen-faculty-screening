@@ -430,3 +430,41 @@ html { scroll-padding-top: 92px; }
 .swatch-window { border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); }
 .chart .window-label { font-weight: 700; }
 .chart .window-band { stroke-dasharray: none; stroke-opacity: 1; }
+
+/* =============================================================================
+   Summary cards (Tum's reference, 2026-11-07): white rounded card on a coloured
+   back plate that shows along the top and left edge, soft drop shadow, coloured
+   badge before the title; no corner icon. Colours: teal = all lecturers, level
+   colours for ป.ตรี / ป.โท / ป.เอก, gold = outputs.
+   ============================================================================= */
+:root { --card-total: #1a7a6d; --card-pubs: #a16207; --on-card: #ffffff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --card-total: #4fb3a5; --card-pubs: #d9a43a; --on-card: #1c1b18; } }
+:root[data-theme='dark'] { --card-total: #4fb3a5; --card-pubs: #d9a43a; --on-card: #1c1b18; }
+
+.metrics { gap: 22px 22px; padding: 10px 0 0 10px; margin-bottom: 26px; }
+.metric.metric-card {
+  position: relative; isolation: isolate; overflow: visible;
+  background: var(--panel); border: 0; border-radius: 18px;
+  padding: 16px 18px 16px; gap: 8px;
+  box-shadow: 0 10px 22px -8px rgba(44, 42, 37, 0.28), 0 2px 4px rgba(44, 42, 37, 0.06);
+}
+.metric.metric-card::before {
+  content: ''; position: absolute; z-index: -1; inset: -9px auto auto -9px; height: auto;
+  width: 78%; bottom: 30%; border-radius: 22px; background: var(--card);
+}
+.metric.metric-card::after {
+  content: ''; position: absolute; z-index: -1; inset: 0; border-radius: 18px; background: var(--panel);
+}
+.metric-head { display: flex; align-items: center; gap: 10px; min-height: 2.6em; }
+.metric-badge {
+  flex: 0 0 auto; display: inline-grid; place-items: center; min-width: 46px; padding: 6px 8px;
+  border-radius: 9px; background: var(--card); color: var(--on-card);
+  font: 700 0.82rem/1.1 var(--font-body); letter-spacing: 0.01em; text-align: center;
+}
+.metric.metric-card .metric-label { min-height: 0; font: 700 0.86rem/1.35 var(--font-body); color: var(--fg); }
+.metric.metric-card .metric-value { font: 700 2.1rem/1 var(--font-body); color: var(--fg); letter-spacing: -0.02em; margin-top: 4px; }
+.metric.metric-card .metric-value small { font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+.metric.metric-card .metric-sub { color: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .metric.metric-card { box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.6); } }
+:root[data-theme='dark'] .metric.metric-card { box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.6); }
+@media (max-width: 720px) { .metrics { gap: 20px; } .metric-badge { font-size: 12px; } }
