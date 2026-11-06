@@ -416,3 +416,10 @@ html { scroll-padding-top: 92px; }
 .swatch.swatch-fail { background: transparent; border: 2px solid var(--not); }
 .swatch.swatch-risk { background: transparent; border: 2px solid var(--rev-mark); }
 .swatch.swatch-rule { width: 3px; border-radius: 1px; background: var(--rule-line); }
+
+/* 3D block chart (per-year outputs) */
+.chart .plinth-top { fill: color-mix(in srgb, var(--line-strong) 45%, var(--panel)); }
+.chart .plinth-front { fill: color-mix(in srgb, var(--line-strong) 80%, var(--panel)); }
+.chart .plinth-side { fill: color-mix(in srgb, var(--line-strong) 80%, #000 20%); }
+.chart .seg-edge { fill: none; stroke: color-mix(in srgb, var(--panel) 75%, transparent); stroke-width: 1.2; }
+.chart .floor-shadow { fill: color-mix(in srgb, var(--fg) 10%, transparent); filter: blur(6px); }

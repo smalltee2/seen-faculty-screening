@@ -54,13 +54,6 @@ const ticks = (max: number) => {
   return out
 }
 
-/** Rounded top only: the data end gets a 3px radius, the baseline stays square. */
-function barPath(x: number, y: number, w: number, h: number, r: number) {
-  if (h <= 0) return ''
-  r = Math.min(r, h, w / 2)
-  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
-}
-
 // Journal level (see tci.ts): Scopus = international, TCI กลุ่ม 1–2 = national, else outside.
 export const levelOf = (p: Pub) => journalLevel(p, TCI)?.level ?? null
 
@@ -94,15 +87,26 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
   // 15% headroom so the bar totals never collide with the window label.
   const max = niceMax(Math.max(1, ...rows.map((r) => r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster)) * 1.15)
   const W = Math.max(280, width)
-  const H = W < 480 ? 230 : 260
   const narrow = W < 480
-  const m = { t: 22, r: 8, b: 40, l: 34 }
+  const H = narrow ? 280 : 330
+  // 3D block style (Tum, 2026-11-07): each year is a stacked prism on a plinth, drawn in
+  // oblique projection (depth dx to the right, dy up). Exact values stay in the table below.
+  const band0 = (W - 34 - 8) / years.length
+  const dx = Math.round(Math.min(16, band0 * 0.2))
+  const dy = Math.round(dx * 0.62)
+  const m = { t: 26 + dy, r: 8 + dx, b: 46, l: 34 }
   const iw = W - m.l - m.r
   const ih = H - m.t - m.b
   const band = iw / years.length
-  const bw = Math.min(36, band * 0.62)
+  const bw = Math.min(46, band * 0.6)
+  const pw = Math.min(band - 2, bw + dx + 10) // plinth width
+  const ph = narrow ? 6 : 8 // plinth front height
   const sy = (v: number) => m.t + ih - (v / max) * ih
   const winX = m.l + band * (years.length - 5)
+  const face = (cls: string, k: 'front' | 'side' | 'top') => {
+    const c = `var(--${cls})`
+    return k === 'front' ? c : k === 'side' ? `color-mix(in srgb, ${c} 70%, #000)` : `color-mix(in srgb, ${c} 68%, #fff)`
+  }
 
   return (
     <figure className="chart" ref={ref}>
@@ -117,8 +121,8 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="จำนวนผลงานต่อปีแยกตามประเภท">
-        <rect className="window-band" x={winX} y={m.t - 14} width={band * 5} height={ih + 14} rx={6} />
-        <text className="window-label" x={winX + band * 2.5} y={m.t - 4} textAnchor="middle">
+        <rect className="window-band" x={winX} y={m.t - 14 - dy} width={band * 5 + dx} height={ih + 14 + dy + ph + 2} rx={8} />
+        <text className="window-label" x={winX + band * 2.5} y={m.t - 4 - dy} textAnchor="middle">
           ช่วงประเมิน {toBE(Y - 4)}–{toBE(Y)}
         </text>
         {ticks(max).map((t) => (
@@ -129,36 +133,45 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
             </text>
           </g>
         ))}
+        <ellipse className="floor-shadow" cx={m.l + iw / 2} cy={sy(0) + ph + 4} rx={iw / 2} ry={8} />
         {rows.map((r, i) => {
-          const x = m.l + band * i + (band - bw) / 2
-          let acc = 0
+          const cxBand = m.l + band * i + band / 2
+          const x = cxBand - (bw + dx) / 2
+          const y0 = sy(0)
+          const px = cxBand - (pw + dx) / 2
           const total = r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster
+          const segs = SERIES.map((sr) => ({ cls: sr.cls, v: r[sr.key] })).filter((z) => z.v > 0)
+          let acc = 0
           return (
             <g key={r.y}>
-              {SERIES.map((s, si) => {
-                const v = r[s.key]
-                if (!v) return null
-                const y0 = sy(acc)
-                acc += v
-                const y1 = sy(acc)
-                const top = SERIES.slice(si + 1).every((x) => !r[x.key])
-                const h = y0 - y1 - (top ? 0 : 2)
-                return top ? (
-                  <path key={s.key} className={s.cls} d={barPath(x, y1, bw, h, 4)} />
-                ) : (
-                  <rect key={s.key} className={s.cls} x={x} y={y1 + 2} width={bw} height={Math.max(0, h)} />
+              {/* plinth: top, front, side */}
+              <path className="plinth-top" d={`M${px},${y0}H${px + pw}L${px + pw + dx},${y0 - dy}H${px + dx}Z`} />
+              <rect className="plinth-front" x={px} y={y0} width={pw} height={ph} />
+              <path className="plinth-side" d={`M${px + pw},${y0}L${px + pw + dx},${y0 - dy}V${y0 - dy + ph}L${px + pw},${y0 + ph}Z`} />
+              {segs.map((sg, si) => {
+                const yb = sy(acc)
+                acc += sg.v
+                const yt = sy(acc)
+                const isTop = si === segs.length - 1
+                return (
+                  <g key={sg.cls}>
+                    <path d={`M${x + bw},${yb}L${x + bw + dx},${yb - dy}V${yt - dy}L${x + bw},${yt}Z`} style={{ fill: face(sg.cls, 'side') }} />
+                    <rect x={x} y={yt} width={bw} height={Math.max(0, yb - yt)} style={{ fill: face(sg.cls, 'front') }} />
+                    {si > 0 && <path className="seg-edge" d={`M${x},${yb}H${x + bw}L${x + bw + dx},${yb - dy}`} />}
+                    {isTop && <path d={`M${x},${yt}H${x + bw}L${x + bw + dx},${yt - dy}H${x + dx}Z`} style={{ fill: face(sg.cls, 'top') }} />}
+                  </g>
                 )
               })}
               {total > 0 && (
-                <text className="bar-label" x={x + bw / 2} y={sy(total) - 5} textAnchor="middle">
+                <text className="bar-label" x={x + (bw + dx) / 2} y={sy(total) - dy - 6} textAnchor="middle">
                   {total}
                 </text>
               )}
-              <text className="axis" x={m.l + band * i + band / 2} y={H - m.b + 16} textAnchor="middle">
+              <text className="axis" x={cxBand} y={y0 + ph + 17} textAnchor="middle">
                 {narrow ? String(toBE(r.y)).slice(2) : toBE(r.y)}
               </text>
               {!narrow && (
-                <text className="axis axis-sub" x={m.l + band * i + band / 2} y={H - m.b + 29} textAnchor="middle">
+                <text className="axis axis-sub" x={cxBand} y={y0 + ph + 31} textAnchor="middle">
                   {r.y}
                 </text>
               )}
@@ -189,7 +202,6 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
             </g>
           )
         })}
-        <line className="baseline" x1={m.l} x2={W - m.r} y1={sy(0)} y2={sy(0)} />
       </svg>
       {el}
     </figure>
