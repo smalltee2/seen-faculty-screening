@@ -102,8 +102,7 @@ export function App() {
               <img src={seenLogo} alt="ตราสัญลักษณ์คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา (SEEN)" width={262} height={99} />
             </span>
             <span className="brand-text">
-              <small className="brand-org">คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</small>
-              <span className="brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์</span>
+              <span className="brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</span>
               <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565</small>
             </span>
           </a>
