@@ -7,6 +7,8 @@ import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
 import { AdminPage } from './pages/AdminPage'
+import { MyPage } from './pages/MyPage'
+import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adminGate'
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
@@ -29,6 +31,7 @@ type Route =
   | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView }
   | { page: 'person'; key: string }
   | { page: 'admin' }
+  | { page: 'me'; login?: string }
 
 function parseHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '')
@@ -53,6 +56,11 @@ function parseHash(): Route {
     }
   }
   if (h === 'admin') return { page: 'admin' }
+  // #/me, or #/me/login=<code> from the e-mail link (forwarded by /me/).
+  if (h === 'me' || h.startsWith('me/')) {
+    const m = h.match(/^me\/login=([0-9a-f]+)$/)
+    return { page: 'me', login: m?.[1] }
+  }
   return { page: 'overview' }
 }
 
@@ -83,6 +91,14 @@ export function App() {
     }
   }, [])
   const pubs = useMemo(() => makePubs(liveRows), [liveRows])
+  // One admin passcode opens both admin-only tabs (รายชื่ออาจารย์, เพิ่มผลงานด้วยตนเอง).
+  const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
+  const lock = data.sources.adminGate
+    ? () => {
+        forgetAdmin()
+        setAdmin(null)
+      }
+    : undefined
 
   useEffect(() => {
     const on = () => {
@@ -94,9 +110,9 @@ export function App() {
   }, [])
 
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [pubs, settings])
-  // Reload by itself when a newer build is published; on the admin tab only offer it,
-  // so a passcode being typed is not lost.
-  const newerBuild = useAutoRefresh(data.builtAt, route.page !== 'admin')
+  // Reload by itself when a newer build is published; where a passcode or e-mail may be
+  // being typed, only offer it.
+  const newerBuild = useAutoRefresh(data.builtAt, route.page === 'overview' || (admin !== null && (route.page === 'lecturers' || route.page === 'person')))
 
   const pubYears = pubs.map((p) => p.year).filter((y): y is number => y !== null)
   const minYear = Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4))
@@ -106,8 +122,9 @@ export function App() {
   const tab = route.page === 'person' ? 'lecturers' : route.page
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
-    { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length },
-    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงานด้วยตนเอง', en: 'Add works manually' },
+    { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length, locked: admin === null },
+    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงานด้วยตนเอง', en: 'Add works manually', locked: admin === null },
+    { id: 'me', href: '#/me', th: 'ข้อมูลคุณสมบัติของฉัน', en: 'My qualifications' },
   ]
 
   return (
@@ -128,8 +145,9 @@ export function App() {
           <div className="tabsbar-inner">
             {tabs.map((t) => (
               <a key={t.id} href={t.href} aria-current={tab === t.id ? 'page' : undefined}>
+                {t.locked && <LockIcon />}
                 {t.th}
-                {t.count !== undefined && <span className="seg-count">{t.count}</span>}
+                {t.count !== undefined && !t.locked && <span className="seg-count">{t.count}</span>}
               </a>
             ))}
             <div className="updated-at" title={data.builtAt}>
@@ -174,11 +192,25 @@ export function App() {
 
         <main>
           {route.page === 'overview' && <Overview results={results} settings={settings} />}
-          {route.page === 'lecturers' && (
-            <LecturersPage key={`${route.filter}|${route.scope}|${route.view ?? ''}`} results={results} settings={settings} filter={route.filter} scope={route.scope} view={route.view} />
+          {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin === null && (
+            <AdminGateForm data={data} title={route.page === 'admin' ? 'เพิ่มผลงานด้วยตนเอง' : 'รายชื่ออาจารย์'} onUnlocked={setAdmin} />
           )}
-          {route.page === 'admin' && <AdminPage data={data} pubs={pubs} faculty={data.faculty} />}
-          {route.page === 'person' && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
+          {route.page === 'lecturers' && admin !== null && (
+            <LecturersPage
+              key={`${route.filter}|${route.scope}|${route.view ?? ''}`}
+              results={results}
+              settings={settings}
+              filter={route.filter}
+              scope={route.scope}
+              view={route.view}
+              onLock={lock}
+            />
+          )}
+          {route.page === 'admin' && admin !== null && (
+            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} onLock={lock} />
+          )}
+          {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
+          {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} />}
         </main>
 
         <footer className="footer">
@@ -195,5 +227,14 @@ export function App() {
         </footer>
       </div>
     </>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg className="tab-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="ต้องใช้รหัสผู้ดูแล" role="img">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   )
 }

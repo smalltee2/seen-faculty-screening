@@ -1,51 +1,16 @@
-// "ข้อมูลของฉัน": after `vite build`, moves the personal entry to dist/me/index.html (the one
-// central page where a lecturer enters their code) and writes dist/p/<folder>/data.json for
-// every lecturer, holding only that lecturer's rows; folder = SHA-256(code). Runs as part of
-// `npm run build`; without PERSONAL_SALT (or the Keychain item) it skips the data folders,
-// so the public site still builds. Codes: npm run personal-codes.
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+// "ข้อมูลคุณสมบัติของฉัน" is a tab of the main site (#/me, src/pages/MyPage.tsx). The login
+// e-mail (apps-script/Code.gs) links to /me/#login=<code>; this writes dist/me/index.html,
+// a small page that forwards to ../#/me/login=<code>, so links in e-mails already sent keep working.
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { personalCode, personalFolder, readSalt } from './personal-token.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const DIST = join(ROOT, 'dist')
-const PAGE = join(DIST, 'personal.html')
-const log = (m) => console.log(`[personal] ${m}`)
-
-if (!existsSync(PAGE)) {
-  console.error('[personal] dist/personal.html not found; run vite build first')
-  process.exit(1)
-}
+const DIST = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 mkdirSync(join(DIST, 'me'), { recursive: true })
-writeFileSync(join(DIST, 'me/index.html'), readFileSync(PAGE, 'utf8'))
-rmSync(PAGE)
-
-const salt = readSalt()
-if (!salt) {
-  log('no PERSONAL_SALT and no Keychain item "seen-personal-salt": /me/ page built, but no personal data folders')
-  process.exit(0)
-}
-
-const data = JSON.parse(readFileSync(join(ROOT, 'src/generated/data.json'), 'utf8'))
-rmSync(join(DIST, 'p'), { recursive: true, force: true })
-let n = 0
-for (const f of data.faculty) {
-  const dir = join(DIST, 'p', personalFolder(personalCode(salt, f.nameEn)))
-  mkdirSync(dir, { recursive: true })
-  const own = {
-    builtAt: data.builtAt,
-    // Only what the personal page needs: the add-works sheet (filtered client-side); no admin gate.
-    sources: { manualSheetCsvUrl: data.sources?.manualSheetCsvUrl },
-    faculty: [f],
-    publications: data.publications.filter((p) => p.key === f.nameEn),
-    overrides: data.overrides.filter((o) => o.key === f.nameEn),
-    tci: data.tci ?? [],
-    scopusJournals: data.scopusJournals ?? [],
-    conferences: data.conferences ?? [],
-    conferenceScreening: data.conferenceScreening ?? 'off',
-  }
-  writeFileSync(join(dir, 'data.json'), JSON.stringify(own))
-  n++
-}
-log(`/me/ page and ${n} personal data folders written (codes: npm run personal-codes)`)
+writeFileSync(
+  join(DIST, 'me/index.html'),
+  `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>ข้อมูลคุณสมบัติของฉัน</title>
+<script>var m=location.hash.match(/^#login=([0-9a-f]+)$/);location.replace('../#/me'+(m?'/login='+m[1]:''));</script></head>
+<body><p><a href="../#/me">ไปที่ ข้อมูลคุณสมบัติของฉัน</a></p></body></html>\n`,
+)
+console.log('[personal] dist/me/index.html forwards to #/me')

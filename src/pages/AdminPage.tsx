@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
 import { TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
@@ -13,9 +13,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-type Links = { formUrl: string; decisionFormUrl: string }
-
-function AdminContent({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void }) {
+export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -228,129 +226,5 @@ function CopyKey({ value }: { value: string }) {
     >
       {done ? 'คัดลอกแล้ว' : 'คัดลอก key'}
     </button>
-  )
-}
-
-const SESSION_KEY = 'seen-admin-form'
-
-/** Read/write the unlocked form link: localStorage when "remember on this device", else sessionStorage. */
-function readSaved(): Links | null {
-  try {
-    const v = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
-    if (!v) return null
-    // Older versions saved the bare form link.
-    if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '' }
-    const o = JSON.parse(v) as Partial<Links>
-    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '' }
-  } catch {
-    return null
-  }
-}
-function save(links: Links, remember: boolean) {
-  try {
-    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(links))
-  } catch {
-    /* storage unavailable: stays unlocked until reload */
-  }
-}
-function forget() {
-  try {
-    localStorage.removeItem(SESSION_KEY)
-    sessionStorage.removeItem(SESSION_KEY)
-  } catch {
-    /* ignore */
-  }
-}
-const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
-
-/** Decrypts the admin form link with the passcode; a wrong passcode fails AES-GCM authentication. */
-async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<Links> {
-  // WebCrypto is only available on https://, localhost and file:// (not a plain http:// LAN share).
-  if (!globalThis.crypto?.subtle) throw new Error('nocrypto')
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: fromB64(gate.salt), iterations: gate.iterations },
-    base,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['decrypt'],
-  )
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(gate.iv) }, key, fromB64(gate.data))
-  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl: string; decisionFormUrl?: string }
-  return { formUrl: v.formUrl, decisionFormUrl: v.decisionFormUrl ?? '' }
-}
-
-/** The admin tab: open only after the passcode is entered (kept for this browser session). */
-export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Faculty[] }) {
-  const gate = props.data.sources.adminGate
-  const [links, setLinks] = useState<Links | null>(() => {
-    if (!gate) return { formUrl: props.data.sources.googleFormUrl ?? '', decisionFormUrl: props.data.sources.decisionFormUrl ?? '' }
-    return readSaved()
-  })
-  const [remember, setRemember] = useState(false)
-  const [pass, setPass] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  if (links !== null)
-    return (
-      <AdminContent
-        {...props}
-        formUrl={links.formUrl}
-        decisionFormUrl={links.decisionFormUrl || props.data.sources.decisionFormUrl || ''}
-        onLock={
-          gate
-            ? () => {
-                forget()
-                setLinks(null)
-              }
-            : undefined
-        }
-      />
-    )
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!gate) return
-    setBusy(true)
-    setError('')
-    try {
-      const v = await unlock(gate, pass)
-      save(v, remember)
-      setPass('')
-      setLinks(v)
-    } catch (e) {
-      setError(e instanceof Error && e.message === 'nocrypto' ? 'เบราว์เซอร์นี้ถอดรหัสไม่ได้: ต้องเปิดผ่าน https:// หรือเปิดไฟล์โดยตรง' : 'รหัสไม่ถูกต้อง')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="gate">
-      <form className="panel gate-card" onSubmit={submit}>
-        <h1>เพิ่มผลงานด้วยตนเอง</h1>
-        <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล</p>
-        <label className="control" htmlFor="admin-pass">
-          <span className="control-label">รหัสผู้ดูแล</span>
-          <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
-        </label>
-        <label className="gate-remember" htmlFor="admin-remember">
-          <input id="admin-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          <span>
-            จำรหัสบนเครื่องนี้
-            <small>ติ๊กเฉพาะเครื่องส่วนตัว ถ้าไม่ติ๊ก ระบบจำไว้จนปิดเบราว์เซอร์</small>
-          </span>
-        </label>
-        {error && (
-          <p className="gate-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-primary" disabled={busy || !pass}>
-          {busy ? 'กำลังตรวจสอบ…' : 'เข้าสู่ส่วนผู้ดูแล'}
-        </button>
-      </form>
-    </div>
   )
 }

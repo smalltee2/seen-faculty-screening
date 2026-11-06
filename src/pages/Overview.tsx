@@ -4,9 +4,6 @@ import { LecturerOutputs, PubsPerYear, ReadinessPie, levelOf, type OutputsView }
 import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
-  const [view, setView] = useState<OutputsView>('research')
-  const [group, setGroup] = useState<LevelGroup>('ba')
-  const g = LEVEL_GROUPS.find((x) => x.id === group)!
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
@@ -151,6 +148,17 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </section>
       </div>
 
+    </>
+  )
+}
+
+/** "ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน": per-lecturer chart, shown on the admin-only lecturers tab. */
+export function LecturerOutputsBlock({ results, settings }: { results: PersonResult[]; settings: Settings }) {
+  const [view, setView] = useState<OutputsView>('research')
+  const [group, setGroup] = useState<LevelGroup>('ba')
+  const g = LEVEL_GROUPS.find((x) => x.id === group)!
+  return (
+    <section className={`panel level-panel level-${g.id} outputs-block`}>
       <div className="block-head">
         <h2 className="block-title">ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน</h2>
         <div className="no-print chart-switches">
@@ -166,15 +174,13 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           />
         </div>
       </div>
+      <h3 className="level-title">
+        {g.th} <span className="eyebrow">{g.clause}</span>
+      </h3>
+      <p className="note">เกณฑ์: {g.ruleTh}</p>
       <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น, กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน, ชี้ที่ชื่อเพื่อดูรายละเอียด</p>
-      <section className={`panel level-panel level-${g.id}`}>
-        <h3 className="level-title">
-          {g.th} <span className="eyebrow">{g.clause}</span>
-        </h3>
-        <p className="note">เกณฑ์: {g.ruleTh}</p>
-        <LecturerOutputs key={g.id} results={results} settings={settings} group={g.id} view={view} />
-      </section>
-    </>
+      <LecturerOutputs key={g.id} results={results} settings={settings} group={g.id} view={view} />
+    </section>
   )
 }
 

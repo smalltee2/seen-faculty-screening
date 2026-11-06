@@ -3,6 +3,7 @@ import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, ty
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, levelGroup, roleShort } from '../ui'
 import type { LecturerFilter, LecturerScope, LecturerView } from '../App'
+import { LecturerOutputsBlock } from './Overview'
 
 type View = 'cards' | 'table'
 
@@ -25,12 +26,14 @@ export function LecturersPage({
   filter: initialFilter = 'all',
   scope: initialScope = 'all',
   view: initialView,
+  onLock,
 }: {
   results: PersonResult[]
   settings: Settings
   filter?: LecturerFilter
   scope?: LecturerScope
   view?: LecturerView
+  onLock?: () => void
 }) {
   const [state, setState] = useState(() => (initialView ? { view: initialView } : loadState()))
   const [q, setQ] = useState('')
@@ -88,14 +91,26 @@ export function LecturersPage({
       <div className="section-head">
         <div>
           <h1>รายชื่ออาจารย์</h1>
-          <p className="lede">ผลของอาจารย์แต่ละคนตามหน้าที่ แสดง {shown.length} จาก {results.length} คน</p>
+          <p className="lede">สำหรับผู้ดูแล: ผลงานในช่วง 5 ปี และผลการประเมินของอาจารย์ {results.length} คน</p>
         </div>
         <div className="actions no-print">
           <Button onClick={exportCsv}>ดาวน์โหลด CSV</Button>
           <Button onClick={() => window.print()} kind="primary">
             พิมพ์ / PDF
           </Button>
+          {onLock && (
+            <button type="button" className="btn" onClick={onLock}>
+              ออกจากระบบผู้ดูแล
+            </button>
+          )}
         </div>
+      </div>
+
+      <LecturerOutputsBlock results={results} settings={settings} />
+
+      <div className="block-head lecturers-head">
+        <h2 className="block-title">ผลการประเมินรายบุคคลตามหน้าที่</h2>
+        <p className="note">แสดง {shown.length} จาก {results.length} คน · คลิกชื่อเพื่อดูเหตุผลและรายการผลงาน</p>
       </div>
 
       <div className="toolbar no-print">

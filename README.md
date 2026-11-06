@@ -283,14 +283,23 @@ Settings: collect verified email addresses (the email becomes `decided_by`). Onl
 response per key wins, "ยกเลิก" clears the decision, and an unknown key creates a new register row (confidence low)
 that the admin's decision then governs. `--only=decisions` runs just this step.
 
-## "ข้อมูลของฉัน": a lecturer sees only their own results
+## Tabs and who sees what (merged site, 2026-11-07)
 
-`/me/` is one central page where a lecturer signs in with their @up.ac.th e-mail (passwordless, decision
-2026-11-06): the page asks the login backend to e-mail a one-time link (valid 15 minutes), the link returns
-to `/me/#login=<code>`, and the page exchanges the code for a session (12 hours, or 30 days with "จำเครื่องนี้").
-Each lecturer's data is a separate file, `p/<folder>/data.json`, written by `scripts/build-personal.mjs` during
-`npm run build` (folder = SHA-256 of a code derived from the secret salt); the page never downloads anyone
-else's data and GitHub Pages lists no directories.
+- **ภาพรวม** (public): faculty-level summary only (counts, pie, per-duty bars, outputs per year).
+- **รายชื่ออาจารย์** (admin passcode): the per-lecturer 5-year output chart, then every lecturer's
+  duties as cards or a table; person pages (`#/person/...`) are behind the same passcode.
+- **เพิ่มผลงานด้วยตนเอง** (admin passcode): the add-works and decision forms. One unlock opens both admin tabs
+  (`src/adminGate.tsx`).
+- **ข้อมูลคุณสมบัติของฉัน** (`#/me`, `src/pages/MyPage.tsx`): a lecturer signs in with their @up.ac.th e-mail and
+  sees only their own result.
+
+The passcode and the login hide views in the browser; the data are bundled with the public page and the
+repository is public, so this is not access control against someone who reads the source.
+
+**Login**: passwordless (decision 2026-11-06). The page asks the login backend to e-mail a one-time link (valid
+15 minutes); the link goes to `/me/#login=<code>`, a small page written by `scripts/build-personal.mjs` that
+forwards to `#/me/login=<code>`; the tab exchanges the code for a session (12 hours, or 30 days with
+"จำเครื่องนี้") and shows the result of the `name_en` the backend returns.
 
 **Backend** (`apps-script/Code.gs`): a Google Apps Script bound to the private sheet "SEEN Login (private)" in
 the admin's Google account, deployed as a web app (execute as me, anyone). Sheets: `users` (email, name_en,
@@ -300,7 +309,4 @@ rate-limits link requests to 5 per hour per e-mail, and never serves publication
 `loginApiUrl` in `data/sources.json` and reaches the page as `import.meta.env.VITE_LOGIN_API` (vite.config.ts).
 After editing Code.gs: paste into the script editor, Deploy → Manage deployments → edit → new version.
 
-**Salt** (once, admin, on the Mac): `scripts/personal-salt.sh` stores a random salt in the Keychain
-(`seen-personal-salt`) and as the GitHub secret `PERSONAL_SALT`; the next deploy builds the data folders.
-`--rotate` changes every folder (re-import the users sheet afterwards). Without the secret, `/me/` exists
-but every login ends in "ไม่พบข้อมูล".
+The `folder` column of the users sheet (from `npm run personal-codes -- --users`, which needs the salt) is no longer used by the site.
