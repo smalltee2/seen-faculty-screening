@@ -1,4 +1,4 @@
-// Tab "ข้อมูลคุณสมบัติของฉัน" (#/me): a lecturer signs in with their @up.ac.th e-mail (a one-time
+// Tab "ตรวจสอบคุณสมบัติของฉัน" (#/me): a lecturer signs in with their @up.ac.th e-mail (a one-time
 // link sent by the Apps Script backend, apps-script/Code.gs) and sees only their own result.
 // The e-mail link opens /me/#login=<code>, which forwards to #/me/login=<code> (scripts/build-personal.mjs).
 import { useEffect, useState, type FormEvent } from 'react'
@@ -76,7 +76,7 @@ function Login({ notice }: { notice?: string }) {
   return (
     <div className="gate">
       <form className="panel gate-card" onSubmit={submit}>
-        <h1>ข้อมูลคุณสมบัติของฉัน</h1>
+        <h1>ตรวจสอบคุณสมบัติของฉัน</h1>
         <p className="lede">สำหรับอาจารย์: ใส่อีเมลมหาวิทยาลัย ระบบจะส่งลิงก์เข้าสู่ระบบไปที่อีเมลนั้น แล้วแสดงเฉพาะข้อมูลของท่าน</p>
         {sent ? (
           <p className="note" role="status">

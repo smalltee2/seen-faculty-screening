@@ -119,12 +119,12 @@ export function App() {
   const years: number[] = []
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
 
-  const tab = route.page === 'person' ? 'lecturers' : route.page
+  // รายชื่ออาจารย์ (#/lecturers, #/person/…) and เพิ่มผลงานด้วยตนเอง (#/admin) share one tab (2026-11-07).
+  const tab = route.page === 'lecturers' || route.page === 'person' || route.page === 'admin' ? 'admin' : route.page
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
-    { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length, locked: admin === null },
-    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงานด้วยตนเอง', en: 'Add works manually', locked: admin === null },
-    { id: 'me', href: '#/me', th: 'ข้อมูลคุณสมบัติของฉัน', en: 'My qualifications' },
+    { id: 'admin', href: '#/lecturers', th: 'สำหรับผู้ดูแลระบบ', en: 'Admin', count: undefined as number | undefined, locked: admin === null },
+    { id: 'me', href: '#/me', th: 'ตรวจสอบคุณสมบัติของฉัน', en: 'Check my qualifications' },
   ]
 
   return (
@@ -193,7 +193,23 @@ export function App() {
         <main>
           {route.page === 'overview' && <Overview results={results} settings={settings} />}
           {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin === null && (
-            <AdminGateForm data={data} title={route.page === 'admin' ? 'เพิ่มผลงานด้วยตนเอง' : 'รายชื่ออาจารย์'} onUnlocked={setAdmin} />
+            <AdminGateForm data={data} title="สำหรับผู้ดูแลระบบ" onUnlocked={setAdmin} />
+          )}
+          {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin !== null && (
+            <div className="admin-bar no-print">
+              <label className="admin-view" htmlFor="admin-view">
+                <span className="control-label">เลือกดู</span>
+                <select id="admin-view" value={route.page === 'admin' ? 'admin' : 'lecturers'} onChange={(e) => (window.location.hash = e.target.value === 'admin' ? '#/admin' : '#/lecturers')}>
+                  <option value="lecturers">ข้อมูลอาจารย์ ({results.length} คน)</option>
+                  <option value="admin">เพิ่มผลงานด้วยตนเอง</option>
+                </select>
+              </label>
+              {lock && (
+                <button type="button" className="btn" onClick={lock}>
+                  ออกจากระบบผู้ดูแล
+                </button>
+              )}
+            </div>
           )}
           {route.page === 'lecturers' && admin !== null && (
             <LecturersPage
@@ -203,11 +219,10 @@ export function App() {
               filter={route.filter}
               scope={route.scope}
               view={route.view}
-              onLock={lock}
             />
           )}
           {route.page === 'admin' && admin !== null && (
-            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} onLock={lock} />
+            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} />
           )}
           {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
           {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} />}

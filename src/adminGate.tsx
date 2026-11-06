@@ -1,5 +1,4 @@
-// The admin passcode, shared by the tabs "รายชื่ออาจารย์" and "เพิ่มผลงานด้วยตนเอง": one unlock
-// opens both. The passcode decrypts the admin form links (data/sources.json adminGate, AES-GCM);
+// The admin passcode for the tab "สำหรับผู้ดูแลระบบ" (ข้อมูลอาจารย์ and เพิ่มผลงานด้วยตนเอง). The passcode decrypts the admin form links (data/sources.json adminGate, AES-GCM);
 // a wrong passcode fails authentication. This hides the views in the browser only: the site's
 // data are bundled with the page, so it is not access control against a determined reader.
 import { useState, type FormEvent } from 'react'
@@ -90,7 +89,7 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
     <div className="gate">
       <form className="panel gate-card" onSubmit={submit}>
         <h1>{title}</h1>
-        <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล · อาจารย์ดูข้อมูลของตนเองได้ที่แถบ <a href="#/me">ข้อมูลคุณสมบัติของฉัน</a></p>
+        <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล · อาจารย์ดูข้อมูลของตนเองได้ที่แถบ <a href="#/me">ตรวจสอบคุณสมบัติของฉัน</a></p>
         <label className="control" htmlFor="admin-pass">
           <span className="control-label">รหัสผู้ดูแล</span>
           <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />

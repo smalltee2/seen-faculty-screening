@@ -286,11 +286,10 @@ that the admin's decision then governs. `--only=decisions` runs just this step.
 ## Tabs and who sees what (merged site, 2026-11-07)
 
 - **ภาพรวม** (public): faculty-level summary only (counts, pie, per-duty bars, outputs per year).
-- **รายชื่ออาจารย์** (admin passcode): the per-lecturer 5-year output chart, then every lecturer's
-  duties as cards or a table; person pages (`#/person/...`) are behind the same passcode.
-- **เพิ่มผลงานด้วยตนเอง** (admin passcode): the add-works and decision forms. One unlock opens both admin tabs
-  (`src/adminGate.tsx`).
-- **ข้อมูลคุณสมบัติของฉัน** (`#/me`, `src/pages/MyPage.tsx`): a lecturer signs in with their @up.ac.th e-mail and
+- **สำหรับผู้ดูแลระบบ** (admin passcode, `src/adminGate.tsx`): a "เลือกดู" drop-down switches between
+  ข้อมูลอาจารย์ (`#/lecturers`: the per-lecturer 5-year output chart, then every lecturer's duties as cards or a
+  table; person pages `#/person/...`) and เพิ่มผลงานด้วยตนเอง (`#/admin`: the add-works and decision forms).
+- **ตรวจสอบคุณสมบัติของฉัน** (`#/me`, `src/pages/MyPage.tsx`): a lecturer signs in with their @up.ac.th e-mail and
   sees only their own result.
 
 The passcode and the login hide views in the browser; the data are bundled with the public page and the
