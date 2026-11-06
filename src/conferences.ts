@@ -1,6 +1,7 @@
 // Conference screening for proceedings and posters/abstracts (decision by Tum, 2026-11-06):
 // a conference paper counts only when the conference is organised or co-organised by an
-// academic/professional association AND its field is environment or energy. Anything not
+// academic/professional association AND the conference is held for, or its main field is, environment
+// or energy (incl. geoinformatics for earth/environmental sciences; decided 2026-11-06). Anything not
 // yet checked, not found, or found with low confidence is shown but NOT counted until an
 // admin confirms it. The register is data/conferences.csv (filled by
 // scripts/screen-conferences.ts, which asks Claude Code to look the conference up; the

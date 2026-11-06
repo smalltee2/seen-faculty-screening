@@ -242,7 +242,7 @@ Callout positions live in `scripts/manual/build-manual.py`; the Sarabun font (OF
 ## Conference screening (proceedings)
 
 A proceedings paper counts only when the conference is organised or co-organised by an academic/professional
-association **and** its field is environment or energy (decision 2026-11-06). Everything not yet checked, not found,
+association **and** the conference is held for, or its main field is, environment or energy, including geoinformatics for earth/environmental sciences (decisions 2026-11-06). Everything not yet checked, not found,
 or low-confidence is shown but not counted until an admin confirms it.
 
 - Register: `data/conferences.csv`, one row per conference (`venue:<name>`) or per paper for publisher series
