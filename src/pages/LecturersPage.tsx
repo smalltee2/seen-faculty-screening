@@ -138,11 +138,7 @@ export function LecturersPage({
       </div>
       <div className="section-head">
         <div>
-          <h1>รายชื่ออาจารย์</h1>
-          <p className="lede">
-            สำหรับผู้ดูแล: ผลงานในช่วง 5 ปี และผลการประเมินของอาจารย์{" "}
-            {results.length} คน
-          </p>
+          <h1>ผลงานในช่วง 5 ปี และผลการประเมินของอาจารย์</h1>
         </div>
         <div className="actions no-print">
           <Button onClick={exportCsv}>ดาวน์โหลด CSV</Button>
