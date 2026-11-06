@@ -41,7 +41,7 @@ function AdminContent({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }:
           <h3>ขั้นตอน</h3>
           <ol className="steps">
             <li>กรอกแบบฟอร์มด้วยบัญชี @up.ac.th หนึ่งครั้งต่อหนึ่งผลงาน ถ้ามีผู้เขียนหลายคนในคณะ ให้กรอกแยกทีละคน</li>
-            <li>ระบบดึงข้อมูลจากแบบฟอร์มทุกวันเวลาประมาณ 03:00 น. แล้วคำนวณผลใหม่</li>
+            <li>ผลงานที่ส่งจะปรากฏในระบบภายในไม่กี่นาที (อ่านจากชีตคำตอบโดยตรง) และถูกบันทึกถาวรในรอบอัปเดต 03:00 น.</li>
             <li>ผลงานที่เพิ่มจะแสดงในตารางด้านล่าง และนับตามประเภทที่เลือก (วารสาร / proceedings / โปสเตอร์)</li>
             <li>ถ้ากรอกผิด ให้ลบแถวนั้นในชีตคำตอบของแบบฟอร์ม แล้วรอรอบอัปเดตถัดไป</li>
           </ol>
@@ -102,7 +102,10 @@ function AdminContent({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }:
                     </td>
                     <td>{TYPE_LABEL[p.type]}</td>
                     <td>{p.isResearch ? 'ใช่' : 'ไม่'}</td>
-                    <td className="small muted">{p.submitted ?? ''}</td>
+                    <td className="small muted">
+                      {p.submitted ?? ''}
+                      {p.live && <div className="jl cf-pending">สด · ยังไม่ได้บันทึกในระบบ (จะบันทึกในรอบ 03:00)</div>}
+                    </td>
                   </tr>
                 )
               })}

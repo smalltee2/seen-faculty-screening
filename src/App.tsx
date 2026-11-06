@@ -2,18 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
 import { evaluatePerson, toBE, type Settings } from './rules'
-import type { DataBundle } from './types'
+import type { DataBundle, RawPub } from './types'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
 import { AdminPage } from './pages/AdminPage'
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
+import { fetchLiveManual } from './liveManual'
 
 const data = raw as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
-const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides, data.conferences ?? [])
+const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
+const makePubs = (extra: RawPub[]) => preparePubs([...bundledRows, ...extra], data.overrides, data.conferences ?? [])
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
@@ -69,6 +71,18 @@ function loadSettings(): Settings {
 export function App() {
   const [route, setRoute] = useState<Route>(parseHash)
   const [settings, setSettings] = useState<Settings>(loadSettings)
+  // Works added through the admin form since the last build, read live from its sheet.
+  const [liveRows, setLiveRows] = useState<RawPub[]>([])
+  useEffect(() => {
+    let on = true
+    void fetchLiveManual(data.sources.manualSheetCsvUrl, data.faculty, bundledRows).then((rows) => {
+      if (on && rows.length) setLiveRows(rows)
+    })
+    return () => {
+      on = false
+    }
+  }, [])
+  const pubs = useMemo(() => makePubs(liveRows), [liveRows])
 
   useEffect(() => {
     const on = () => {
@@ -79,7 +93,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', on)
   }, [])
 
-  const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [settings])
+  const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [pubs, settings])
   // Reload by itself when a newer build is published; on the admin tab only offer it,
   // so a passcode being typed is not lost.
   const newerBuild = useAutoRefresh(data.builtAt, route.page !== 'admin')

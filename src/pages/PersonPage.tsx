@@ -15,7 +15,8 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
   const inRange = result.pubs
     .map((pub) => evaluatePub(pub, p, settings))
     .filter((e) => allYears || (e.pub.year !== null && e.pub.year >= from && e.pub.year <= to))
-  const evals = inRange.filter((e) => e.eligible !== 'no').sort((a, b) => (b.pub.year ?? 0) - (a.pub.year ?? 0))
+  // Conference papers that fail only the conference check stay visible (shown but not counted).
+  const evals = inRange.filter((e) => e.eligible !== 'no' || (e.pub.conference && e.pub.conference.verdict !== 'count')).sort((a, b) => (b.pub.year ?? 0) - (a.pub.year ?? 0))
   const hidden = inRange.length - evals.length
   const scholar = p.scholarId ? `https://scholar.google.com/citations?user=${encodeURIComponent(p.scholarId)}` : null
 

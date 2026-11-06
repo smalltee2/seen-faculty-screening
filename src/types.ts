@@ -39,6 +39,8 @@ export interface RawPub {
   /** Admin form answer to "เป็นงานวิจัยหรือไม่". */
   manualResearch?: boolean
   submitted?: string
+  /** Read live from the form's sheet in the browser; not yet in data/manual.tsv. */
+  live?: boolean
 }
 
 export interface Override {
