@@ -537,11 +537,12 @@ tr.greyed td { color: var(--subtle); }
 .tip-risk { color: var(--rev); font-weight: 600; margin-top: 3px; }
 /* Same colours as the overview chart: red = fails a duty now, yellow = may fail next year */
 .risk-note { font-size: 0.8rem; font-weight: 600; color: var(--rev); background: var(--rev-bg); border: 1.5px solid var(--rev-mark); border-radius: var(--radius-md); padding: 6px 10px; }
-.person-card.card-fail { border: 2px solid var(--not-mark); }
-.person-card.card-risk { border: 2px solid var(--rev-mark); }
+/* Darker, thicker frames + tinted ground so failing / at-risk lecturers stand out (Tum, 2026-11-06) */
+.person-card.card-fail { border: 3px solid var(--not); background: color-mix(in srgb, var(--not-mark) 7%, var(--panel)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--not) 35%, transparent); }
+.person-card.card-risk { border: 3px solid var(--rev); background: color-mix(in srgb, var(--rev-mark) 9%, var(--panel)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--rev) 35%, transparent); }
 .risk-inline { font-size: 0.74rem; font-weight: 600; color: var(--rev); }
-.matrix tr.row-fail td.sticky { box-shadow: inset 4px 0 0 var(--not-mark); }
-.matrix tr.row-risk td.sticky { box-shadow: inset 4px 0 0 var(--rev-mark); }
+.matrix tr.row-fail td.sticky { box-shadow: inset 6px 0 0 var(--not); background: color-mix(in srgb, var(--not-mark) 8%, var(--panel)); }
+.matrix tr.row-risk td.sticky { box-shadow: inset 6px 0 0 var(--rev); background: color-mix(in srgb, var(--rev-mark) 10%, var(--panel)); }
 
 /* Small screens: let segmented controls scroll instead of widening the page */
 .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }

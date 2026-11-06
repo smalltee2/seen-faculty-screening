@@ -166,7 +166,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           />
         </div>
       </div>
-      <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น, กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน, คลิกชื่อเพื่อดูรายละเอียด</p>
+      <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น, กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน, ชี้ที่ชื่อเพื่อดูรายละเอียด</p>
       <section className={`panel level-panel level-${g.id}`}>
         <h3 className="level-title">
           {g.th} <span className="eyebrow">{g.clause}</span>
