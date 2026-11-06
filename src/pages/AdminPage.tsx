@@ -147,25 +147,46 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
       <h2 className="block-title">
         ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
       </h2>
-      <p className="note">
-        แสดงเฉพาะงานประชุมที่มีผลงานตั้งแต่ปี {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า{older > 0 && ` · ผลงานเก่ากว่านั้น ${older} รายการไม่ต้องตรวจ`}
-      </p>
-      <p className="note">
-        proceedings นับเมื่องานประชุมมีสมาคมวิชาการ/วิชาชีพจัดหรือร่วมจัด และอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
-        ระบบค้นหาผู้จัดให้อัตโนมัติ (คอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงแต่ไม่นับจนกว่าผู้ดูแลจะยืนยันในไฟล์ data/conferences.csv (คอลัมน์ decision)
-        {!screening && ' · ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ (data/rules.json) จึงยังนับ proceedings ทุกรายการ'}
-      </p>
-      {decisionFormUrl ? (
-        <p className="note">
-          ตัดสินผ่านแบบฟอร์ม: คัดลอกรหัสงานประชุม (ปุ่ม "คัดลอก key" ในตาราง) ไปกรอกใน{' '}
-          <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
-            แบบฟอร์มตัดสินงานประชุม
-          </a>{' '}
-          ระบบดึงคำตอบทุกชั่วโมง คำตอบล่าสุดของแต่ละงานมีผล
-        </p>
-      ) : (
-        <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
-      )}
+      {/* Register guide, rewritten as a list + numbered steps for admins (Tum, 2026-11-07) */}
+      <div className="register-guide">
+        <section className="guide-box">
+          <h3>ตารางนี้แสดงอะไร</h3>
+          <ul>
+            <li>
+              <b>ช่วงที่แสดง:</b> งานประชุมที่มีผลงานของอาจารย์ตั้งแต่ พ.ศ. {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า
+              {older > 0 && <span className="muted"> (ผลงานที่เก่ากว่านี้ {older} รายการ ไม่ต้องตรวจ)</span>}
+            </li>
+            <li>
+              <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
+            </li>
+            <li>
+              <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงในตาราง แต่ยังไม่นับจนกว่าผู้ดูแลจะตัดสิน
+            </li>
+            {!screening && (
+              <li>
+                <b>หมายเหตุ:</b> ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ จึงยังนับ proceedings ทุกรายการ
+              </li>
+            )}
+          </ul>
+        </section>
+        <section className="guide-box guide-steps">
+          <h3>ผู้ดูแลตัดสินเองได้อย่างไร</h3>
+          {decisionFormUrl ? (
+            <>
+              <ol>
+                <li>กดปุ่ม "คัดลอก key" ในแถวของงานประชุมที่ต้องการ</li>
+                <li>เปิดแบบฟอร์มตัดสินงานประชุม วางรหัสที่คัดลอก แล้วเลือก "นับ" หรือ "ไม่นับ"</li>
+                <li>ระบบดึงคำตอบทุกชั่วโมง ถ้าส่งหลายครั้ง ระบบใช้คำตอบล่าสุด</li>
+              </ol>
+              <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
+                เปิดแบบฟอร์มตัดสินงานประชุม ↗
+              </a>
+            </>
+          ) : (
+            <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
+          )}
+        </section>
+      </div>
       {rows.length > 0 && (
         <div className="register-tools no-print">
           <label className="control" htmlFor="register-year">
