@@ -145,7 +145,7 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
   return (
     <>
       <h2 className="block-title">
-        ทะเบียนงานประชุม (proceedings) · {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
+        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
       </h2>
       <p className="note">
         แสดงเฉพาะงานประชุมที่มีผลงานตั้งแต่ปี {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า{older > 0 && ` · ผลงานเก่ากว่านั้น ${older} รายการไม่ต้องตรวจ`}
