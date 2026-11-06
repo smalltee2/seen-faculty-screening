@@ -123,8 +123,8 @@ export function App() {
   const tab = route.page === 'lecturers' || route.page === 'person' || route.page === 'admin' ? 'admin' : route.page
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
+    { id: 'me', href: '#/me', th: 'ตรวจสอบคุณสมบัติของฉัน', en: 'Check my qualifications', count: undefined as number | undefined, locked: false },
     { id: 'admin', href: '#/lecturers', th: 'สำหรับผู้ดูแลระบบ', en: 'Admin', count: undefined as number | undefined, locked: admin === null },
-    { id: 'me', href: '#/me', th: 'ตรวจสอบคุณสมบัติของฉัน', en: 'Check my qualifications' },
   ]
 
   return (

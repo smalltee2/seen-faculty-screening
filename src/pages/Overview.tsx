@@ -15,16 +15,12 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
   const failGrad = failing('grad')
   const riskBa = risking('ba')
   const riskGrad = risking('grad')
-  const Count = ({ n, filter, scope }: { n: number; filter: 'not_met' | 'risk'; scope: 'ba' | 'grad' }) =>
-    n > 0 ? (
-      <a className="count-link" href={`#/lecturers?filter=${filter}&scope=${scope}`} title="ดูรายชื่อ">
-        <b className="mono">{n}</b> คน
-      </a>
-    ) : (
-      <>
-        <b className="mono">0</b> คน
-      </>
-    )
+  // Plain text (no link to the admin-only lecturer list), decision 2026-11-07.
+  const Count = ({ n }: { n: number; filter?: 'not_met' | 'risk'; scope?: 'ba' | 'grad' }) => (
+    <>
+      <b className="mono">{n}</b> คน
+    </>
+  )
   const Y = toBE(settings.year)
 
   return (
