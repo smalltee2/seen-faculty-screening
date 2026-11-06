@@ -155,7 +155,7 @@ export function evaluatePub(pub: Pub, p: Faculty, s: Settings): PubEval {
   }
   // Proceedings count only from conferences an association organises or co-organises in
   // environment/energy; unchecked ones are shown but not counted (Tum, 2026-11-06).
-  if (s.screenConferences && pub.type === 'proceeding' && pub.conference) {
+  if (s.screenConferences && (pub.type === 'proceeding' || pub.type === 'poster') && pub.conference) {
     if (pub.conference.verdict !== 'count') parts.push('no')
     reasons.push(pub.conference.reason)
   }

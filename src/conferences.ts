@@ -1,5 +1,5 @@
-// Conference screening for proceedings (decision by Tum, 2026-11-06):
-// a proceedings paper counts only when the conference is organised or co-organised by an
+// Conference screening for proceedings and posters/abstracts (decision by Tum, 2026-11-06):
+// a conference paper counts only when the conference is organised or co-organised by an
 // academic/professional association AND its field is environment or energy. Anything not
 // yet checked, not found, or found with low confidence is shown but NOT counted until an
 // admin confirms it. The register is data/conferences.csv (filled by

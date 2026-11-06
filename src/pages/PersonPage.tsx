@@ -119,7 +119,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
                   <td>
                     {TYPE_LABEL[e.pub.type]}{e.pub.typeUncertain && ' ?'}
                     {e.pub.type === 'journal' && <div className={`jl jl-${journalLevel(e.pub, TCI)?.level}`}>{journalTag(journalLevel(e.pub, TCI))}</div>}
-                    {e.pub.type === 'proceeding' && e.pub.conference && (
+                    {(e.pub.type === 'proceeding' || e.pub.type === 'poster') && e.pub.conference && (
                       <div className={`jl cf cf-${e.pub.conference.verdict}`} title={e.pub.conference.reason}>
                         {CONFERENCE_TAG[e.pub.conference.verdict]}
                         {e.pub.conference.entry?.evidenceUrl && (

@@ -91,7 +91,7 @@ function queue(pubs: Pub[], known: Set<string>): { key: string; pubs: Pub[] }[] 
   // Only conferences that can still fall in an evaluation window (this year's and next year's).
   const minYear = new Date().getFullYear() - 5
   for (const p of pubs) {
-    if (p.type !== 'proceeding' || (p.year ?? 0) < minYear) continue
+    if ((p.type !== 'proceeding' && p.type !== 'poster') || (p.year ?? 0) < minYear) continue
     const k = conferenceKey(p)
     if (known.has(k)) continue
     groups.set(k, [...(groups.get(k) ?? []), p])

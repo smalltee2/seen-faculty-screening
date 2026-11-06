@@ -277,7 +277,7 @@ function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: Conf
     if (o?.isResearch !== null && o?.isResearch !== undefined)
       Object.assign(pub, { isResearch: o.isResearch, researchReason: 'แก้ไขด้วยมือ (override)', researchUncertain: false })
     if (o?.ownDegree !== null && o?.ownDegree !== undefined) pub.ownDegree = o.ownDegree
-    if (pub.type === 'proceeding') pub.conference = matchConference(pub, confIdx)
+    if (pub.type === 'proceeding' || pub.type === 'poster') pub.conference = matchConference(pub, confIdx)
     return pub
   })
 }

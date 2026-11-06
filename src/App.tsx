@@ -154,7 +154,7 @@ export function App() {
           </div>
           <div className="control">
             <span className="control-label">ผลงานที่นับ ได้แก่</span>
-            <span className="control-text">วารสาร, proceedings, โปสเตอร์/บทคัดย่อในงานประชุม</span>
+            <span className="control-text">วารสาร, proceedings/โปสเตอร์/บทคัดย่อในงานประชุม ที่มาจากการประชุมโดยสมาคมวิชาการหรือวิชาชีพในสาขาเกี่ยวข้องกับสิ่งแวดล้อม/พลังงาน</span>
           </div>
         </section>
 

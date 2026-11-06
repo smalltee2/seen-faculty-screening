@@ -82,7 +82,7 @@ export function LecturersPage({
       <div className="print-only print-header">
         <h1>คุณสมบัติอาจารย์รายบุคคล</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร proceedings และโปสเตอร์
+          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร และ proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด
         </p>
       </div>
       <div className="section-head">

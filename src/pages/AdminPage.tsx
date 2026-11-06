@@ -114,7 +114,7 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
 function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boolean }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
   for (const p of pubs) {
-    if (p.type !== 'proceeding' || !p.conference) continue
+    if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) continue
     const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [] }
     g.pubs.push(p)
     groups.set(p.conference.key, g)

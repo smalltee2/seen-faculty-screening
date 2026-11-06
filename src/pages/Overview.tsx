@@ -35,7 +35,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <div className="print-only print-header">
         <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร proceedings และโปสเตอร์ ·
+          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร และ proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด ·
           พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH')}
         </p>
       </div>
