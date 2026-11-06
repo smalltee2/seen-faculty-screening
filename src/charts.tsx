@@ -414,79 +414,120 @@ function readinessGroups(results: PersonResult[]) {
   return shown.map((g, i) => ({ ...g, pct: g.n ? pct[i] : 0 }))
 }
 
-const DONUT_FILL: Record<string, string> = { all: 'var(--met-mark)', some: 'var(--rev-mark)', review: 'var(--partial-mark)', none: 'var(--not-mark)' }
+const SLICE_FILL: Record<string, string> = { all: 'var(--pie-1)', some: 'var(--pie-2)', review: 'var(--pie-3)', none: 'var(--pie-4)' }
 
-/** Flat donut of lecturers by readiness (graduate duties), hero count in the centre and a
- *  legend list with counts and shares. Replaced the 3D pie on 2026-11-07 (business style;
- *  3D distorts slice areas). Segments are separated by a 2px surface gap. */
-export function ReadinessPie({ results }: { results: PersonResult[]; compact?: boolean }) {
+/** Infographic: 3D extruded pie of lecturers by readiness, numbered pins, callouts below.
+ *  Drawn back-to-front (painter's order) on a tilted ellipse; smaller slices are raised. */
+export function ReadinessPie({ results, compact = false }: { results: PersonResult[]; compact?: boolean }) {
+  const [ref, width] = useWidth(420)
   const groups = readinessGroups(results)
   const total = results.length || 1
-  const [hover, setHover] = useState<string | null>(null)
-  const S = 220
-  const c = S / 2
-  const R = 104
-  const r = 70
-  const gap = 2 / R // 2px surface gap expressed as an angle at the outer edge
-  const pt = (a: number, rad: number) => `${(c + rad * Math.cos(a)).toFixed(2)},${(c + rad * Math.sin(a)).toFixed(2)}`
-  let a = -Math.PI / 2
+  const W = Math.max(260, width)
+  // The pie fills the width it is given (the dashboard panel on desktop), capped so labels stay legible.
+  const R = Math.min(compact ? 170 : 150, W / 2 - (compact ? 8 : 18))
+  const tilt = 0.5 // vertical squash of the top face
+  const base = Math.round(R * 0.22) // extrusion of the largest slice
+  const lift = Math.round(R * 0.14) // extra height of the other slices
+  const LEVEL = 46 // vertical step between stacked pin labels
+  const levels = Math.max(1, groups.filter((g) => g.n > 0).length - 1)
+  const top = 72 + levels * LEVEL // room for the pin labels above the pie
+  const cx = W / 2
+  const cy = top + R * tilt + lift
+  const H = cy + R * tilt + base + 22
+  const pt = (a: number, r: number, z: number) => [cx + r * Math.cos(a), cy + r * tilt * Math.sin(a) - z] as const
+  const arc = (a0: number, a1: number, r: number, z: number) => {
+    const n = Math.max(2, Math.ceil(((a1 - a0) / Math.PI) * 36))
+    return Array.from({ length: n + 1 }, (_, i) => pt(a0 + ((a1 - a0) * i) / n, r, z))
+  }
+  const poly = (ps: readonly (readonly [number, number])[]) => 'M' + ps.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L') + 'Z'
+
   const shown = groups.filter((g) => g.n > 0)
-  const segs = shown.map((g) => {
-    const sweep = (g.n / total) * Math.PI * 2
-    const a0 = a + (shown.length > 1 ? gap / 2 : 0)
-    const a1 = a + sweep - (shown.length > 1 ? gap / 2 : 0)
-    a += sweep
-    const large = a1 - a0 > Math.PI ? 1 : 0
-    const d =
-      shown.length === 1
-        ? `M${c},${c - R}A${R},${R} 0 1 1 ${c - 0.01},${c - R}L${c - 0.01},${c - r}A${r},${r} 0 1 0 ${c},${c - r}Z`
-        : `M${pt(a0, R)}A${R},${R} 0 ${large} 1 ${pt(a1, R)}L${pt(a1, r)}A${r},${r} 0 ${large} 0 ${pt(a0, r)}Z`
-    return { g, d }
+  const biggest = shown.reduce((m, g) => (g.n > m.n ? g : m), shown[0])
+  let a = -Math.PI / 2
+  const slices = shown.map((g, i) => {
+    const a0 = a
+    const a1 = a + (g.n / total) * Math.PI * 2
+    a = a1
+    const h = g === biggest ? base : base + lift
+    return { g, a0, a1, h, mid: (a0 + a1) / 2, no: String(i + 1).padStart(2, '0'), fill: SLICE_FILL[g.key] }
   })
-  const all = groups.find((g) => g.key === 'all')!
-  const focus = hover ? groups.find((g) => g.key === hover)! : all
+  const shade = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, #0b2413)`
+  // Back slices first: depth grows with sin(mid) (lower on screen = nearer).
+  const order = [...slices].sort((p, q) => Math.sin(p.mid) - Math.sin(q.mid))
+
   return (
-    <figure className="donut">
-      <div className="donut-plot">
-        <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมินระดับบัณฑิตศึกษา">
-          <circle cx={c} cy={c} r={(R + r) / 2} className="donut-track" strokeWidth={R - r} />
-          {segs.map(({ g, d }) => (
-            <path
-              key={g.key}
-              d={d}
-              style={{ fill: DONUT_FILL[g.key] }}
-              className={`donut-seg${hover && hover !== g.key ? ' is-dim' : ''}`}
-              onMouseEnter={() => setHover(g.key)}
-              onMouseLeave={() => setHover(null)}
-            >
-              <title>{`${g.th} ${g.n} คน (${g.pct}%)`}</title>
-            </path>
-          ))}
+    <figure className="pie-info pie3d">
+      <div className="pie-stage" ref={ref as React.RefObject<HTMLDivElement>}>
+        <svg className="pie-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมิน">
+          <defs>
+            <filter id="pie-shadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="8" />
+            </filter>
+          </defs>
+          <ellipse cx={cx + 8} cy={cy + base + 6} rx={R * 1.02} ry={R * tilt * 0.95} className="pie-floor" filter="url(#pie-shadow)" />
+          {order.map((sl) => {
+            const { a0, a1, h, fill } = sl
+            const full = a1 - a0 >= Math.PI * 2 - 1e-6
+            // Front part of the outer wall lies where sin(angle) > 0 (0..π).
+            const f0 = Math.max(a0, 0)
+            const f1 = Math.min(a1, Math.PI)
+            const wraps = a1 > Math.PI * 2 ? [Math.max(a0, Math.PI * 2), Math.min(a1, Math.PI * 3)] : null
+            const walls = [[f0, f1], wraps].filter((w): w is number[] => !!w && w[1] > w[0])
+            return (
+              <g key={sl.g.key}>
+                {!full &&
+                  [a0, a1].map((e, k) => (
+                    <path key={k} d={poly([pt(e, 0, 0), pt(e, R, 0), pt(e, R, h), pt(e, 0, h)])} style={{ fill: shade(fill, 62) }} />
+                  ))}
+                {walls.map(([w0, w1], k) => (
+                  <path key={`w${k}`} d={poly([...arc(w0, w1, R, h), ...arc(w0, w1, R, 0).reverse()])} style={{ fill: shade(fill, 78) }} />
+                ))}
+                <path d={poly([pt(0, 0, h), ...arc(a0, a1, R, h)])} style={{ fill }} className="pie3d-top" />
+              </g>
+            )
+          })}
+          {(() => {
+            // All labels sit above the pie. The leftmost pin's text goes left; the other
+            // pins' text goes right, stacked one level higher per pin from right to left,
+            // so no two labels share a row on the same side.
+            const pins = slices
+              .map((sl) => {
+                const r = sl.a1 - sl.a0 > 5 ? R * 0.45 : R * 0.62
+                const [x, y] = pt(sl.mid, r, sl.h)
+                return { sl, x, y }
+              })
+              .sort((p, q) => p.x - q.x)
+            const pieTop = cy - R * tilt - lift
+            return pins.map(({ sl, x, y }, i) => {
+              const left = i === 0 && pins.length > 1
+              const level = left ? 0 : pins.length - 1 - i
+              const yTop = pieTop - 24 - level * LEVEL
+              const tx = left ? x - 10 : x + 10
+              const anchor = left ? 'end' : 'start'
+              const g = sl.g
+              return (
+                <g key={`pin-${g.key}`} className="pie3d-pin">
+                  <line x1={x} y1={y} x2={x} y2={yTop} />
+                  <circle cx={x} cy={y} r={3} className="pie3d-pin-foot" />
+                  <circle cx={x} cy={yTop} r={5} className="pie3d-pin-head" style={{ fill: sl.fill }} />
+                  <text x={tx} y={yTop - 28} textAnchor={anchor} className="pie3d-pct">
+                    {g.pct}%
+                  </text>
+                  <text x={tx} y={yTop - 11} textAnchor={anchor} className="pie3d-name">
+                    {g.th}
+                  </text>
+                  <text x={tx} y={yTop + 4} textAnchor={anchor} className="pie3d-count">
+                    {g.n} คน
+                  </text>
+                </g>
+              )
+            })
+          })()}
         </svg>
-        <div className="donut-center" aria-hidden="true">
-          <span className="donut-value">
-            {focus.n}
-            <small>/{total}</small>
-          </span>
-          <span className="donut-caption">{focus.th}</span>
-        </div>
+        <p className="sr-only">
+          {groups.map((g) => `${g.th} ${g.pct}% (${g.n} คน)`).join(' · ')}
+        </p>
       </div>
-      <ul className="donut-legend">
-        {groups.map((g) => (
-          <li key={g.key} className={hover && hover !== g.key ? 'is-dim' : ''} onMouseEnter={() => setHover(g.key)} onMouseLeave={() => setHover(null)}>
-            <i className="donut-swatch" style={{ background: DONUT_FILL[g.key] }} />
-            <span className="donut-name">
-              {g.th}
-              {g.note && <small>{g.note}</small>}
-            </span>
-            <span className="donut-num">
-              <b>{g.n}</b> คน
-            </span>
-            <span className="donut-pct">{g.pct}%</span>
-          </li>
-        ))}
-      </ul>
-      <figcaption className="donut-foot">นับจาก 10 หน้าที่ระดับบัณฑิตศึกษา (ข้อ 9.3–9.4) ของอาจารย์ {total} คน</figcaption>
     </figure>
   )
 }
