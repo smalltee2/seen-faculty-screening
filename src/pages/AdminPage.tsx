@@ -233,7 +233,7 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
                       <div className={`jl cf cf-${match.verdict}`}>{CONFERENCE_TAG[match.verdict]}</div>
                       <div className="muted small">{match.reason}</div>
                     </td>
-                    <td className="small muted">{match.by === 'admin' ? `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}` : e ? `${e.checkedBy} ${e.checkedAt.slice(0, 10)} · ความมั่นใจ ${e.confidence}` : '—'}</td>
+                    <td className="small muted">{match.by === 'admin' ? `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}` : e ? `AI (${e.checkedAt.slice(0, 10)}) ความมั่นใจ ระดับ ${e.confidence}` : '—'}</td>
                     <td className="small">{ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}</td>
                   </tr>
                 )
