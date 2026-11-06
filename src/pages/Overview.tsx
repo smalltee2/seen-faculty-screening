@@ -36,9 +36,13 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <div className="report-head">
         <div className="min0">
           <h1>รายงานสรุปผลการตรวจสอบคุณสมบัติอาจารย์</h1>
-          <p className="lede">
-            อาจารย์ {results.length} คน · ข้อ 10 (ป.ตรี) และข้อ 9 (บัณฑิตศึกษา) ประกาศ กมอ. พ.ศ. 2565
-          </p>
+          <p className="hero-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565 (ประกาศ กมอ.)</p>
+          <div className="hero-chips">
+            <span className="hero-chip hero-chip-muted">อาจารย์ {results.length} คน</span>
+            <span className="hero-chip lvl-ba">ปริญญาตรี ข้อ 10.1</span>
+            <span className="hero-chip lvl-ms">ปริญญาโท ข้อ 9.3</span>
+            <span className="hero-chip lvl-phd">ปริญญาเอก ข้อ 9.4</span>
+          </div>
         </div>
         <div className="actions no-print">
           <Button onClick={() => window.print()} kind="primary">

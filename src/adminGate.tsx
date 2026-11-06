@@ -7,6 +7,8 @@ import type { DataBundle } from './types'
 export type AdminLinks = { formUrl: string; decisionFormUrl: string }
 
 const SESSION_KEY = 'seen-admin-form'
+/** Focus the first field only on desktop; on phones autofocus pops the keyboard over the card. */
+export const DESKTOP = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches === true
 
 /** The unlocked links: localStorage when "remember on this device", else sessionStorage. */
 export function readSavedAdmin(): AdminLinks | null {
@@ -101,7 +103,7 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
         <h2 className="gate-form-title">ใส่รหัสผู้ดูแล</h2>
         <label className="gate-field" htmlFor="admin-pass">
           <span>รหัสผู้ดูแล</span>
-          <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
+          <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus={DESKTOP} name="admin-pass" />
         </label>
         <label className="gate-remember" htmlFor="admin-remember">
           <input id="admin-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />

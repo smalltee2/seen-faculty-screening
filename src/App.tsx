@@ -12,6 +12,7 @@ import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adm
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
+import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
 const data = raw as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
@@ -91,6 +92,7 @@ export function App() {
     }
   }, [])
   const pubs = useMemo(() => makePubs(liveRows), [liveRows])
+  const scrolled = useScrolled()
   // One admin passcode opens both admin-only tabs (รายชื่ออาจารย์, เพิ่มผลงานด้วยตนเอง).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
   const lock = data.sources.adminGate
@@ -129,34 +131,34 @@ export function App() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <a href="#/" className="brand">
-            <span className="brand-mark">
-              <img src={seenLogo} alt="ตราสัญลักษณ์คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา (SEEN)" width={262} height={99} />
-            </span>
-            <span className="brand-text">
-              <span className="brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</span>
-              <small className="brand-sub">ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565</small>
+      <a className="skip-link" href="#main">ข้ามไปที่เนื้อหา</a>
+      <header className={`site-nav no-print${scrolled ? ' scrolled' : ''}`}>
+        <div className="site-nav-inner">
+          <a href="#/" className="nav-brand">
+            <img src={seenLogo} alt="ตราสัญลักษณ์คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา (SEEN)" width={262} height={99} />
+            <span className="nav-brand-text">
+              <span className="nav-brand-name">ระบบตรวจสอบคุณสมบัติอาจารย์</span>
+              <span className="nav-brand-sub">คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</span>
             </span>
           </a>
-        </div>
-        <nav className="tabsbar no-print" aria-label="หน้า">
-          <div className="tabsbar-inner">
+          <nav className="nav-links" aria-label="หน้า">
             {tabs.map((t) => (
-              <a key={t.id} href={t.href} aria-current={tab === t.id ? 'page' : undefined}>
+              <a key={t.id} href={t.href} className="nav-link" aria-current={tab === t.id ? 'page' : undefined}>
                 {t.locked && <LockIcon />}
                 {t.th}
-                {t.count !== undefined && !t.locked && <span className="seg-count">{t.count}</span>}
               </a>
             ))}
-            <div className="updated-at" title={data.builtAt}>
+          </nav>
+          <div className="nav-tools">
+            <span className="updated-at" title={data.builtAt}>
               <span className="updated-label">ข้อมูลล่าสุด</span>
               <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
-            </div>
+            </span>
+            <ThemeToggle />
           </div>
-        </nav>
+        </div>
       </header>
+      <div className="print-only print-brand">ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา</div>
 
       <div className="page">
         {newerBuild && (
@@ -190,7 +192,7 @@ export function App() {
           </div>
         </section>
 
-        <main>
+        <main id="main" tabIndex={-1}>
           {route.page === 'overview' && <Overview results={results} settings={settings} />}
           {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin === null && (
             <AdminGateForm data={data} title="สำหรับผู้ดูแลระบบ" onUnlocked={setAdmin} />
@@ -241,6 +243,7 @@ export function App() {
           </p>
         </footer>
       </div>
+      <BackToTop />
     </>
   )
 }

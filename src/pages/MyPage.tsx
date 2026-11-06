@@ -4,7 +4,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PersonResult, Settings } from '../rules'
 import { PersonPage } from './PersonPage'
-import { GateShell } from '../adminGate'
+import { DESKTOP, GateShell } from '../adminGate'
 
 const SESSION_KEY = 'seen-personal-session'
 const API = (import.meta.env.VITE_LOGIN_API as string | undefined) ?? ''
@@ -99,7 +99,7 @@ function Login({ notice }: { notice?: string }) {
             <h2 className="gate-form-title">เข้าสู่ระบบด้วยอีเมล</h2>
             <label className="gate-field" htmlFor="personal-email">
               <span>อีเมล @up.ac.th</span>
-              <input id="personal-email" type="email" autoComplete="email" placeholder="name.xx@up.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+              <input id="personal-email" type="email" autoComplete="email" name="email" inputMode="email" spellCheck={false} autoCapitalize="none" placeholder="name.xx@up.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus={DESKTOP} />
             </label>
             <label className="gate-remember" htmlFor="personal-remember">
               <input id="personal-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />

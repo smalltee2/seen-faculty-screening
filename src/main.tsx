@@ -5,6 +5,7 @@ import raw from './generated/data.json'
 import { initTci } from './tciIndex'
 import type { DataBundle } from './types'
 import './styles.css'
+import './theme-academic.css'
 
 initTci(raw as DataBundle)
 
