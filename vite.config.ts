@@ -15,8 +15,12 @@ function versionFile(): Plugin {
   }
 }
 
+// Login backend URL (Apps Script web app) from data/sources.json → import.meta.env.VITE_LOGIN_API.
+const sources = JSON.parse(readFileSync('data/sources.json', 'utf8')) as { loginApiUrl?: string }
+
 export default defineConfig({
   base: '/seen-faculty-screening/',
+  define: { 'import.meta.env.VITE_LOGIN_API': JSON.stringify(sources.loginApiUrl ?? '') },
   plugins: [react(), versionFile()],
   // Embed the SEEN logo and favicon (under 8 KB) so standalone/index.html works offline.
   build: {

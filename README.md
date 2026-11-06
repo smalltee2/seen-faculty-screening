@@ -285,15 +285,22 @@ that the admin's decision then governs. `--only=decisions` runs just this step.
 
 ## "ข้อมูลของฉัน": a lecturer sees only their own results
 
-`/me/` is a central page where a lecturer enters a personal code and sees only their own page (`src/personal.tsx`).
-Each lecturer's data is a separate file, `p/<SHA-256(code)>/data.json`, written by `scripts/build-personal.mjs`
-during `npm run build`; the page never downloads anyone else's data, and GitHub Pages lists no directories, so
-a folder cannot be found without its code. Codes are `HMAC-SHA256(salt, name_en)` rendered as `XXXX-XXXX`.
+`/me/` is one central page where a lecturer signs in with their @up.ac.th e-mail (passwordless, decision
+2026-11-06): the page asks the login backend to e-mail a one-time link (valid 15 minutes), the link returns
+to `/me/#login=<code>`, and the page exchanges the code for a session (12 hours, or 30 days with "จำเครื่องนี้").
+Each lecturer's data is a separate file, `p/<folder>/data.json`, written by `scripts/build-personal.mjs` during
+`npm run build` (folder = SHA-256 of a code derived from the secret salt); the page never downloads anyone
+else's data and GitHub Pages lists no directories.
 
-Setup once (admin, on the Mac): `scripts/personal-salt.sh` creates a random salt, stores it in the Keychain
+**Backend** (`apps-script/Code.gs`): a Google Apps Script bound to the private sheet "SEEN Login (private)" in
+the admin's Google account, deployed as a web app (execute as me, anyone). Sheets: `users` (email, name_en,
+name_th, folder, active — the admin fills it from `npm run personal-codes -- --users`, e-mails guessed from the
+name and to be verified), `tokens`, `sessions`, `log`. It sends mail with MailApp (100/day on a Gmail account),
+rate-limits link requests to 5 per hour per e-mail, and never serves publication data. Its URL is
+`loginApiUrl` in `data/sources.json` and reaches the page as `import.meta.env.VITE_LOGIN_API` (vite.config.ts).
+After editing Code.gs: paste into the script editor, Deploy → Manage deployments → edit → new version.
+
+**Salt** (once, admin, on the Mac): `scripts/personal-salt.sh` stores a random salt in the Keychain
 (`seen-personal-salt`) and as the GitHub secret `PERSONAL_SALT`; the next deploy builds the data folders.
-`npm run personal-codes` (or `-- --csv`) prints every lecturer's code for handing out privately. Re-run the
-script with `--rotate` to change every code. Without the secret, `/me/` exists but no code works.
-
-The lecturer can tick "จำรหัสบนเครื่องนี้"; the code is then kept in that browser only. The page includes
-live rows from the add-works form (filtered to that lecturer) and the usual auto-refresh.
+`--rotate` changes every folder (re-import the users sheet afterwards). Without the secret, `/me/` exists
+but every login ends in "ไม่พบข้อมูล".

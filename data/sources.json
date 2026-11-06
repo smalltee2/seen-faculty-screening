@@ -7,5 +7,6 @@
     "data": "1WAmzL1l5KkPF5/KyvNFwxu8jJoohrIfYddT5NSNukZnlRc3LtnJwu6sdJ7GKtzq+X9bl6/fgQF0x2X3uywdSNpp7uzG1+mLCjmIupTEq/L2I2UpA1f8yOvKw2E98pPUSGQoQXLVlRBtiooPo59ojRIJTaKnkg1XGeC7PWpHhMbR"
   },
   "decisionSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSt60OXRSsMo8m-xt4C2nVtiSweQuZGiuc6yjoc0r0Y5kjlA2DJSVAncLLCphNlsCg1WY3kNhmwb0bx/pub?gid=1770725136&single=true&output=csv",
-  "decisionFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSenZXP-hhC1c9N4YF_cJ-bfEVOYDn01bQmJzrS0NqL2UpVaZA/viewform"
+  "decisionFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSenZXP-hhC1c9N4YF_cJ-bfEVOYDn01bQmJzrS0NqL2UpVaZA/viewform",
+  "loginApiUrl": "https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec"
 }
