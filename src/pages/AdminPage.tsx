@@ -22,8 +22,10 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
     <>
       <div className="section-head">
         <div>
-          <h1>เพิ่มผลงานด้วยตนเอง</h1>
-          <p className="lede">สำหรับผู้ดูแล: เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ</p>
+          <h1>
+            เพิ่มผลงานด้วยตนเอง{' '}
+            <small className="title-hint">(เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ)</small>
+          </h1>
         </div>
         {onLock && (
           <div className="actions no-print">
