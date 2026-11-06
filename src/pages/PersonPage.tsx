@@ -6,9 +6,9 @@ import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL
 import { journalLevel, journalTag } from '../tci'
 import { TCI } from '../tciIndex'
 
-export function PersonPage({ result, settings }: { result: PersonResult | undefined; settings: Settings }) {
+export function PersonPage({ result, settings, personal = false }: { result: PersonResult | undefined; settings: Settings; personal?: boolean }) {
   const [allYears, setAllYears] = useState(false)
-  if (!result) return <p>ไม่พบอาจารย์รายนี้ · <a href="#/">กลับหน้าภาพรวม</a></p>
+  if (!result) return <p>ไม่พบอาจารย์รายนี้{!personal && <> · <a href="#/">กลับหน้าภาพรวม</a></>}</p>
   const p = result.person
   const [from, to] = [settings.year - 4, settings.year]
   // Screening view: list only outputs that count (journal, proceedings, poster); the rest are hidden.
@@ -39,7 +39,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
   return (
     <>
       <p className="no-print">
-        <a href="#/lecturers">← รายชื่ออาจารย์</a>
+        {!personal && <a href="#/lecturers">← รายชื่ออาจารย์</a>}
       </p>
       <h1 className="person-name">
         {displayName(p)}

@@ -282,3 +282,18 @@ Settings: collect verified email addresses (the email becomes `decided_by`). Onl
 `npm run fetch` (the 03:00 GitHub Actions run, and an hourly run at :30 that fetches only the two forms) applies the responses to `data/conferences.csv`: the latest
 response per key wins, "ยกเลิก" clears the decision, and an unknown key creates a new register row (confidence low)
 that the admin's decision then governs. `--only=decisions` runs just this step.
+
+## "ข้อมูลของฉัน": a lecturer sees only their own results
+
+`/me/` is a central page where a lecturer enters a personal code and sees only their own page (`src/personal.tsx`).
+Each lecturer's data is a separate file, `p/<SHA-256(code)>/data.json`, written by `scripts/build-personal.mjs`
+during `npm run build`; the page never downloads anyone else's data, and GitHub Pages lists no directories, so
+a folder cannot be found without its code. Codes are `HMAC-SHA256(salt, name_en)` rendered as `XXXX-XXXX`.
+
+Setup once (admin, on the Mac): `scripts/personal-salt.sh` creates a random salt, stores it in the Keychain
+(`seen-personal-salt`) and as the GitHub secret `PERSONAL_SALT`; the next deploy builds the data folders.
+`npm run personal-codes` (or `-- --csv`) prints every lecturer's code for handing out privately. Re-run the
+script with `--rotate` to change every code. Without the secret, `/me/` exists but no code works.
+
+The lecturer can tick "จำรหัสบนเครื่องนี้"; the code is then kept in that browser only. The page includes
+live rows from the add-works form (filtered to that lecturer) and the usual auto-refresh.

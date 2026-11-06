@@ -14,6 +14,7 @@ execFileSync('node', [join(ROOT, 'scripts/build-data.mjs')], { stdio: 'inherit' 
 execFileSync(join(ROOT, 'node_modules/.bin/vite'), ['build', '--base', './', '--outDir', TMP, '--emptyOutDir', '--logLevel', 'warn'], {
   cwd: ROOT,
   stdio: 'inherit',
+  env: { ...process.env, SEEN_SINGLE_ENTRY: '1' },
 })
 
 const assets = join(TMP, 'assets')

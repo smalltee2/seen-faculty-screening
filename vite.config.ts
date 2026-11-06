@@ -19,7 +19,12 @@ export default defineConfig({
   base: '/seen-faculty-screening/',
   plugins: [react(), versionFile()],
   // Embed the SEEN logo and favicon (under 8 KB) so standalone/index.html works offline.
-  build: { assetsInlineLimit: 8192 },
+  build: {
+    assetsInlineLimit: 8192,
+    // Two entries: the site, and the per-lecturer page (served from dist/p/<token>/ by scripts/build-personal.mjs).
+    // SEEN_SINGLE_ENTRY=1 (scripts/build-standalone.mjs) builds only the site, as one JS file.
+    rollupOptions: { input: process.env.SEEN_SINGLE_ENTRY ? 'index.html' : { main: 'index.html', personal: 'personal.html' } },
+  },
   test: {
     environment: 'node',
   },

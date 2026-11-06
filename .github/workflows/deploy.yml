@@ -60,7 +60,9 @@ jobs:
         run: npm run data
       - name: Unit tests (rules engine and classifier)
         run: npm test
-      - name: Build site
+      - name: Build site (and the personal pages when PERSONAL_SALT is set)
+        env:
+          PERSONAL_SALT: ${{ secrets.PERSONAL_SALT }}
         run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
