@@ -5,7 +5,7 @@ import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, Sta
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const [view, setView] = useState<OutputsView>('research')
-  const [group, setGroup] = useState<LevelGroup>('grad')
+  const [group, setGroup] = useState<LevelGroup>('ba')
   const g = LEVEL_GROUPS.find((x) => x.id === group)!
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
@@ -166,7 +166,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           />
         </div>
       </div>
-      <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น · กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน · คลิกชื่อเพื่อดูรายละเอียด</p>
+      <p className="note">กรอบสีแดง = ไม่ผ่านบางหน้าที่ของระดับนั้น, กรอบสีเหลือง = ปีหน้าอาจไม่ผ่าน, คลิกชื่อเพื่อดูรายละเอียด</p>
       <section className={`panel level-panel level-${g.id}`}>
         <h3 className="level-title">
           {g.th} <span className="eyebrow">{g.clause}</span>
