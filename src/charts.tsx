@@ -266,10 +266,10 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
   const W = Math.max(280, width)
   const narrow = W < 600
   // Pill-and-bubble style (Tum's reference, 2026-11-07): thick round-ended bars, the total in a
-  // speech bubble at the bar end, a large italic rank number before each name, soft shading at 0.
+  // speech bubble at the bar end, soft shading at 0.
   const uid = useId().replace(/:/g, '')
   const rowH = narrow ? 30 : 34
-  const rankW = narrow ? 26 : 40
+  const rankW = 8 // rank numbers removed (Tum, 2026-11-07); small left margin only
   const nameW = Math.round(Math.min(230, Math.max(110, W * 0.3)))
   const m = { t: 24, r: narrow ? 40 : 150, b: 26, l: rankW + nameW }
   const maxChars = Math.floor(nameW / 7)
@@ -318,9 +318,6 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               {(x.failed > 0 || x.risk.length > 0) && (
                 <rect className={x.failed > 0 ? 'fail-frame' : 'risk-frame'} x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />
               )}
-              <text className={`rank rank-${tone(x)}`} x={rankW - 6} y={y + bh - 1} textAnchor="end">
-                {String(i + 1).padStart(2, '0')}
-              </text>
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
                 <text className="row-label" x={m.l - 10} y={y + bh - 4} textAnchor="end">
                   {(() => {
