@@ -257,6 +257,13 @@ or low-confidence is shown but not counted until an admin confirms it.
 - `data/rules.json` → `"conferenceScreening": "on" | "off"` switches whether the register affects the counts
   (off = shown only). The admin page lists every conference with its verdict and evidence link.
 
+### Live form rows
+
+The site also reads the add-works form's published sheet directly in the browser (`src/liveManual.ts`, CORS is
+allowed by Google), so a submitted work appears within about five minutes (Google's CSV cache) as a row marked
+"สด" on the admin page, classified and screened like any other row. The 03:00 run writes the same rows to
+`data/manual.tsv`; rows already in the bundle are skipped. Nothing is read live on the standalone file.
+
 ### Conference decisions by Google Form
 
 Admins can decide without touching the CSV: a second Google Form whose responses sheet is published as CSV
