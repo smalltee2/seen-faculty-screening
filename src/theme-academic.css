@@ -423,3 +423,10 @@ html { scroll-padding-top: 92px; }
 .chart .plinth-side { fill: color-mix(in srgb, var(--line-strong) 80%, #000 20%); }
 .chart .seg-edge { fill: none; stroke: color-mix(in srgb, var(--panel) 75%, transparent); stroke-width: 1.2; }
 .chart .floor-shadow { fill: color-mix(in srgb, var(--fg) 10%, transparent); filter: blur(6px); }
+
+/* Evaluation-window frame a little stronger (Tum, 2026-11-07) */
+:root { --chart-window: color-mix(in srgb, var(--accent) 10%, transparent); }
+.chart .window-band { stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-width: 1.5; }
+.swatch-window { border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+.chart .window-label { font-weight: 700; }
+.chart .window-band { stroke-dasharray: none; stroke-opacity: 1; }
