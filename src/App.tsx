@@ -187,7 +187,7 @@ export function App() {
               <label className="control" htmlFor="admin-view">
                 <span className="control-label">เลือกดู</span>
                 <select id="admin-view" value={route.page === 'admin' ? 'admin' : 'lecturers'} onChange={(e) => (window.location.hash = e.target.value === 'admin' ? '#/admin' : '#/lecturers')}>
-                  <option value="lecturers">ข้อมูลอาจารย์ ({results.length} คน)</option>
+                  <option value="lecturers">ข้อมูลอาจารย์</option>
                   <option value="admin">เพิ่มผลงานด้วยตนเอง</option>
                 </select>
               </label>
