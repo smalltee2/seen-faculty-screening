@@ -12,8 +12,8 @@
   --fg: #1b211c;
   --muted: #55605a;
   --subtle: #86908a;
-  --ember: #c4510f;
-  --ember-hover: #a2420b;
+  --ember: #b04a0d; /* was #c4510f: 4.2:1 on --bg; now 5.0:1 (WCAG AA), same hue (2026-11-07) */
+  --ember-hover: #943d0a;
   --ember-soft: rgba(243, 114, 37, 0.07);
   --ember-glow: rgba(243, 114, 37, 0.24);
   --gold: #2b8a3e;
@@ -170,7 +170,7 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
 .min0 { min-width: 0; }
 .note { color: var(--muted); font-size: 0.82rem; margin: 0 0 0.8rem; }
 .lede { color: var(--muted); margin: 0; }
-.eyebrow { font: 600 0.65rem/1.2 var(--font-data); text-transform: uppercase; letter-spacing: 0.06em; color: var(--subtle); }
+.eyebrow { font: 600 0.65rem/1.2 var(--font-data); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 [hidden] { display: none !important; }
 
@@ -1019,3 +1019,16 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .gate-shell { box-shadow: none; } }
 :root[data-theme='dark'] .gate-shell { box-shadow: none; }
+
+/* UI/UX audit fixes (ui-ux-pro-max checklist, 2026-11-07). */
+/* Phones: no running text below 12px (labels, chart legends, tables, role rows, footer). */
+@media (max-width: 720px) {
+  .control-label, .metric-label, .metric-sub, .eyebrow, .clause, .role-name, .role-num, .legend,
+  .chart-legend span, .chip span, table.data th, table.data td, .footer p, .footer a, .btn { font-size: 12px; }
+  .controls .control-label, .type-summary table.data.compact th, .type-summary table.data.compact td { font-size: 12px; }
+}
+/* Touch screens: tap targets at least 44px tall. */
+@media (pointer: coarse) {
+  .tabsbar a, .btn, .controls select, .admin-view select, .segmented button, .seg button { min-height: 44px; }
+  .footer a { display: inline-block; padding-block: 10px; }
+}

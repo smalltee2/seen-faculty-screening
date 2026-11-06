@@ -342,7 +342,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               ) : (
                 x.risk.length > 0 && (
                   <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                    {narrow ? '⚠' : '⚠ ปีหน้าอาจไม่ผ่าน'}
+                    {narrow ? '⚠︎' : '⚠︎ ปีหน้าอาจไม่ผ่าน'}
                   </text>
                 )
               )}
@@ -373,7 +373,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                       )}
                       {x.risk.length > 0 && (
                         <span className="tip-risk">
-                          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน: {x.risk.map((role) => role.clause).join(', ')}
+                          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน: {x.risk.map((role) => role.clause).join(', ')}
                         </span>
                       )}
                     </>,

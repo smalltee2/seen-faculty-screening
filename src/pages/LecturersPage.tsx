@@ -196,7 +196,7 @@ function PersonCard({ r, levels, settings }: { r: PersonResult; levels: (typeof 
       </div>
       {risk.length > 0 && (
         <div className="risk-note" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
-          ⚠ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน {risk.length} หน้าที่
+          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน {risk.length} หน้าที่
         </div>
       )}
       <div className="person-counts">
@@ -270,7 +270,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
                   <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>{displayName(r.person)}</a>
                   {risk.length > 0 && (
                     <div className="risk-inline" title={risk.map((x) => `${x.clause} ${x.labelTh}`).join('\n')}>
-                      ⚠ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length} หน้าที่
+                      ⚠︎ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length} หน้าที่
                     </div>
                   )}
                   <div className="muted small">
@@ -293,7 +293,7 @@ function MatrixTable({ rows, levels, roles, settings }: { rows: PersonResult[]; 
         </table>
       </div>
       <p className="legend">
-        <span className="lvl-key lvl-key-ba">ปริญญาตรี ข้อ 10.1</span> <span className="lvl-key lvl-key-ms">ปริญญาโท ข้อ 9.3</span> <span className="lvl-key lvl-key-phd">ปริญญาเอก ข้อ 9.4</span> · <StatusChip status="met" /> <StatusChip status="not_met" /> · แถบซ้ายสีแดง = ไม่ผ่านบางหน้าที่ · <span className="risk-inline">⚠</span> แถบซ้ายสีเหลือง = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
+        <span className="lvl-key lvl-key-ba">ปริญญาตรี ข้อ 10.1</span> <span className="lvl-key lvl-key-ms">ปริญญาโท ข้อ 9.3</span> <span className="lvl-key lvl-key-phd">ปริญญาเอก ข้อ 9.4</span> · <StatusChip status="met" /> <StatusChip status="not_met" /> · แถบซ้ายสีแดง = ไม่ผ่านบางหน้าที่ · <span className="risk-inline">⚠︎</span> แถบซ้ายสีเหลือง = ปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม · ชี้ที่ช่องเพื่อดูเหตุผล
       </p>
     </>
   )
