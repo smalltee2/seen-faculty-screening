@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
 import { TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { CONFERENCE_TAG } from '../conferences'
+import { copyText } from '../download'
 import type { Faculty } from '../types'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -11,7 +12,9 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; onLock?: () => void }) {
+type Links = { formUrl: string; decisionFormUrl: string }
+
+function AdminContent({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -67,7 +70,7 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
         </section>
       </div>
 
-      <ConferenceRegister pubs={pubs} screening={data.conferenceScreening === 'on'} />
+      <ConferenceRegister pubs={pubs} screening={data.conferenceScreening === 'on'} decisionFormUrl={decisionFormUrl} />
 
       <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
       {manual.length === 0 ? (
@@ -111,7 +114,7 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
 }
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boolean }) {
+function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[]; screening: boolean; decisionFormUrl: string }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
   for (const p of pubs) {
     if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) continue
@@ -130,6 +133,17 @@ function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boole
         ระบบค้นหาผู้จัดให้อัตโนมัติ (คอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงแต่ไม่นับจนกว่าผู้ดูแลจะยืนยันในไฟล์ data/conferences.csv (คอลัมน์ decision)
         {!screening && ' · ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ (data/rules.json) จึงยังนับ proceedings ทุกรายการ'}
       </p>
+      {decisionFormUrl ? (
+        <p className="note">
+          ตัดสินผ่านแบบฟอร์ม: คัดลอกรหัสงานประชุม (ปุ่ม "คัดลอก key" ในตาราง) ไปกรอกใน{' '}
+          <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
+            แบบฟอร์มตัดสินงานประชุม
+          </a>{' '}
+          ระบบดึงคำตอบทุกวันเวลาประมาณ 03:00 น. คำตอบล่าสุดของแต่ละงานมีผล
+        </p>
+      ) : (
+        <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
+      )}
       {rows.length === 0 ? (
         <p className="note">ไม่มี proceedings ในข้อมูล</p>
       ) : (
@@ -153,6 +167,7 @@ function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boole
                     <td>
                       <div className="pub-title">{e?.conferenceName || ps[0].venue}</div>
                       <div className="muted small">{match.key.startsWith('work:') ? ps[0].title : ps[0].venue}</div>
+                      <CopyKey value={match.key} />
                     </td>
                     <td className="small">
                       {e ? (
@@ -183,19 +198,41 @@ function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boole
   )
 }
 
+function CopyKey({ value }: { value: string }) {
+  const [done, setDone] = useState(false)
+  return (
+    <button
+      type="button"
+      className="btn btn-small no-print"
+      title={value}
+      onClick={async () => {
+        setDone(await copyText(value))
+        window.setTimeout(() => setDone(false), 1500)
+      }}
+    >
+      {done ? 'คัดลอกแล้ว' : 'คัดลอก key'}
+    </button>
+  )
+}
+
 const SESSION_KEY = 'seen-admin-form'
 
 /** Read/write the unlocked form link: localStorage when "remember on this device", else sessionStorage. */
-function readSaved(): string | null {
+function readSaved(): Links | null {
   try {
-    return localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
+    const v = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
+    if (!v) return null
+    // Older versions saved the bare form link.
+    if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '' }
+    const o = JSON.parse(v) as Partial<Links>
+    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '' }
   } catch {
     return null
   }
 }
-function save(url: string, remember: boolean) {
+function save(links: Links, remember: boolean) {
   try {
-    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, url)
+    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(links))
   } catch {
     /* storage unavailable: stays unlocked until reload */
   }
@@ -211,7 +248,7 @@ function forget() {
 const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 
 /** Decrypts the admin form link with the passcode; a wrong passcode fails AES-GCM authentication. */
-async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<string> {
+async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<Links> {
   // WebCrypto is only available on https://, localhost and file:// (not a plain http:// LAN share).
   if (!globalThis.crypto?.subtle) throw new Error('nocrypto')
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
@@ -223,14 +260,15 @@ async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pas
     ['decrypt'],
   )
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(gate.iv) }, key, fromB64(gate.data))
-  return (JSON.parse(new TextDecoder().decode(plain)) as { formUrl: string }).formUrl
+  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl: string; decisionFormUrl?: string }
+  return { formUrl: v.formUrl, decisionFormUrl: v.decisionFormUrl ?? '' }
 }
 
 /** The admin tab: open only after the passcode is entered (kept for this browser session). */
 export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Faculty[] }) {
   const gate = props.data.sources.adminGate
-  const [formUrl, setFormUrl] = useState<string | null>(() => {
-    if (!gate) return props.data.sources.googleFormUrl ?? ''
+  const [links, setLinks] = useState<Links | null>(() => {
+    if (!gate) return { formUrl: props.data.sources.googleFormUrl ?? '', decisionFormUrl: props.data.sources.decisionFormUrl ?? '' }
     return readSaved()
   })
   const [remember, setRemember] = useState(false)
@@ -238,16 +276,17 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (formUrl !== null)
+  if (links !== null)
     return (
       <AdminContent
         {...props}
-        formUrl={formUrl}
+        formUrl={links.formUrl}
+        decisionFormUrl={links.decisionFormUrl || props.data.sources.decisionFormUrl || ''}
         onLock={
           gate
             ? () => {
                 forget()
-                setFormUrl(null)
+                setLinks(null)
               }
             : undefined
         }
@@ -260,10 +299,10 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
     setBusy(true)
     setError('')
     try {
-      const url = await unlock(gate, pass)
-      save(url, remember)
+      const v = await unlock(gate, pass)
+      save(v, remember)
       setPass('')
-      setFormUrl(url)
+      setLinks(v)
     } catch (e) {
       setError(e instanceof Error && e.message === 'nocrypto' ? 'เบราว์เซอร์นี้ถอดรหัสไม่ได้: ต้องเปิดผ่าน https:// หรือเปิดไฟล์โดยตรง' : 'รหัสไม่ถูกต้อง')
     } finally {

@@ -256,3 +256,22 @@ or low-confidence is shown but not counted until an admin confirms it.
   yet in the register; the iMac daily job runs it after the Scopus refresh. Needs `claude login` on that Mac.
 - `data/rules.json` → `"conferenceScreening": "on" | "off"` switches whether the register affects the counts
   (off = shown only). The admin page lists every conference with its verdict and evidence link.
+
+### Conference decisions by Google Form
+
+Admins can decide without touching the CSV: a second Google Form whose responses sheet is published as CSV
+(`decisionSheetCsvUrl` in `data/sources.json`; the form link goes into the passcode-protected payload with
+`npm run set-passcode -- --form-url=<admin form> --decision-form-url=<decision form>`). Question titles must be exactly:
+
+| Question | Type |
+|---|---|
+| `รหัสงานประชุม (key)` | short answer, required (copied from the admin page's "คัดลอก key" button) |
+| `ผลการตัดสิน` | multiple choice: `นับ (count)` / `ไม่นับ (no_count)` / `ยกเลิกการตัดสิน (ใช้ผลอัตโนมัติ)` |
+| `ชื่องานประชุม (ถ้ายังไม่มีในทะเบียน)` | short answer, optional |
+| `สมาคมที่จัดหรือร่วมจัด` | short answer, optional |
+| `เหตุผล / หลักฐาน (URL)` | paragraph |
+
+Settings: collect email addresses (the email becomes `decided_by`) and restrict to the university organisation.
+`npm run fetch` (and the 03:00 GitHub Actions run) applies the responses to `data/conferences.csv`: the latest
+response per key wins, "ยกเลิก" clears the decision, and an unknown key creates a new register row (confidence low)
+that the admin's decision then governs. `--only=decisions` runs just this step.

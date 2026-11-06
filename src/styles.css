@@ -969,4 +969,5 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 .cf-no_count { color: var(--not); }
 .cf-pending { color: var(--rev); }
 .cf a { color: inherit; }
+.btn-small { font-size: 0.74rem; padding: 2px 8px; margin-top: 4px; }
 .jl-none { color: var(--muted); font-weight: 500; }

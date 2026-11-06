@@ -55,6 +55,8 @@ export interface DataBundle {
   sources: {
     manualSheetCsvUrl?: string
     googleFormUrl?: string
+    /** Conference-decision form (plain, when not yet moved into adminGate). */
+    decisionFormUrl?: string
     /** Form link encrypted with the admin passcode (scripts/set-admin-passcode.mjs). */
     adminGate?: { iterations: number; salt: string; iv: string; data: string }
   }

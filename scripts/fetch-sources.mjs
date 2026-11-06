@@ -270,6 +270,98 @@ const bareDoi = (v) => {
   return /^10\.\d{4,}\//.test(d) ? d : ''
 }
 
+// Conference decisions form (second Google Form, published responses sheet). Question titles must match.
+const DECISION_FORM = {
+  timestamp: 'Timestamp',
+  email: 'Email Address',
+  key: 'รหัสงานประชุม (key)',
+  decision: 'ผลการตัดสิน',
+  name: 'ชื่องานประชุม (ถ้ายังไม่มีในทะเบียน)',
+  association: 'สมาคมที่จัดหรือร่วมจัด',
+  note: 'เหตุผล / หลักฐาน (URL)',
+}
+const DECISION_MAP = { 'นับ (count)': 'count', 'ไม่นับ (no_count)': 'no_count', 'ยกเลิกการตัดสิน (ใช้ผลอัตโนมัติ)': '' }
+const CONF_COLS = ['key', 'display_name', 'conference_name', 'organiser', 'association', 'association_role', 'field', 'related_field', 'confidence', 'evidence_url', 'checked_at', 'checked_by', 'note', 'decision', 'decided_by', 'decided_at', 'decision_note']
+
+function readRegister(path) {
+  if (!existsSync(path)) return []
+  const rows = parseCsv(readFileSync(path, 'utf8'))
+  const header = rows[0].map((h) => h.trim())
+  return rows.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, (r[i] ?? '').trim()])))
+}
+const csvField = (v) => (/[",\r\n]/.test(v ?? '') ? `"${String(v).replace(/"/g, '""')}"` : (v ?? ''))
+function writeRegister(path, entries) {
+  const lines = [CONF_COLS.join(','), ...entries.sort((a, b) => a.key.localeCompare(b.key)).map((e) => CONF_COLS.map((c) => csvField(e[c])).join(','))]
+  writeFileSync(path, lines.join('\n') + '\n')
+}
+
+/** Merge admin decisions from the published sheet into data/conferences.csv.
+ *  The latest submission per key wins; a key not yet in the register gets a new row. */
+async function fetchDecisions(url) {
+  if (!url) {
+    log('Decisions sheet: no decisionSheetCsvUrl in data/sources.json; skipped')
+    return
+  }
+  let text
+  try {
+    if (url.startsWith('/')) text = readFileSync(url, 'utf8') // local file (tests)
+    else {
+      const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent } })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      text = await res.text()
+    }
+  } catch (e) {
+    warn(`Decisions sheet fetch failed (${e.message}); data/conferences.csv left unchanged`)
+    return
+  }
+  let rows
+  try {
+    rows = parseCsv(text)
+  } catch (e) {
+    warn(`Decisions sheet response is not CSV (${e.message}); data/conferences.csv left unchanged`)
+    return
+  }
+  if (!rows.length) {
+    log('Decisions sheet: no responses yet')
+    return
+  }
+  const header = rows[0].map((h) => (h.trim() === 'ประทับเวลา' ? 'Timestamp' : h.trim() === 'ที่อยู่อีเมล' ? 'Email Address' : h.trim()))
+  const missing = Object.values(DECISION_FORM).filter((h) => !header.includes(h))
+  if (missing.length) {
+    warn(`Decisions sheet is missing column(s): ${missing.join(', ')}; data/conferences.csv left unchanged`)
+    return
+  }
+  const col = (r, f) => (r[header.indexOf(DECISION_FORM[f])] ?? '').trim()
+  const registerPath = join(ROOT, 'data/conferences.csv')
+  const register = readRegister(registerPath)
+  let applied = 0
+  const skipped = []
+  for (const r of rows.slice(1)) {
+    const key = col(r, 'key')
+    const decisionLabel = col(r, 'decision')
+    if (!key || !(decisionLabel in DECISION_MAP)) {
+      skipped.push(key || '(no key)')
+      continue
+    }
+    const decision = DECISION_MAP[decisionLabel]
+    const by = col(r, 'email') || 'admin form'
+    const at = col(r, 'timestamp')
+    const note = col(r, 'note')
+    let e = register.find((x) => x.key === key)
+    if (!e) {
+      // A conference the automatic check has not seen yet: the admin creates it.
+      e = Object.fromEntries(CONF_COLS.map((c) => [c, '']))
+      Object.assign(e, { key, display_name: col(r, 'name') || key, conference_name: col(r, 'name'), association: col(r, 'association'), association_role: 'unknown', related_field: 'unknown', confidence: 'low', checked_at: at, checked_by: 'admin form (no automatic check)' })
+      register.push(e)
+    } else if (col(r, 'association') && !e.association) e.association = col(r, 'association')
+    // Responses are in submission order, so a later row for the same key overrides an earlier one.
+    Object.assign(e, { decision, decided_by: by, decided_at: at, decision_note: note })
+    applied++
+  }
+  writeRegister(registerPath, register)
+  log(`Decisions sheet: ${applied} decision(s) applied to data/conferences.csv${skipped.length ? `; skipped ${skipped.length} row(s) without a valid key/decision: ${skipped.slice(0, 5).join(', ')}` : ''}`)
+}
+
 async function fetchManual(faculty, url) {
   if (!url) {
     log('Google Sheet: no manualSheetCsvUrl in data/sources.json; skipped')
@@ -437,7 +529,7 @@ const faculty = (() => {
 })()
 const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sources, 'utf8')) : {}
 
-// --only=openalex|scopus|manual|tci runs one source (the iMac job runs --only=scopus).
+// --only=openalex|scopus|manual|decisions|tci runs one source (the iMac job runs --only=scopus).
 const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? ''
 const run = (name) => !only || only === name
 // Scopus Search accepts the key from any network (only Author Search is refused), so both
@@ -452,6 +544,7 @@ if (run('scopus')) {
   } else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
 }
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
+if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '')
 if (run('tci')) {
   try {
     await fetchTci()
