@@ -97,7 +97,7 @@ export function LecturersPage({
       </div>
 
       <div className="toolbar no-print">
-        <input id="lecturer-search" type="search" className="search" placeholder="ค้นหาชื่อ…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input id="lecturer-search" type="search" className="search" aria-label="ค้นหาชื่ออาจารย์" placeholder="ค้นหาชื่อ…" value={q} onChange={(e) => setQ(e.target.value)} />
         <Segmented
           label="กรอง"
           value={filter}

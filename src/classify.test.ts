@@ -20,6 +20,8 @@ describe('classifyType', () => {
   const t = (venue: string, title = 'A study') => classifyType(title, venue)
   it.each([
     ['Sustainability 12 (23), 10049, 2020', 'journal'],
+    ['Heliyon 9, e12019, 2023', 'journal'], // article number ending in a year-like digit run
+    ['Science of the Total Environment 912, 142019, 2024', 'journal'],
     ['Atmospheric Chemistry and Physics 14 (23), 12983-13012, 2014', 'journal'],
     ['Advances in Meteorology 2023, 5580606, 2023', 'journal'],
     ['Geophysical Research Letters, e2022GL100223, 2022', 'journal'],

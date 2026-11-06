@@ -403,10 +403,10 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
 function readinessGroups(results: PersonResult[]) {
   const ids = Object.keys(results[0]?.roles ?? {}).filter((id) => id.startsWith('ms_') || id.startsWith('phd_'))
   const groups = [
-    { key: 'all', th: 'ผ่านครบทุกหน้าที่', note: 'ทำได้ทุกหน้าที่ของหลักสูตร ป.ตรี ป.โท และ ป.เอก', icon: 'check', n: 0 },
+    { key: 'all', th: 'ผ่านครบทุกหน้าที่', note: 'ทำได้ทุกหน้าที่ของหลักสูตร ป.โท และ ป.เอก', icon: 'check', n: 0 },
     { key: 'some', th: 'ผ่านบางหน้าที่', note: 'เช่น สอนได้ แต่เป็นผู้รับผิดชอบหรือที่ปรึกษาไม่ได้', icon: 'partial', n: 0 },
     { key: 'review', th: 'มีหน้าที่รอตรวจสอบ', note: '', icon: 'partial', n: 0 },
-    { key: 'none', th: 'ไม่ผ่านทุกหน้าที่', note: 'ยังไม่มีผลงานในช่วง 5 ปีตามเกณฑ์', icon: 'cross', n: 0 },
+    { key: 'none', th: 'ไม่ผ่านทุกหน้าที่', note: 'ไม่ผ่านหน้าที่ระดับบัณฑิตศึกษาทุกข้อ', icon: 'cross', n: 0 },
   ]
   for (const r of results) {
     const st = ids.map((id) => r.roles[id].status)

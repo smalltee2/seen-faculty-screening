@@ -36,7 +36,7 @@ export function normName(s: string): string {
 /** "Journal Name 36 (2), 1-10, 2022" → "Journal Name": cut at the first volume number or
  *  comma, then drop a trailing abbreviation such as "(GTSJ.)". */
 export function venueName(venue: string): string {
-  const cut = venue.search(/\s\d|,/)
+  const cut = venue.search(/\s\d|,\s*(?=[a-z]?\d)/i)
   let v = cut >= 0 ? venue.slice(0, cut) : venue
   v = v.replace(/\s*\([^)]*\)\s*$/, '').replace(/[\s:;.-]+$/, '')
   return v.trim()

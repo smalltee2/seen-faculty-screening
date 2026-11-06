@@ -103,6 +103,8 @@ export function rankAtLeast(rank: Rank | null, min: Rank): boolean {
 
 /** Degree and rank requirement, e.g. "ปริญญาเอก หรือ ปริญญาโท + รศ. ขึ้นไป". */
 export function qualifies(p: Faculty, qual: Qual): { ok: Tri; reason: string } {
+  // Clause 10: ผศ. ขึ้นไป qualifies on rank alone, so a blank degree does not block it.
+  if (qual === 'master_or_asst' && rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง ${p.rank}` }
   if (!p.degree) return { ok: 'maybe', reason: 'ไม่มีข้อมูลวุฒิการศึกษาใน faculty.csv' }
   if (p.degree === 'ปริญญาเอก') return { ok: 'yes', reason: 'วุฒิปริญญาเอก' }
   // Clause 10: ปริญญาโท หรือ ผศ. ขึ้นไป. Every degree in faculty.csv is โท or เอก, so โท satisfies it;
@@ -270,6 +272,8 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
   let path: RoleResult['path'] = 'regular'
   if (status !== 'met' && q.ok !== 'no') {
     const ng = newGradPath(role, p, evals, s)
+    if (!ng && role.newGrad && p.degree === 'ปริญญาเอก' && p.degreeYear === null)
+      reasons.push(`ไม่มีปีที่จบใน faculty.csv — ตรวจเกณฑ์อาจารย์ใหม่ (ข้อ ${role.newGrad.clause}) ไม่ได้`)
     if (ng) {
       reasons.push(ng.reason)
       if (ng.ok !== 'no') {

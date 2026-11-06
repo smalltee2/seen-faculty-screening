@@ -16,7 +16,7 @@ function joinThai(s: string): string {
 
 /** Scholar appends ", <year>" (or ", 0" when unknown) to the venue; drop it before pattern matching. */
 function stripYear(venue: string): string {
-  return joinThai(venue).replace(/,?\s*((19|20)\d{2}|0)\s*$/, '').trim()
+  return joinThai(venue).replace(/,?\s*\b((19|20)\d{2}|0)\s*$/, '').trim()
 }
 
 const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|\bpreprints?\b|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review|\bdiscussions\b/i

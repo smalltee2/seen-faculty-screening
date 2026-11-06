@@ -264,6 +264,12 @@ async function issnByDoi(doi, previous) {
   }
 }
 
+/** "https://doi.org/10.x/y" or "10.x/y" → "10.x/y"; anything else → '' (the form field also accepts URLs). */
+const bareDoi = (v) => {
+  const d = v.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+  return /^10\.\d{4,}\//.test(d) ? d : ''
+}
+
 async function fetchManual(faculty, url) {
   if (!url) {
     log('Google Sheet: no manualSheetCsvUrl in data/sources.json; skipped')
@@ -279,7 +285,13 @@ async function fetchManual(faculty, url) {
     warn(`Google Sheet fetch failed (${e.message}); data/manual.tsv left unchanged`)
     return
   }
-  const rows = parseCsv(text)
+  let rows
+  try {
+    rows = parseCsv(text)
+  } catch (e) {
+    warn(`Google Sheet response is not CSV (${e.message}); data/manual.tsv left unchanged`)
+    return
+  }
   // A Thai-language Google account names the first column "ประทับเวลา" instead of "Timestamp".
   const header = rows[0].map((h) => (h.trim() === 'ประทับเวลา' ? 'Timestamp' : h.trim()))
   const missing = Object.values(FORM).filter((h) => !header.includes(h))
@@ -307,7 +319,7 @@ async function fetchManual(faculty, url) {
       authors: col(r, 'authors'),
       venue: `${venue}, ${year}`,
       cites: 0,
-      doi: col(r, 'doi'),
+      doi: bareDoi(col(r, 'doi')),
       issn: '',
       type,
       is_research: col(r, 'research').startsWith('ใช่') ? 'yes' : 'no',

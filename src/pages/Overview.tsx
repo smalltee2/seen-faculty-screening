@@ -198,7 +198,7 @@ function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings:
   return (
     <div className="table-wrap type-summary">
       <table className="data compact">
-        <caption className="sr-only">จำนวนผลงานแยกตามประเภท ช่วง 5 ปีที่ใช้ประเมิน</caption>
+        <caption className="sr-only">จำนวนผลงานแยกตามประเภท ช่วง 5 ปีที่ใช้ประเมิน (นับซ้ำตามรายชื่ออาจารย์)</caption>
         <thead>
           <tr>
             <th>ประเภท</th>

@@ -964,5 +964,5 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 /* Journal level tag on the person page */
 .jl { font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
 .jl-intl { color: var(--c-journal); }
-.jl-natl { color: var(--band); }
+.jl-natl { color: var(--lvl-phd); }
 .jl-none { color: var(--muted); font-weight: 500; }

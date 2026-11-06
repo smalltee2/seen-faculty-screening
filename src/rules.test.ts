@@ -78,7 +78,8 @@ describe('10.1 bachelor’s (เกณฑ์มาตรฐานหลักส
   it('qualification: ปริญญาโท or ผศ. ขึ้นไป', () => {
     expect(qualifies(person({ degree: 'ปริญญาโท', rank: 'อาจารย์' }), 'master_or_asst').ok).toBe('yes')
     expect(qualifies(person({ degree: 'ปริญญาเอก', rank: 'อาจารย์' }), 'master_or_asst').ok).toBe('yes')
-    expect(qualifies(person({ degree: null }), 'master_or_asst').ok).toBe('maybe')
+    expect(qualifies(person({ degree: null, rank: 'อาจารย์' }), 'master_or_asst').ok).toBe('maybe')
+    expect(qualifies(person({ degree: null, rank: 'ผศ.' }), 'master_or_asst').ok).toBe('yes')
   })
   it('no new-graduate path for bachelor’s roles', () => {
     const fresh = person({ degree: 'ปริญญาเอก', degreeYear: 2025 })

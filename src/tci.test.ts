@@ -23,6 +23,9 @@ describe('TCI / Scopus journal level', () => {
     expect(venueName('Thai Environmental Engineering Journal 36 (2), 1-10, 2022')).toBe('Thai Environmental Engineering Journal')
     expect(venueName('Resources 15 (11), 142, 2026')).toBe('Resources')
     expect(venueName('วารสารวิชาการพลังงานทดแทนสู่ชุมชน 5 (3), 94-112, 2022')).toBe('วารสารวิชาการพลังงานทดแทนสู่ชุมชน')
+    // A comma inside the journal name is kept; only a comma before a volume/page token cuts.
+    expect(venueName('Asian Journal of Water, Environment and Pollution 5 (4), 1-9, 2008')).toBe('Asian Journal of Water, Environment and Pollution')
+    expect(venueName('Water, Air, and Soil Pollution, 234, 2023')).toBe('Water, Air, and Soil Pollution')
   })
   it('matches TCI by ISSN first, then by name', () => {
     expect(matchTci({ venue: 'Unknown name 1 (1), 2022', issn: '2673-0359' }, idx)?.by).toBe('issn')
