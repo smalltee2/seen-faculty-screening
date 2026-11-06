@@ -90,7 +90,7 @@ export function App() {
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
     { id: 'lecturers', href: '#/lecturers', th: 'รายชื่ออาจารย์', en: 'Lecturers', count: results.length },
-    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงาน', en: 'Add works' },
+    { id: 'admin', href: '#/admin', th: 'เพิ่มผลงานด้วยตนเอง', en: 'Add works manually' },
   ]
 
   return (

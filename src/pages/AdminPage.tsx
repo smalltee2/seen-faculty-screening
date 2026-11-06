@@ -19,7 +19,7 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
     <>
       <div className="section-head">
         <div>
-          <h1>เพิ่มผลงาน</h1>
+          <h1>เพิ่มผลงานด้วยตนเอง</h1>
           <p className="lede">สำหรับผู้ดูแล: เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ</p>
         </div>
         {onLock && (
@@ -198,7 +198,7 @@ export function AdminPage(props: { data: DataBundle; pubs: Pub[]; faculty: Facul
   return (
     <div className="gate">
       <form className="panel gate-card" onSubmit={submit}>
-        <h1>เพิ่มผลงาน</h1>
+        <h1>เพิ่มผลงานด้วยตนเอง</h1>
         <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล</p>
         <label className="control" htmlFor="admin-pass">
           <span className="control-label">รหัสผู้ดูแล</span>
