@@ -314,3 +314,21 @@ html { scroll-padding-top: 76px; }            /* keyboard focus and #anchors lan
 @media (max-width: 720px) { html { scroll-padding-top: 120px; } }
 a, button, select, input, label, .seg button { touch-action: manipulation; -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 15%, transparent); }
 .nav-brand-name, .site-nav .updated-at time { font-variant-numeric: tabular-nums; }
+
+/* Larger brand block in the navbar (Tum, 2026-11-07) */
+.nav-brand { gap: 16px; }
+.nav-brand img { height: 58px; padding: 3px 6px; }
+.nav-brand-name { font-size: clamp(1.2rem, 1rem + 0.6vw, 1.5rem); }
+.nav-brand-sub { font-size: clamp(0.88rem, 0.8rem + 0.25vw, 1rem); }
+.site-nav-inner { padding-block: 12px; }
+/* Focus ring drawn inside the tab, so the scrolling tab row cannot clip it */
+.nav-link:focus-visible { outline-offset: -2px; }
+@media (max-width: 720px) {
+  .nav-brand { gap: 12px; }
+  .nav-brand img { height: 44px; }
+  .nav-brand-name { font-size: 1.08rem; }
+  .nav-brand-sub { font-size: 13px; }
+  .site-nav-inner { padding-block: 10px 0; }
+}
+html { scroll-padding-top: 92px; }
+@media (max-width: 720px) { html { scroll-padding-top: 140px; } }
