@@ -488,3 +488,10 @@ html { scroll-padding-top: 92px; }
 :root[data-theme='dark'] .chart .bubble-risk rect, :root[data-theme='dark'] .chart .bubble-risk path { fill: var(--rev-mark); }
 :root[data-theme='dark'] .chart .pill-gloss { opacity: 0.08; }
 @media (max-width: 720px) { .chart .bubble text { font-size: 12px; } }
+
+/* Lecturers: switch between the 5-year chart and the per-duty results */
+.section-switch { display: flex; justify-content: flex-start; margin: 4px 0 6px; }
+.section-switch .seg { padding: 4px; }
+.section-switch .seg button { padding: 9px 18px; font-size: 0.95rem; font-weight: 600; }
+.section-switch + .outputs-block, .section-switch + .lecturers-head { margin-top: 14px; }
+@media (max-width: 720px) { .section-switch .seg { width: 100%; } .section-switch .seg button { flex: 1; padding: 9px 10px; font-size: 13px; white-space: normal; } }
