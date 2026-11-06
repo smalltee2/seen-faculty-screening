@@ -420,10 +420,6 @@ function MatrixTable({
                         หน้าที่
                       </div>
                     )}
-                    <div className="muted small">
-                      {r.person.rank ?? "—"} ·{" "}
-                      {r.person.degree ?? "ไม่ระบุวุฒิ"}
-                    </div>
                   </td>
                   {roles.map((role) => {
                     const res = r.roles[role.id];
