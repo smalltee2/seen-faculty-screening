@@ -48,7 +48,7 @@ const read = (p) => readFileSync(p, 'utf8')
 
 const faculty = toRecords(
   parseCsv(read(CONFIG.faculty)),
-  ['name_en', 'name_th', 'scholar_id', 'academic_rank', 'highest_degree', 'degree_year_ce', 'programs', 'notes'],
+  ['name_en', 'name_th', 'scholar_id', 'academic_rank', 'highest_degree', 'degree_field', 'degree_year_ce', 'programs', 'notes'],
   'faculty.csv',
 ).map((f) => {
   if (!f.name_en) fail(`faculty.csv line ${f._line}: name_en is empty`)
@@ -70,6 +70,7 @@ const faculty = toRecords(
     scopusId: f.scopus_id ?? '',
     rank: f.academic_rank || null,
     degree: f.highest_degree || null,
+    degreeField: f.degree_field || null,
     degreeYear,
     programs: f.programs ? f.programs.split(';').map((s) => s.trim()).filter(Boolean) : [],
     notes: f.notes,

@@ -113,6 +113,7 @@ All files are UTF-8. CSV files may quote fields with `"`.
 | `scholar_id` | The `user=` value of the Scholar profile URL (optional) |
 | `academic_rank` | `อาจารย์` \| `ผศ.` \| `รศ.` \| `ศ.` |
 | `highest_degree` | `ปริญญาโท` \| `ปริญญาเอก` |
+| `degree_field` | Field of the highest degree, as written in the programme document (e.g. `วิศวกรรมสิ่งแวดล้อม`); shown after the degree on the person page |
 | `degree_year_ce` | Year the highest degree was completed, in **CE** (2015, not 2558) |
 | `programs` | Programmes the person is listed in, separated by `;`, e.g. `M.Sc.;Ph.D.` (used by the programme-level check) |
 | `notes` | Free text |

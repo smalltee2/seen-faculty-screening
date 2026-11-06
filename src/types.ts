@@ -9,6 +9,8 @@ export interface Faculty {
   scopusId?: string
   rank: Rank | null
   degree: Degree | null
+  /** Field of the highest degree (e.g. วิศวกรรมสิ่งแวดล้อม); null = not recorded. */
+  degreeField?: string | null
   degreeYear: number | null
   programs: string[]
   notes: string

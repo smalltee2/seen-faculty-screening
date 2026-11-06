@@ -44,7 +44,7 @@ export function PersonPage({ result, settings }: { result: PersonResult | undefi
       </h1>
       <dl className="profile">
         <div><dt>ตำแหน่งวิชาการ</dt><dd>{p.rank ?? '—'}</dd></div>
-        <div><dt>วุฒิสูงสุด</dt><dd>{p.degree ?? '—'}</dd></div>
+        <div><dt>วุฒิสูงสุด</dt><dd>{p.degree ? (p.degreeField ? `${p.degree} (${p.degreeField})` : p.degree) : '—'}</dd></div>
         {/* Empty fields are hidden; they appear once filled in faculty.csv. */}
         {p.degreeYear !== null && <div><dt>ปีที่สำเร็จการศึกษา</dt><dd>พ.ศ. {toBE(p.degreeYear)} (ค.ศ.{p.degreeYear})</dd></div>}
         {p.programs.length > 0 && <div><dt>หลักสูตร (programs)</dt><dd>{p.programs.join(', ')}</dd></div>}
