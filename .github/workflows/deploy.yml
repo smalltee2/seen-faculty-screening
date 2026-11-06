@@ -4,8 +4,11 @@ on:
   push:
     branches: [main]
   schedule:
-    # Every day at 03:00 Thailand time (20:00 UTC): refresh OpenAlex, Scopus and the admin form.
+    # Every day at 03:00 Thailand time (20:00 UTC): refresh OpenAlex, Scopus, TCI and both forms.
     - cron: '0 20 * * *'
+    # Every hour at :30: only the two Google Forms (add works, conference decisions), so a
+    # submission takes effect within about an hour (decided by Tum, 2026-11-06).
+    - cron: '30 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -27,13 +30,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Fetch OpenAlex, Scopus and admin form (daily run only)
-        if: github.event_name != 'push'
+      - name: Fetch all sources (daily run and manual dispatch)
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 20 * * *'
         env:
           SCOPUS_API_KEY: ${{ secrets.SCOPUS_API_KEY }}
           SCOPUS_INSTTOKEN: ${{ secrets.SCOPUS_INSTTOKEN }}
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: npm run fetch
+      - name: Fetch the two Google Forms only (hourly run)
+        if: github.event.schedule == '30 * * * *'
+        env:
+          DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
+        run: node scripts/fetch-sources.mjs --only=manual,decisions
       - name: Commit refreshed data
         if: github.event_name != 'push'
         run: |

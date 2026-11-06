@@ -535,9 +535,10 @@ const faculty = (() => {
 })()
 const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sources, 'utf8')) : {}
 
-// --only=openalex|scopus|manual|decisions|tci runs one source (the iMac job runs --only=scopus).
-const only = process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? ''
-const run = (name) => !only || only === name
+// --only=openalex|scopus|manual|decisions|tci runs one source (or several, comma-separated) (the iMac job runs --only=scopus).
+// --only accepts a comma-separated list, e.g. --only=manual,decisions (the hourly forms run).
+const only = (process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+const run = (name) => !only.length || only.includes(name)
 // Scopus Search accepts the key from any network (only Author Search is refused), so both
 // GitHub Actions and the iMac job (scripts/scopus-daily.sh) can update data/scopus.tsv.
 const scopusHere = true
