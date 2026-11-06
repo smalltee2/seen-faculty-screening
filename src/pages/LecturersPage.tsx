@@ -286,16 +286,16 @@ function PersonCard({
           <b>{tally("met")}</b>/{statuses.length}
         </div>
       </header>
-      <div className="person-meta">
-        <span className="tag">{p.rank ?? "ไม่ระบุตำแหน่ง"}</span>
-        <span className="tag">{p.degree ?? "ไม่ระบุวุฒิ"}</span>
-        {p.degreeYear && <span className="tag">จบ {toBE(p.degreeYear)}</span>}
-        {p.programs.map((x) => (
-          <span key={x} className="tag tag-accent">
-            {x}
-          </span>
-        ))}
-      </div>
+      {/* Rank, degree and graduation-year tags removed (Tum, 2026-11-07); they stay on the person page */}
+      {p.programs.length > 0 && (
+        <div className="person-meta">
+          {p.programs.map((x) => (
+            <span key={x} className="tag tag-accent">
+              {x}
+            </span>
+          ))}
+        </div>
+      )}
       {risk.length > 0 && (
         <div
           className="risk-note"
