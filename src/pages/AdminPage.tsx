@@ -37,9 +37,11 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
       <div className="admin-grid">
         <section className="panel">
           <h3>ขั้นตอน</h3>
+          {/* All admin steps in one list: adding works, then deciding conferences (Tum, 2026-11-07) */}
+          <h4 className="steps-sub">เพิ่มผลงาน</h4>
           <ol className="steps">
             <li>กรอกแบบฟอร์มด้วยบัญชี @up.ac.th หนึ่งครั้งต่อหนึ่งผลงาน ถ้ามีผู้เขียนหลายคนในคณะ ให้กรอกแยกทีละคน</li>
-            <li>ผลงานที่ส่งจะปรากฏในระบบภายในไม่กี่นาที (อ่านจากชีตคำตอบโดยตรง) และถูกบันทึกถาวรในรอบอัปเดต 03:00 น.</li>
+            <li>ผลงานที่ส่งจะปรากฏในระบบภายในไม่กี่นาที (อ่านจากชีตคำตอบโดยตรง) และถูกบันทึกถาวรในรอบอัปเดตทุกชั่วโมง</li>
             <li>ผลงานที่เพิ่มจะแสดงในตารางด้านล่าง และนับตามประเภทที่เลือก (วารสาร / proceedings / โปสเตอร์)</li>
             <li>ถ้ากรอกผิด ให้ลบแถวนั้นในชีตคำตอบของแบบฟอร์ม แล้วรอรอบอัปเดตถัดไป</li>
           </ol>
@@ -49,6 +51,19 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
             </a>
           ) : (
             <p className="note">ยังไม่ได้ตั้งค่าลิงก์แบบฟอร์ม (googleFormUrl ใน data/sources.json)</p>
+          )}
+          <h4 className="steps-sub">ตัดสินงานประชุม (proceedings)</h4>
+          <ol className="steps" start={5}>
+            <li>ในทะเบียนงานประชุมด้านล่าง กดปุ่ม "คัดลอก key" ในแถวของงานประชุมที่ต้องการ</li>
+            <li>เปิดแบบฟอร์มตัดสินงานประชุม วางรหัสที่คัดลอก แล้วเลือก "นับ" หรือ "ไม่นับ"</li>
+            <li>ระบบดึงคำตอบทุกชั่วโมง ถ้าส่งหลายครั้ง ระบบใช้คำตอบล่าสุด</li>
+          </ol>
+          {decisionFormUrl ? (
+            <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
+              เปิดแบบฟอร์มตัดสินงานประชุม ↗
+            </a>
+          ) : (
+            <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
           )}
         </section>
 
@@ -67,9 +82,11 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
             จึงต้องนำเข้าด้วยมือเป็นครั้งคราว
           </p>
         </section>
+
+        <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
 
-      <ConferenceRegister pubs={pubs} screening={data.conferenceScreening === 'on'} decisionFormUrl={decisionFormUrl} />
+      <ConferenceRegister pubs={pubs} />
 
       <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
       {manual.length === 0 ? (
@@ -115,18 +132,47 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
   )
 }
 
-/** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[]; screening: boolean; decisionFormUrl: string }) {
-  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
-  // Same window as the automatic check: papers that can still fall in this year's or next year's 5-year window.
+/** Same window as the automatic check: papers that can still fall in this year's or next year's 5-year window. */
+function registerWindow(pubs: Pub[]) {
   const minYear = new Date().getFullYear() - 5
-  let older = 0
+  const older = pubs.filter((p) => (p.type === 'proceeding' || p.type === 'poster') && p.conference && (p.year ?? 0) < minYear).length
+  return { minYear, older }
+}
+
+/** "คำอธิบาย" panel for the conference register, shown beside the data sources. */
+function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean }) {
+  const { minYear, older } = registerWindow(pubs)
+  return (
+    <section className="panel explain-panel">
+      <h3>คำอธิบาย</h3>
+      <ul className="explain-list">
+        <li>
+          <b>ช่วงที่แสดง:</b> ทะเบียนงานประชุมแสดงงานที่มีผลงานของอาจารย์ตั้งแต่ พ.ศ. {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า
+          {older > 0 && <span className="muted"> (ผลงานที่เก่ากว่านี้ {older} รายการ ไม่ต้องตรวจ)</span>}
+        </li>
+        <li>
+          <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
+        </li>
+        <li>
+          <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงในตาราง แต่ยังไม่นับจนกว่าผู้ดูแลจะตัดสิน
+        </li>
+        {!screening && (
+          <li>
+            <b>หมายเหตุ:</b> ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ จึงยังนับ proceedings ทุกรายการ
+          </li>
+        )}
+      </ul>
+    </section>
+  )
+}
+
+/** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
+function ConferenceRegister({ pubs }: { pubs: Pub[] }) {
+  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
+  const { minYear } = registerWindow(pubs)
   for (const p of pubs) {
     if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) continue
-    if ((p.year ?? 0) < minYear) {
-      older++
-      continue
-    }
+    if ((p.year ?? 0) < minYear) continue
     const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [] }
     g.pubs.push(p)
     groups.set(p.conference.key, g)
@@ -147,46 +193,6 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
       <h2 className="block-title">
         ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
       </h2>
-      {/* Register guide, rewritten as a list + numbered steps for admins (Tum, 2026-11-07) */}
-      <div className="register-guide">
-        <section className="guide-box">
-          <h3>ตารางนี้แสดงอะไร</h3>
-          <ul>
-            <li>
-              <b>ช่วงที่แสดง:</b> งานประชุมที่มีผลงานของอาจารย์ตั้งแต่ พ.ศ. {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า
-              {older > 0 && <span className="muted"> (ผลงานที่เก่ากว่านี้ {older} รายการ ไม่ต้องตรวจ)</span>}
-            </li>
-            <li>
-              <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
-            </li>
-            <li>
-              <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงในตาราง แต่ยังไม่นับจนกว่าผู้ดูแลจะตัดสิน
-            </li>
-            {!screening && (
-              <li>
-                <b>หมายเหตุ:</b> ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ จึงยังนับ proceedings ทุกรายการ
-              </li>
-            )}
-          </ul>
-        </section>
-        <section className="guide-box guide-steps">
-          <h3>ผู้ดูแลตัดสินเองได้อย่างไร</h3>
-          {decisionFormUrl ? (
-            <>
-              <ol>
-                <li>กดปุ่ม "คัดลอก key" ในแถวของงานประชุมที่ต้องการ</li>
-                <li>เปิดแบบฟอร์มตัดสินงานประชุม วางรหัสที่คัดลอก แล้วเลือก "นับ" หรือ "ไม่นับ"</li>
-                <li>ระบบดึงคำตอบทุกชั่วโมง ถ้าส่งหลายครั้ง ระบบใช้คำตอบล่าสุด</li>
-              </ol>
-              <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
-                เปิดแบบฟอร์มตัดสินงานประชุม ↗
-              </a>
-            </>
-          ) : (
-            <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
-          )}
-        </section>
-      </div>
       {rows.length > 0 && (
         <div className="register-tools no-print">
           <label className="control" htmlFor="register-year">

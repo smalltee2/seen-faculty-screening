@@ -508,12 +508,9 @@ html { scroll-padding-top: 92px; }
 .pager .btn { min-width: 40px; justify-content: center; }
 .pager .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Conference register guide (2026-11-07) */
-.register-guide { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; margin: 10px 0 6px; }
-.guide-box { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius-lg); padding: 14px 18px; }
-.guide-box h3 { margin: 0 0 8px; font-size: 1rem; }
-.guide-box ul, .guide-box ol { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.92rem; line-height: 1.6; color: var(--fg); }
-.guide-box li b { color: var(--fg); }
-.guide-steps { border-left-color: var(--ember); }
-.guide-steps .btn { margin-top: 12px; }
-@media (max-width: 860px) { .register-guide { grid-template-columns: 1fr; } }
+/* Admin top row: steps, data sources, explanation (2026-11-07) */
+.admin-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.steps-sub { margin: 14px 0 6px; font-size: 0.92rem; color: var(--accent); }
+.steps-sub:first-of-type { margin-top: 2px; }
+.admin-grid .panel .btn { margin-top: 10px; }
+.explain-list { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; font-size: 0.92rem; line-height: 1.6; }
