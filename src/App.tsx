@@ -122,6 +122,7 @@ export function App() {
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
 
   // รายชื่ออาจารย์ (#/lecturers, #/person/…) and เพิ่มผลงานด้วยตนเอง (#/admin) share one tab (2026-11-07).
+  const adminView = (route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin !== null
   const tab = route.page === 'lecturers' || route.page === 'person' || route.page === 'admin' ? 'admin' : route.page
   const tabs = [
     { id: 'overview', href: '#/', th: 'ภาพรวม', en: 'Overview' },
@@ -180,26 +181,10 @@ export function App() {
               ))}
             </select>
           </label>
-          <div className="control">
-            <span className="control-label">ช่วงผลงาน 5 ปี</span>
-            <span className="control-value">
-              {toBE(settings.year - 4)}–{toBE(settings.year)} <span className="muted">({settings.year - 4}–{settings.year})</span>
-            </span>
-          </div>
-          <div className="control">
-            <span className="control-label">ผลงานที่นับ ได้แก่</span>
-            <span className="control-text">วารสาร, proceedings/โปสเตอร์/บทคัดย่อในงานประชุม ที่มาจากการประชุมโดยสมาคมวิชาการหรือวิชาชีพในสาขาเกี่ยวข้องกับสิ่งแวดล้อม/พลังงาน</span>
-          </div>
-        </section>
-
-        <main id="main" tabIndex={-1}>
-          {route.page === 'overview' && <Overview results={results} settings={settings} />}
-          {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin === null && (
-            <AdminGateForm data={data} title="สำหรับผู้ดูแลระบบ" onUnlocked={setAdmin} />
-          )}
-          {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin !== null && (
-            <div className="admin-bar no-print">
-              <label className="admin-view" htmlFor="admin-view">
+          {adminView ? (
+            <>
+              {/* Admin tab (Tum, 2026-11-07): the view drop-down sits beside the year; range and counted-works text are hidden */}
+              <label className="control" htmlFor="admin-view">
                 <span className="control-label">เลือกดู</span>
                 <select id="admin-view" value={route.page === 'admin' ? 'admin' : 'lecturers'} onChange={(e) => (window.location.hash = e.target.value === 'admin' ? '#/admin' : '#/lecturers')}>
                   <option value="lecturers">ข้อมูลอาจารย์ ({results.length} คน)</option>
@@ -207,11 +192,33 @@ export function App() {
                 </select>
               </label>
               {lock && (
-                <button type="button" className="btn" onClick={lock}>
-                  ออกจากระบบผู้ดูแล
-                </button>
+                <div className="control control-end">
+                  <button type="button" className="btn" onClick={lock}>
+                    ออกจากระบบผู้ดูแล
+                  </button>
+                </div>
               )}
-            </div>
+            </>
+          ) : (
+            <>
+              <div className="control">
+                <span className="control-label">ช่วงผลงาน 5 ปี</span>
+                <span className="control-value">
+                  {toBE(settings.year - 4)}–{toBE(settings.year)} <span className="muted">({settings.year - 4}–{settings.year})</span>
+                </span>
+              </div>
+              <div className="control">
+                <span className="control-label">ผลงานที่นับ ได้แก่</span>
+                <span className="control-text">วารสาร, proceedings/โปสเตอร์/บทคัดย่อในงานประชุม ที่มาจากการประชุมโดยสมาคมวิชาการหรือวิชาชีพในสาขาเกี่ยวข้องกับสิ่งแวดล้อม/พลังงาน</span>
+              </div>
+            </>
+          )}
+        </section>
+
+        <main id="main" tabIndex={-1}>
+          {route.page === 'overview' && <Overview results={results} settings={settings} />}
+          {(route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin === null && (
+            <AdminGateForm data={data} title="สำหรับผู้ดูแลระบบ" onUnlocked={setAdmin} />
           )}
           {route.page === 'lecturers' && admin !== null && (
             <LecturersPage

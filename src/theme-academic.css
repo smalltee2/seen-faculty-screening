@@ -495,3 +495,5 @@ html { scroll-padding-top: 92px; }
 .section-switch .seg button { padding: 9px 18px; font-size: 0.95rem; font-weight: 600; }
 .section-switch + .outputs-block, .section-switch + .lecturers-head { margin-top: 14px; }
 @media (max-width: 720px) { .section-switch .seg { width: 100%; } .section-switch .seg button { flex: 1; padding: 9px 10px; font-size: 13px; white-space: normal; } }
+/* Admin tab: logout button at the right end of the controls row */
+.controls .control-end { margin-left: auto; justify-content: center; border-left: 0 !important; padding-right: 0; }
