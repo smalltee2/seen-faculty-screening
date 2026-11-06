@@ -497,3 +497,5 @@ html { scroll-padding-top: 92px; }
 @media (max-width: 720px) { .section-switch .seg { width: 100%; } .section-switch .seg button { flex: 1; padding: 9px 10px; font-size: 13px; white-space: normal; } }
 /* Admin tab: logout button at the right end of the controls row */
 .controls .control-end { margin-left: auto; justify-content: center; border-left: 0 !important; padding-right: 0; }
+/* Hint after a section title, smaller and muted (Tum, 2026-11-07) */
+.block-title .title-hint { font: 500 0.82rem/1.4 var(--font-body); color: var(--muted); letter-spacing: 0; margin-left: 6px; }

@@ -172,11 +172,10 @@ export function LecturersPage({
       {section === "duties" && (
         <>
           <div className="block-head lecturers-head">
-            <h2 className="block-title">ผลการประเมินรายบุคคลตามหน้าที่</h2>
-            <p className="note">
-              แสดง {shown.length} จาก {results.length} คน ·
-              คลิกชื่อเพื่อดูเหตุผลและรายการผลงาน
-            </p>
+            <h2 className="block-title">
+              ผลการประเมินรายบุคคลตามหน้าที่{" "}
+              <small className="title-hint">คลิกชื่อเพื่อดูเหตุผลและรายการผลงาน</small>
+            </h2>
           </div>
 
           <div className="toolbar no-print">
