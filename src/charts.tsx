@@ -1,7 +1,7 @@
 // Hand-built SVG charts (no chart library). Colours come from CSS tokens
 // --c-journal / --c-proceeding / --c-poster, validated for colour-blind
 // separation in light and dark themes.
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup } from './ui'
@@ -265,13 +265,20 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)) * 1.12)
   const W = Math.max(280, width)
   const narrow = W < 600
-  const rowH = 26
-  const m = { t: 22, r: narrow ? 34 : 50, b: 26, l: Math.round(Math.min(240, Math.max(118, W * 0.36))) }
-  const maxChars = Math.floor(m.l / 7)
+  // Pill-and-bubble style (Tum's reference, 2026-11-07): thick round-ended bars, the total in a
+  // speech bubble at the bar end, a large italic rank number before each name, soft shading at 0.
+  const uid = useId().replace(/:/g, '')
+  const rowH = narrow ? 30 : 34
+  const rankW = narrow ? 26 : 40
+  const nameW = Math.round(Math.min(230, Math.max(110, W * 0.3)))
+  const m = { t: 24, r: narrow ? 40 : 150, b: 26, l: rankW + nameW }
+  const maxChars = Math.floor(nameW / 7)
   const H = m.t + m.b + rows.length * rowH
   const iw = W - m.l - m.r
   const sx = (v: number) => m.l + (v / max) * iw
-  const bh = 14
+  const bh = narrow ? 14 : 18
+  const bubbles: ReactNode[] = [] // drawn after the threshold line so it never covers a total
+  const tone = (x: { failed: number; risk: unknown[] }) => (x.failed > 0 ? 'fail' : x.risk.length > 0 ? 'risk' : 'ok')
 
   return (
     <figure className="chart" ref={ref}>
@@ -311,8 +318,11 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               {(x.failed > 0 || x.risk.length > 0) && (
                 <rect className={x.failed > 0 ? 'fail-frame' : 'risk-frame'} x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />
               )}
+              <text className={`rank rank-${tone(x)}`} x={rankW - 6} y={y + bh - 1} textAnchor="end">
+                {String(i + 1).padStart(2, '0')}
+              </text>
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
-                <text className="row-label" x={m.l - 10} y={y + bh - 2} textAnchor="end">
+                <text className="row-label" x={m.l - 10} y={y + bh - 4} textAnchor="end">
                   {(() => {
                     // Narrow screens drop the title (รศ.ดร.) so the name itself fits.
                     const label = narrow ? x.r.person.nameTh || x.name : x.name
@@ -320,17 +330,36 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                   })()}
                 </text>
               </a>
-              {segs.map((s, si) => {
-                if (!s.v) return null
-                const x0 = sx(acc)
-                acc += s.v
-                const w = sx(acc) - x0 - (segs.slice(si + 1).some((z) => z.v) ? 2 : 0)
-                return <rect key={s.cls} className={s.cls} x={x0} y={y} width={Math.max(0, w)} height={bh} rx={2} />
-              })}
-              <text className="bar-label" x={sx(acc) + 6} y={y + bh - 2}>
-                {total}
-                {x.maybe ? `+${x.maybe}?` : ''}
-              </text>
+              <rect className="pill-track" x={sx(0)} y={y} width={iw} height={bh} rx={bh / 2} />
+              <clipPath id={`${uid}-c${i}`}>
+                <rect x={sx(0)} y={y} width={Math.max(bh, sx(total + x.maybe) - sx(0))} height={bh} rx={bh / 2} />
+              </clipPath>
+              <g clipPath={`url(#${uid}-c${i})`}>
+                {segs.map((s, si) => {
+                  if (!s.v) return null
+                  const x0 = sx(acc)
+                  acc += s.v
+                  const w = sx(acc) - x0 - (segs.slice(si + 1).some((z) => z.v) ? 2 : 0)
+                  return <rect key={s.cls} className={s.cls} x={x0} y={y} width={Math.max(0, w)} height={bh} />
+                })}
+                <rect className="pill-gloss" x={sx(0)} y={y} width={iw} height={bh / 2} />
+              </g>
+              {void (() => {
+                const label = `${total}${x.maybe ? `+${x.maybe}?` : ''}`
+                const bwid = 14 + label.length * (narrow ? 7 : 8)
+                const bx = Math.max(sx(acc), sx(0) + bh / 2) + 10
+                const bhh = narrow ? 18 : 22
+                const by = y + bh / 2 - bhh / 2
+                bubbles.push(
+                  <g key={x.r.person.nameEn} className={`bubble bubble-${tone(x)}`}>
+                    <path d={`M${bx},${y + bh / 2 - 5}L${bx - 6},${y + bh / 2}L${bx},${y + bh / 2 + 5}Z`} />
+                    <rect x={bx} y={by} width={bwid} height={bhh} rx={6} />
+                    <text x={bx + bwid / 2} y={by + bhh / 2 + (narrow ? 4 : 5)} textAnchor="middle">
+                      {label}
+                    </text>
+                  </g>,
+                )
+              })()}
               {x.failed > 0 ? (
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
                   {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${roles.length} หน้าที่`}
@@ -380,6 +409,13 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
             </g>
           )
         })}
+        <defs>
+          <linearGradient id={`${uid}-shade`} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" className="shade-0" />
+            <stop offset="1" className="shade-1" />
+          </linearGradient>
+        </defs>
+        <rect x={sx(0)} y={m.t - 6} width={Math.min(56, iw * 0.07)} height={H - m.b - m.t + 6} fill={`url(#${uid}-shade)`} pointerEvents="none" />
         {/* Threshold drawn over the bars (with a surface halo) so it stays visible across them */}
         <g className="rule-group">
           <line className="rule-halo" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
@@ -388,6 +424,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
             เกณฑ์ ≥ {threshold} เรื่อง
           </text>
         </g>
+        {bubbles}
         <line className="baseline" x1={m.l} x2={m.l} y1={m.t - 6} y2={H - m.b} />
       </svg>
       {el}

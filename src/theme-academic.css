@@ -468,3 +468,27 @@ html { scroll-padding-top: 92px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .metric.metric-card { box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.6); } }
 :root[data-theme='dark'] .metric.metric-card { box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.6); }
 @media (max-width: 720px) { .metrics { gap: 20px; } .metric-badge { font-size: 12px; } }
+
+/* Per-lecturer chart: pill bars + speech-bubble totals + rank numbers (Tum's reference, 2026-11-07) */
+.chart .pill-track { fill: color-mix(in srgb, var(--line) 45%, transparent); }
+.chart .pill-gloss { fill: #fff; opacity: 0.14; pointer-events: none; }
+.chart .rank { font: italic 700 22px/1 var(--font-display); letter-spacing: -0.02em; }
+.chart .rank-ok { fill: color-mix(in srgb, var(--accent) 85%, var(--panel)); }
+.chart .rank-risk { fill: var(--rev-mark); }
+.chart .rank-fail { fill: var(--not-mark); }
+.chart .bubble rect, .chart .bubble path { stroke: none; }
+.chart .bubble-ok rect, .chart .bubble-ok path { fill: var(--accent); }
+.chart .bubble-risk rect, .chart .bubble-risk path { fill: #9a6a00; }
+.chart .bubble-fail rect, .chart .bubble-fail path { fill: var(--not-mark); }
+.chart .bubble text { fill: #fff; font: 700 12.5px var(--font-body); font-variant-numeric: tabular-nums; }
+.chart .shade-0 { stop-color: var(--fg); stop-opacity: 0.16; }
+.chart .shade-1 { stop-color: var(--fg); stop-opacity: 0; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .chart .bubble text { fill: #1c1b18; }
+  :root:not([data-theme='light']) .chart .bubble-risk rect, :root:not([data-theme='light']) .chart .bubble-risk path { fill: var(--rev-mark); }
+  :root:not([data-theme='light']) .chart .pill-gloss { opacity: 0.08; }
+}
+:root[data-theme='dark'] .chart .bubble text { fill: #1c1b18; }
+:root[data-theme='dark'] .chart .bubble-risk rect, :root[data-theme='dark'] .chart .bubble-risk path { fill: var(--rev-mark); }
+:root[data-theme='dark'] .chart .pill-gloss { opacity: 0.08; }
+@media (max-width: 720px) { .chart .rank { font-size: 15px; } .chart .bubble text { font-size: 12px; } }
