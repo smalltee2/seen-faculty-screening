@@ -32,6 +32,10 @@ const CONFIG = {
   // One file per calendar year with the list as last seen in that year, so a journal's
   // กลุ่ม at the time an article appeared can be looked up later (stored, not displayed yet).
   tciSnapshotDir: join(ROOT, 'data/tci_snapshots'),
+  // Per-round กลุ่ม of every TCI journal (tier, start_date, end_date) from the journal record
+  // endpoint; authoritative for "กลุ่ม ณ ปีที่ตีพิมพ์". Stored, not displayed yet (Tum, 2026-11-06).
+  tciHistoryOut: join(ROOT, 'data/tci_tier_history.csv'),
+  tciInfoUrl: 'https://tci-thailand.org/backend/journal/get_journal_info',
   scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
   tciUrl: 'https://tci-thailand.org/backend/journal/list_all_journal',
   firstYear: new Date().getFullYear() - 11, // ten years for the chart plus one
@@ -351,6 +355,47 @@ async function fetchScopusJournals(key) {
   log(`Scopus journals: ${rows.length} ISSNs cached (${added} new), ${rows.filter((r) => r.in_scopus === 'yes').length} in Scopus -> data/scopus_journals.csv`)
 }
 
+/** data/tci_tier_history.csv: one row per (journal, certification period). Journals already
+ *  in the file are skipped unless --refresh-history is given, so the nightly run only adds
+ *  new journals; a full refresh is about 1,700 requests. */
+async function fetchTciHistory(refresh) {
+  const journals = existsSync(CONFIG.tciOut) ? parseCsv(readFileSync(CONFIG.tciOut, 'utf8')) : []
+  if (journals.length < 2) return log('TCI history: no data/tci_journals.csv yet; skipped')
+  const jh = journals[0]
+  const ids = journals.slice(1).map((r) => r[jh.indexOf('id')]).filter(Boolean)
+  const header = ['journal_id', 'tier', 'start_date', 'end_date', 'category', 'fetched']
+  const prev = !refresh && existsSync(CONFIG.tciHistoryOut) ? parseCsv(readFileSync(CONFIG.tciHistoryOut, 'utf8')).slice(1) : []
+  const rows = prev.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
+  const done = new Set(rows.map((r) => r.journal_id))
+  const todo = ids.filter((id) => !done.has(id))
+  const today = new Date().toISOString().slice(0, 10)
+  let ok = 0
+  let failed = 0
+  const worker = async () => {
+    for (;;) {
+      const id = todo.shift()
+      if (id === undefined) return
+      try {
+        const res = await fetch(CONFIG.tciInfoUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': CONFIG.userAgent }, body: JSON.stringify({ journal_id: Number(id) }), signal: AbortSignal.timeout(90000) })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const d = await res.json()
+        const hist = Array.isArray(d.tci_tier_history) ? d.tci_tier_history : []
+        if (!hist.length) rows.push({ journal_id: id, tier: '', start_date: '', end_date: '', category: '', fetched: today })
+        for (const h of hist) rows.push({ journal_id: id, tier: h.tier ?? '', start_date: h.start_date ?? '', end_date: h.end_date ?? '', category: h.journal_catetory ?? h.journal_category ?? '', fetched: today })
+        ok++
+      } catch (e) {
+        failed++
+        if (failed <= 5) warn(`TCI history: journal ${id} failed (${e.message})`)
+      }
+      await sleep(200)
+    }
+  }
+  await Promise.all([worker(), worker(), worker()])
+  rows.sort((a, b) => Number(a.journal_id) - Number(b.journal_id) || (a.start_date < b.start_date ? 1 : -1))
+  writeFileSync(CONFIG.tciHistoryOut, [header.join(','), ...rows.map((r) => header.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
+  log(`TCI history: ${ok} journals fetched, ${failed} failed, ${new Set(rows.map((r) => r.journal_id)).size} journals in file -> data/tci_tier_history.csv`)
+}
+
 const csvCell = (v) => {
   const t = clean(v)
   return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
@@ -402,3 +447,4 @@ if (run('tci')) {
     warn(`TCI: ${e.message}`)
   }
 }
+if (run('tci') || only === 'tcihistory') await fetchTciHistory(process.argv.includes('--refresh-history'))
