@@ -332,3 +332,21 @@ a, button, select, input, label, .seg button { touch-action: manipulation; -webk
 }
 html { scroll-padding-top: 92px; }
 @media (max-width: 720px) { html { scroll-padding-top: 140px; } }
+
+/* Deeper tones so header, page and cards separate clearly (Tum, 2026-11-07) */
+:root {
+  --bg: #efebe2;
+  --line: #d8d2c6;
+  --line-strong: #bfb8aa;
+  --nav-bg: rgba(220, 230, 218, 0.94);
+  --nav-line: #1d5c33;
+  --shadow-sm: 0 1px 3px rgba(44, 42, 37, 0.09);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --bg: #181714; --line: #46433b; --nav-bg: rgba(31, 46, 36, 0.95); --nav-line: #7cc796; --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45); }
+}
+:root[data-theme='dark'] { --bg: #181714; --line: #46433b; --nav-bg: rgba(31, 46, 36, 0.95); --nav-line: #7cc796; --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45); }
+.site-nav { border-bottom: 3px solid var(--nav-line); box-shadow: var(--shadow-navbar); }
+.nav-link:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.nav-link { color: color-mix(in srgb, var(--fg) 82%, var(--accent)); }
+.nav-link[aria-current='page'] { background: color-mix(in srgb, var(--panel) 70%, transparent); }
