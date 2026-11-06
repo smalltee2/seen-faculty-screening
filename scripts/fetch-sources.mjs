@@ -297,7 +297,7 @@ function writeRegister(path, entries) {
 
 /** Merge admin decisions from the published sheet into data/conferences.csv.
  *  The latest submission per key wins; a key not yet in the register gets a new row. */
-async function fetchDecisions(url) {
+async function fetchDecisions(url, admins = []) {
   if (!url) {
     log('Decisions sheet: no decisionSheetCsvUrl in data/sources.json; skipped')
     return
@@ -345,6 +345,12 @@ async function fetchDecisions(url) {
     }
     const decision = DECISION_MAP[decisionLabel]
     const by = col(r, 'email') || 'admin form'
+    // Only listed admins may decide: DECISION_ADMINS env (GitHub secret, comma-separated e-mails), so
+    // the addresses never sit in the public repo. No list = nothing is applied (fail closed).
+    if (!admins.length || !admins.map((x) => x.toLowerCase()).includes(by.toLowerCase())) {
+      skipped.push(`${key} (${by} not in DECISION_ADMINS)`)
+      continue
+    }
     const at = col(r, 'timestamp')
     const note = col(r, 'note')
     let e = register.find((x) => x.key === key)
@@ -359,7 +365,7 @@ async function fetchDecisions(url) {
     applied++
   }
   writeRegister(registerPath, register)
-  log(`Decisions sheet: ${applied} decision(s) applied to data/conferences.csv${skipped.length ? `; skipped ${skipped.length} row(s) without a valid key/decision: ${skipped.slice(0, 5).join(', ')}` : ''}`)
+  log(`Decisions sheet: ${applied} decision(s) applied to data/conferences.csv${skipped.length ? `; skipped ${skipped.length} row(s) (no key, invalid decision, or sender not in DECISION_ADMINS): ${skipped.slice(0, 5).join(', ')}` : ''}`)
 }
 
 async function fetchManual(faculty, url) {
@@ -544,7 +550,7 @@ if (run('scopus')) {
   } else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
 }
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
-if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '')
+if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
 if (run('tci')) {
   try {
     await fetchTci()

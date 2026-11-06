@@ -32,6 +32,7 @@ jobs:
         env:
           SCOPUS_API_KEY: ${{ secrets.SCOPUS_API_KEY }}
           SCOPUS_INSTTOKEN: ${{ secrets.SCOPUS_INSTTOKEN }}
+          DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: npm run fetch
       - name: Commit refreshed data
         if: github.event_name != 'push'
