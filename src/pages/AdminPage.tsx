@@ -134,6 +134,14 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
   const order: Record<string, number> = { pending: 0, no_count: 1, count: 2 }
   const rows = [...groups.values()].sort((a, b) => order[a.match.verdict] - order[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0))
   const pending = rows.filter((r) => r.match.verdict === 'pending').length
+  // Year filter and 10 conferences per page (Tum, 2026-11-07), so the register stays short as it grows.
+  const [year, setYear] = useState<number | 'all'>('all')
+  const [page, setPage] = useState(0)
+  const yearsInRows = [...new Set(rows.flatMap((r) => r.pubs.map((p) => p.year)).filter((y): y is number => y !== null))].sort((a, b) => b - a)
+  const filtered = year === 'all' ? rows : rows.filter((r) => r.pubs.some((p) => p.year === year))
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const cur = Math.min(page, pages - 1)
+  const shown = filtered.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE)
   return (
     <>
       <h2 className="block-title">
@@ -153,14 +161,40 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
           <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
             แบบฟอร์มตัดสินงานประชุม
           </a>{' '}
-          ระบบดึงคำตอบทุกวันเวลาประมาณ 03:00 น. คำตอบล่าสุดของแต่ละงานมีผล
+          ระบบดึงคำตอบทุกชั่วโมง คำตอบล่าสุดของแต่ละงานมีผล
         </p>
       ) : (
         <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
       )}
+      {rows.length > 0 && (
+        <div className="register-tools no-print">
+          <label className="control" htmlFor="register-year">
+            <span className="control-label">ปีของผลงาน</span>
+            <select
+              id="register-year"
+              value={year}
+              onChange={(e) => {
+                setYear(e.target.value === 'all' ? 'all' : Number(e.target.value))
+                setPage(0)
+              }}
+            >
+              <option value="all">ทุกปี</option>
+              {yearsInRows.map((y) => (
+                <option key={y} value={y}>
+                  พ.ศ. {toBE(y)} ({y})
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="muted small">
+            {filtered.length === 0 ? 'ไม่มีงานประชุมในปีนี้' : `แสดง ${cur * PAGE_SIZE + 1}–${cur * PAGE_SIZE + shown.length} จาก ${filtered.length} งาน`}
+          </span>
+        </div>
+      )}
       {rows.length === 0 ? (
         <p className="note">ไม่มี proceedings ในข้อมูล</p>
-      ) : (
+      ) : filtered.length === 0 ? null : (
+        <>
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -174,7 +208,7 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ match, pubs: ps }) => {
+              {shown.map(({ match, pubs: ps }) => {
                 const e = match.entry
                 return (
                   <tr key={match.key}>
@@ -207,8 +241,31 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
             </tbody>
           </table>
         </div>
+        {pages > 1 && <Pager page={cur} pages={pages} onPage={setPage} />}
+        </>
       )}
     </>
+  )
+}
+
+const PAGE_SIZE = 10
+
+/** Page buttons: previous, numbered pages, next. */
+function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
+  return (
+    <nav className="pager no-print" aria-label="เลือกหน้าทะเบียนงานประชุม">
+      <button type="button" className="btn btn-small" disabled={page === 0} onClick={() => onPage(page - 1)}>
+        ‹ ก่อนหน้า
+      </button>
+      {Array.from({ length: pages }, (_, i) => (
+        <button key={i} type="button" className={`btn btn-small${i === page ? ' btn-primary' : ''}`} aria-current={i === page ? 'page' : undefined} onClick={() => onPage(i)}>
+          {i + 1}
+        </button>
+      ))}
+      <button type="button" className="btn btn-small" disabled={page === pages - 1} onClick={() => onPage(page + 1)}>
+        ถัดไป ›
+      </button>
+    </nav>
   )
 }
 

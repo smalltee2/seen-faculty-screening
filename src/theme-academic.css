@@ -499,3 +499,11 @@ html { scroll-padding-top: 92px; }
 .controls .control-end { margin-left: auto; justify-content: center; border-left: 0 !important; padding-right: 0; }
 /* Hint after a section title, smaller and muted (Tum, 2026-11-07) */
 .block-title .title-hint { font: 500 0.82rem/1.4 var(--font-body); color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+
+/* Conference register: year filter + pager (2026-11-07) */
+.register-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; margin: 12px 0 10px; }
+.register-tools .control { display: flex; flex-direction: column; gap: 4px; }
+.register-tools select { padding: 7px 10px; font-size: 0.95rem; }
+.pager { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 14px 0 4px; }
+.pager .btn { min-width: 40px; justify-content: center; }
+.pager .btn:disabled { opacity: 0.45; cursor: not-allowed; }
