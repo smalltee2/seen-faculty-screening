@@ -227,3 +227,14 @@ src/review.ts             review queue and overrides.csv line generator
 src/pages/                Overview, lecturer page, review queue
 .github/workflows/deploy.yml
 ```
+
+## User manual
+
+`docs/manual/คู่มือการใช้งาน.pdf` is built from annotated screenshots of the live site:
+
+```bash
+scripts/manual/shots.sh            # headless Chrome screenshots → docs/manual/shots/
+python3 scripts/manual/build-manual.py   # numbered arrows (Pillow) + HTML → PDF (Chrome)
+```
+
+Callout positions live in `scripts/manual/build-manual.py`; the Sarabun font (OFL) is bundled in `docs/manual/fonts/`.

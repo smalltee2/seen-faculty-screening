@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { LEVELS, ROLES, nextYearRisk, toBE, type PersonResult, type Settings, type Status } from '../rules'
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, Segmented, StatusChip, displayName, isShownLevel, levelGroup, roleShort } from '../ui'
-import type { LecturerFilter, LecturerScope } from '../App'
+import type { LecturerFilter, LecturerScope, LecturerView } from '../App'
 
 type View = 'cards' | 'table'
 
@@ -24,13 +24,15 @@ export function LecturersPage({
   settings,
   filter: initialFilter = 'all',
   scope: initialScope = 'all',
+  view: initialView,
 }: {
   results: PersonResult[]
   settings: Settings
   filter?: LecturerFilter
   scope?: LecturerScope
+  view?: LecturerView
 }) {
-  const [state, setState] = useState(loadState)
+  const [state, setState] = useState(() => (initialView ? { view: initialView } : loadState()))
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<LecturerFilter>(initialFilter)
   const [scope, setScope] = useState<LecturerScope>(initialScope)

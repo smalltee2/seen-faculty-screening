@@ -5,3 +5,6 @@ src/generated/
 .DS_Store
 standalone/
 tsconfig.tsbuildinfo
+docs/manual/shots/
+docs/manual/annotated/
+docs/manual/manual.html
