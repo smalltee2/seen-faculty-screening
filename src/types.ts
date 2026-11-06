@@ -65,6 +65,33 @@ export interface DataBundle {
   tci?: TciJournal[]
   /** Journals indexed in Scopus, by ISSN (data/scopus_journals.csv). */
   scopusJournals?: { issn: string; name: string }[]
+  /** Conference register (data/conferences.csv); see src/conferences.ts. */
+  conferences?: ConferenceEntry[]
+  /** data/rules.json → conferenceScreening: 'on' applies the register to the counts; 'off' only shows it. */
+  conferenceScreening?: 'on' | 'off'
+}
+
+/** One row of data/conferences.csv. `key` is `venue:<normalised name>` or `work:<normalised title>`. */
+export interface ConferenceEntry {
+  key: string
+  /** The venue string (or paper title for work keys) the check was run on. */
+  displayName: string
+  conferenceName: string
+  organiser: string
+  association: string
+  associationRole: 'organiser' | 'co_organiser' | 'none' | 'unknown'
+  field: string
+  relatedField: 'yes' | 'no' | 'unknown'
+  confidence: 'high' | 'medium' | 'low'
+  evidenceUrl: string
+  checkedAt: string
+  checkedBy: string
+  note: string
+  /** Admin override; empty = use the automatic verdict. */
+  decision: 'count' | 'no_count' | ''
+  decidedBy: string
+  decidedAt: string
+  decisionNote: string
 }
 
 export interface TciJournal {
@@ -98,4 +125,6 @@ export interface Pub extends RawPub {
   /** Every source that listed this work. */
   sources: PubSource[]
   override: Override | null
+  /** Conference screening result; only set for proceedings. */
+  conference?: import('./conferences').ConferenceMatch
 }

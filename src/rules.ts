@@ -18,6 +18,8 @@ export interface Settings {
   year: number
   /** Count posters/abstracts as outputs. Off by default: see the warning in the UI. */
   countPosters: boolean
+  /** Apply the conference register to proceedings (data/rules.json). Off = show only. */
+  screenConferences?: boolean
   /** Strict mode (the site's setting): anything that cannot be confirmed is not counted,
    *  missing degree/rank data does not qualify, and no result is left as needs review. */
   strict?: boolean
@@ -150,6 +152,12 @@ export function evaluatePub(pub: Pub, p: Faculty, s: Settings): PubEval {
   } else if (pub.typeUncertain) {
     parts.push('maybe')
     reasons.push(pub.typeReason)
+  }
+  // Proceedings count only from conferences an association organises or co-organises in
+  // environment/energy; unchecked ones are shown but not counted (Tum, 2026-11-06).
+  if (s.screenConferences && pub.type === 'proceeding' && pub.conference) {
+    if (pub.conference.verdict !== 'count') parts.push('no')
+    reasons.push(pub.conference.reason)
   }
   if (pub.year === null) {
     parts.push('no')

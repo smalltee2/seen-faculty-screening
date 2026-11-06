@@ -22,12 +22,21 @@ git pull --rebase -q || { log "ERROR: git pull failed"; exit 1; }
 # previous rows, so nothing changes and nothing is pushed.
 SCOPUS_API_KEY="$KEY" node scripts/fetch-sources.mjs --only=scopus || { log "ERROR: Scopus fetch failed"; exit 1; }
 
-git add data/scopus.tsv data/scopus_journals.csv
+# Conference screening for new proceedings: Claude Code (signed in on this Mac with
+# `claude login`) looks up who organises each conference; see scripts/screen-conferences.ts.
+# A failure here (not signed in, no network) must not block the Scopus push.
+if command -v claude >/dev/null 2>&1; then
+  node scripts/build-data.mjs >/dev/null 2>&1 && npx tsx scripts/screen-conferences.ts --limit 10 2>&1 | while IFS= read -r l; do log "$l"; done
+else
+  log "claude not installed; conference screening skipped"
+fi
+
+git add data/scopus.tsv data/scopus_journals.csv data/conferences.csv
 if git diff --cached --quiet; then
-  log "No Scopus changes"
+  log "No Scopus or conference changes"
   exit 0
 fi
-git commit -q -m "Scopus refresh from iMac $(date +%Y-%m-%d)"
+git commit -q -m "Scopus refresh and conference screening from iMac $(date +%Y-%m-%d)"
 if ! git push -q; then
   log "Push rejected, rebasing and retrying"
   git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; log "ERROR: push failed"; exit 1; }

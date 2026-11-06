@@ -12,6 +12,8 @@ const CONFIG = {
   faculty: join(ROOT, 'data/faculty.csv'),
   publications: join(ROOT, 'data/publications.tsv'),
   overrides: join(ROOT, 'data/overrides.csv'),
+  conferences: join(ROOT, 'data/conferences.csv'),
+  rules: join(ROOT, 'data/rules.json'),
   out: join(ROOT, 'src/generated/data.json'),
   ranks: ['อาจารย์', 'ผศ.', 'รศ.', 'ศ.'],
   degrees: ['ปริญญาโท', 'ปริญญาเอก'],
@@ -76,6 +78,29 @@ const faculty = toRecords(
     notes: f.notes,
   }
 })
+
+// Conference register (optional): see src/conferences.ts and scripts/screen-conferences.ts.
+const CONF_COLS = ['key', 'display_name', 'conference_name', 'organiser', 'association', 'association_role', 'field', 'related_field', 'confidence', 'evidence_url', 'checked_at', 'checked_by', 'note', 'decision', 'decided_by', 'decided_at', 'decision_note']
+const conferences = existsSync(CONFIG.conferences)
+  ? toRecords(parseCsv(read(CONFIG.conferences)), CONF_COLS, 'conferences.csv').map((c) => {
+      if (!c.key) fail(`conferences.csv line ${c._line}: key is empty`)
+      if (!['organiser', 'co_organiser', 'none', 'unknown'].includes(c.association_role)) fail(`conferences.csv line ${c._line}: association_role "${c.association_role}"`)
+      if (!['yes', 'no', 'unknown'].includes(c.related_field)) fail(`conferences.csv line ${c._line}: related_field "${c.related_field}"`)
+      if (!['high', 'medium', 'low'].includes(c.confidence)) fail(`conferences.csv line ${c._line}: confidence "${c.confidence}"`)
+      if (!['count', 'no_count', ''].includes(c.decision)) fail(`conferences.csv line ${c._line}: decision "${c.decision}" must be count, no_count or empty`)
+      return {
+        key: c.key, displayName: c.display_name, conferenceName: c.conference_name, organiser: c.organiser, association: c.association,
+        associationRole: c.association_role, field: c.field, relatedField: c.related_field, confidence: c.confidence, evidenceUrl: c.evidence_url,
+        checkedAt: c.checked_at, checkedBy: c.checked_by, note: c.note, decision: c.decision, decidedBy: c.decided_by, decidedAt: c.decided_at, decisionNote: c.decision_note,
+      }
+    })
+  : []
+{
+  const dup = conferences.map((c) => c.key).filter((k, i, a) => a.indexOf(k) !== i)
+  if (dup.length) fail(`conferences.csv: duplicate key(s) ${[...new Set(dup)].join(', ')}`)
+}
+const rules = existsSync(CONFIG.rules) ? JSON.parse(read(CONFIG.rules)) : {}
+const conferenceScreening = rules.conferenceScreening === 'on' ? 'on' : 'off'
 
 const names = new Set()
 for (const f of faculty) {
@@ -160,6 +185,6 @@ const scopusJournals = existsSync(sjFile)
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}) -> src/generated/data.json`)

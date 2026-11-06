@@ -2,7 +2,8 @@
 // exclude, tag research vs. review/academic articles, merge duplicates and
 // apply overrides.csv. Anything decided on weak evidence is marked uncertain
 // and goes to the review queue instead of being guessed.
-import type { Override, Pub, PubType, RawPub } from './types'
+import { buildConferenceIndex, matchConference } from './conferences'
+import type { ConferenceEntry, Override, Pub, PubType, RawPub } from './types'
 
 /** Lowercase, Unicode-normalise, and strip punctuation and whitespace. */
 export function normalizeTitle(title: string): string {
@@ -239,11 +240,12 @@ export function hideMatchedErrata(pubs: Pub[]): Pub[] {
   })
 }
 
-export function preparePubs(rows: RawPub[], overrides: Override[]): Pub[] {
-  return hideMatchedErrata(preparePubsAll(rows, overrides))
+export function preparePubs(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[] = []): Pub[] {
+  return hideMatchedErrata(preparePubsAll(rows, overrides, conferences))
 }
 
-function preparePubsAll(rows: RawPub[], overrides: Override[]): Pub[] {
+function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[]): Pub[] {
+  const confIdx = buildConferenceIndex(conferences)
   const byKey = new Map(overrides.map((o) => [overrideKey(o.key, o.titleNormalized), o]))
   return dedupe(rows).map(({ row, duplicates, members }) => {
     const titleNorm = normalizeTitle(row.title)
@@ -275,6 +277,7 @@ function preparePubsAll(rows: RawPub[], overrides: Override[]): Pub[] {
     if (o?.isResearch !== null && o?.isResearch !== undefined)
       Object.assign(pub, { isResearch: o.isResearch, researchReason: 'แก้ไขด้วยมือ (override)', researchUncertain: false })
     if (o?.ownDegree !== null && o?.ownDegree !== undefined) pub.ownDegree = o.ownDegree
+    if (pub.type === 'proceeding') pub.conference = matchConference(pub, confIdx)
     return pub
   })
 }

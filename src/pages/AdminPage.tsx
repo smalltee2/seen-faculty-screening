@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
 import { TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { CONFERENCE_TAG } from '../conferences'
 import type { Faculty } from '../types'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -66,6 +67,8 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
         </section>
       </div>
 
+      <ConferenceRegister pubs={pubs} screening={data.conferenceScreening === 'on'} />
+
       <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
       {manual.length === 0 ? (
         <p className="note">ยังไม่มีผลงานที่เพิ่มผ่านแบบฟอร์ม</p>
@@ -96,6 +99,79 @@ function AdminContent({ data, pubs, faculty, formUrl, onLock }: { data: DataBund
                     <td>{TYPE_LABEL[p.type]}</td>
                     <td>{p.isResearch ? 'ใช่' : 'ไม่'}</td>
                     <td className="small muted">{p.submitted ?? ''}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
+function ConferenceRegister({ pubs, screening }: { pubs: Pub[]; screening: boolean }) {
+  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
+  for (const p of pubs) {
+    if (p.type !== 'proceeding' || !p.conference) continue
+    const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [] }
+    g.pubs.push(p)
+    groups.set(p.conference.key, g)
+  }
+  const order: Record<string, number> = { pending: 0, no_count: 1, count: 2 }
+  const rows = [...groups.values()].sort((a, b) => order[a.match.verdict] - order[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0))
+  const pending = rows.filter((r) => r.match.verdict === 'pending').length
+  return (
+    <>
+      <h2 className="block-title">ทะเบียนงานประชุม (proceedings) · {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}</h2>
+      <p className="note">
+        proceedings นับเมื่องานประชุมมีสมาคมวิชาการ/วิชาชีพจัดหรือร่วมจัด และอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
+        ระบบค้นหาผู้จัดให้อัตโนมัติ (คอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงแต่ไม่นับจนกว่าผู้ดูแลจะยืนยันในไฟล์ data/conferences.csv (คอลัมน์ decision)
+        {!screening && ' · ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ (data/rules.json) จึงยังนับ proceedings ทุกรายการ'}
+      </p>
+      {rows.length === 0 ? (
+        <p className="note">ไม่มี proceedings ในข้อมูล</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>งานประชุม (ตามที่ปรากฏ)</th>
+                <th>ผู้จัด / สมาคม</th>
+                <th>สาขา</th>
+                <th>ผล</th>
+                <th>ตรวจโดย</th>
+                <th>ผลงาน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ match, pubs: ps }) => {
+                const e = match.entry
+                return (
+                  <tr key={match.key}>
+                    <td>
+                      <div className="pub-title">{e?.conferenceName || ps[0].venue}</div>
+                      <div className="muted small">{match.key.startsWith('work:') ? ps[0].title : ps[0].venue}</div>
+                    </td>
+                    <td className="small">
+                      {e ? (
+                        <>
+                          <div>{e.organiser || '—'}</div>
+                          {e.association && <div>สมาคม: {e.association} ({e.associationRole === 'organiser' ? 'จัด' : e.associationRole === 'co_organiser' ? 'ร่วมจัด' : e.associationRole})</div>}
+                          {e.evidenceUrl && <a href={e.evidenceUrl} target="_blank" rel="noreferrer">หลักฐาน ↗</a>}
+                        </>
+                      ) : (
+                        <span className="muted">ยังไม่ได้ตรวจ</span>
+                      )}
+                    </td>
+                    <td className="small">{e ? `${e.field || '—'} (${e.relatedField === 'yes' ? 'เกี่ยวข้อง' : e.relatedField === 'no' ? 'ไม่เกี่ยวข้อง' : 'ไม่แน่ใจ'})` : '—'}</td>
+                    <td>
+                      <div className={`jl cf cf-${match.verdict}`}>{CONFERENCE_TAG[match.verdict]}</div>
+                      <div className="muted small">{match.reason}</div>
+                    </td>
+                    <td className="small muted">{match.by === 'admin' ? `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}` : e ? `${e.checkedBy} ${e.checkedAt.slice(0, 10)} · ความมั่นใจ ${e.confidence}` : '—'}</td>
+                    <td className="small">{ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}</td>
                   </tr>
                 )
               })}

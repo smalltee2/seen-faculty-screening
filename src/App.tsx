@@ -13,7 +13,7 @@ import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 const data = raw as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
-const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides)
+const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides, data.conferences ?? [])
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
@@ -63,7 +63,7 @@ function loadSettings(): Settings {
     /* storage unavailable */
   }
   // Posters/abstracts always count (decision by the programme, 2026-11-05).
-  return { year: CURRENT_YEAR, countPosters: true, strict: true }
+  return { year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' }
 }
 
 export function App() {

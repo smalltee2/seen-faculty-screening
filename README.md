@@ -238,3 +238,21 @@ python3 scripts/manual/build-manual.py   # numbered arrows (Pillow) + HTML → P
 ```
 
 Callout positions live in `scripts/manual/build-manual.py`; the Sarabun font (OFL) is bundled in `docs/manual/fonts/`.
+
+## Conference screening (proceedings)
+
+A proceedings paper counts only when the conference is organised or co-organised by an academic/professional
+association **and** its field is environment or energy (decision 2026-11-06). Everything not yet checked, not found,
+or low-confidence is shown but not counted until an admin confirms it.
+
+- Register: `data/conferences.csv`, one row per conference (`venue:<name>`) or per paper for publisher series
+  such as AIP Conference Proceedings (`work:<title>`). Columns from the automatic check: `conference_name`,
+  `organiser`, `association`, `association_role` (organiser | co_organiser | none | unknown), `field`,
+  `related_field` (yes | no | unknown), `confidence` (high | medium | low), `evidence_url`, `checked_at`, `checked_by`, `note`.
+  Admin override: `decision` (count | no_count), `decided_by`, `decided_at`, `decision_note`.
+- Automatic verdict: count when confidence is high, the association organises/co-organises and the field is related;
+  no_count when a medium/high-confidence check finds no association or an unrelated field; otherwise pending.
+- `npm run screen-conferences` asks Claude Code (headless `claude -p` with web search) about every conference not
+  yet in the register; the iMac daily job runs it after the Scopus refresh. Needs `claude login` on that Mac.
+- `data/rules.json` → `"conferenceScreening": "on" | "off"` switches whether the register affects the counts
+  (off = shown only). The admin page lists every conference with its verdict and evidence link.
