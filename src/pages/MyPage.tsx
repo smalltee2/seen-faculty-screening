@@ -4,6 +4,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PersonResult, Settings } from '../rules'
 import { PersonPage } from './PersonPage'
+import { GateShell } from '../adminGate'
 
 const SESSION_KEY = 'seen-personal-session'
 const API = (import.meta.env.VITE_LOGIN_API as string | undefined) ?? ''
@@ -74,18 +75,30 @@ function Login({ notice }: { notice?: string }) {
     }
   }
   return (
-    <div className="gate">
-      <form className="panel gate-card" onSubmit={submit}>
-        <h1>ตรวจสอบคุณสมบัติของฉัน</h1>
-        <p className="lede">สำหรับอาจารย์: ใส่อีเมลมหาวิทยาลัย ระบบจะส่งลิงก์เข้าสู่ระบบไปที่อีเมลนั้น แล้วแสดงเฉพาะข้อมูลของท่าน</p>
+    <GateShell
+      icon="mail"
+      eyebrow="สำหรับอาจารย์"
+      title="ตรวจสอบคุณสมบัติของฉัน"
+      intro="ดูผลการตรวจสอบคุณสมบัติและรายการผลงานของท่านเอง โดยไม่ต้องตั้งรหัสผ่าน"
+      steps={['ใส่อีเมลมหาวิทยาลัย @up.ac.th', 'เปิดอีเมลแล้วคลิกลิงก์ภายใน 15 นาที', 'ระบบแสดงเฉพาะข้อมูลของท่าน']}
+    >
+      <form className="gate-form" onSubmit={submit}>
         {sent ? (
-          <p className="note" role="status">
-            ส่งลิงก์ไปที่ <b>{email.trim()}</b> แล้ว กรุณาเปิดอีเมลแล้วคลิกลิงก์ภายใน 15 นาที (ถ้าไม่พบ ตรวจในกล่อง junk/spam)
-          </p>
+          <div className="gate-sent" role="status">
+            <h2 className="gate-form-title">ส่งลิงก์แล้ว</h2>
+            <p>
+              ระบบส่งลิงก์เข้าสู่ระบบไปที่ <b>{email.trim()}</b> กรุณาเปิดอีเมลแล้วคลิกลิงก์ภายใน 15 นาที
+            </p>
+            <p className="muted small">ถ้าไม่พบ ให้ตรวจในกล่อง Junk หรือ Spam</p>
+            <button type="button" className="btn" onClick={() => setSent(false)}>
+              ใช้อีเมลอื่น
+            </button>
+          </div>
         ) : (
           <>
-            <label className="control" htmlFor="personal-email">
-              <span className="control-label">อีเมล @up.ac.th</span>
+            <h2 className="gate-form-title">เข้าสู่ระบบด้วยอีเมล</h2>
+            <label className="gate-field" htmlFor="personal-email">
+              <span>อีเมล @up.ac.th</span>
               <input id="personal-email" type="email" autoComplete="email" placeholder="name.xx@up.ac.th" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
             </label>
             <label className="gate-remember" htmlFor="personal-remember">
@@ -100,13 +113,13 @@ function Login({ notice }: { notice?: string }) {
                 {error}
               </p>
             )}
-            <button type="submit" className="btn btn-primary" disabled={busy || !/^[^@\s]+@up\.ac\.th$/i.test(email.trim())}>
+            <button type="submit" className="btn btn-primary gate-submit" disabled={busy || !/^[^@\s]+@up\.ac\.th$/i.test(email.trim())}>
               {busy ? 'กำลังส่ง…' : 'ส่งลิงก์เข้าสู่ระบบ'}
             </button>
           </>
         )}
       </form>
-    </div>
+    </GateShell>
   )
 }
 

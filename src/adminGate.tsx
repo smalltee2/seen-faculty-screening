@@ -1,7 +1,7 @@
 // The admin passcode for the tab "สำหรับผู้ดูแลระบบ" (ข้อมูลอาจารย์ and เพิ่มผลงานด้วยตนเอง). The passcode decrypts the admin form links (data/sources.json adminGate, AES-GCM);
 // a wrong passcode fails authentication. This hides the views in the browser only: the site's
 // data are bundled with the page, so it is not access control against a determined reader.
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { DataBundle } from './types'
 
 export type AdminLinks = { formUrl: string; decisionFormUrl: string }
@@ -86,12 +86,21 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
   }
 
   return (
-    <div className="gate">
-      <form className="panel gate-card" onSubmit={submit}>
-        <h1>{title}</h1>
-        <p className="lede">ส่วนนี้สำหรับผู้ดูแลระบบเท่านั้น กรุณาใส่รหัสผู้ดูแล · อาจารย์ดูข้อมูลของตนเองได้ที่แถบ <a href="#/me">ตรวจสอบคุณสมบัติของฉัน</a></p>
-        <label className="control" htmlFor="admin-pass">
-          <span className="control-label">รหัสผู้ดูแล</span>
+    <GateShell
+      icon="lock"
+      eyebrow="เฉพาะผู้ที่มีรหัสผู้ดูแล"
+      title={title}
+      intro="ดูผลงานและผลการประเมินของอาจารย์ทุกคน และเพิ่มผลงานด้วยตนเอง"
+      aside={
+        <p className="gate-aside-note">
+          อาจารย์ที่ต้องการดูข้อมูลของตนเอง ไปที่แถบ <a href="#/me">ตรวจสอบคุณสมบัติของฉัน</a>
+        </p>
+      }
+    >
+      <form className="gate-form" onSubmit={submit}>
+        <h2 className="gate-form-title">ใส่รหัสผู้ดูแล</h2>
+        <label className="gate-field" htmlFor="admin-pass">
+          <span>รหัสผู้ดูแล</span>
           <input id="admin-pass" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
         </label>
         <label className="gate-remember" htmlFor="admin-remember">
@@ -106,10 +115,56 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
             {error}
           </p>
         )}
-        <button type="submit" className="btn btn-primary" disabled={busy || !pass}>
+        <button type="submit" className="btn btn-primary gate-submit" disabled={busy || !pass}>
           {busy ? 'กำลังตรวจสอบ…' : 'เข้าสู่ส่วนผู้ดูแล'}
         </button>
       </form>
+    </GateShell>
+  )
+}
+
+const ICONS = {
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      <circle cx="12" cy="16" r="1.4" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+}
+
+/** Two-panel sign-in card: a green band with the purpose (and optional steps), the form on the right;
+ *  stacks on narrow screens. Used by the admin passcode and the lecturer e-mail login. */
+export function GateShell(props: { icon: keyof typeof ICONS; eyebrow: string; title: string; intro: string; steps?: string[]; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="gate">
+      <div className="gate-shell">
+        <div className="gate-aside">
+          <span className="gate-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              {ICONS[props.icon]}
+            </svg>
+          </span>
+          <span className="gate-eyebrow">{props.eyebrow}</span>
+          <h1 className="gate-title">{props.title}</h1>
+          <p className="gate-intro">{props.intro}</p>
+          {props.steps && (
+            <ol className="gate-steps">
+              {props.steps.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ol>
+          )}
+          {props.aside}
+        </div>
+        <div className="gate-main">{props.children}</div>
+      </div>
     </div>
   )
 }
