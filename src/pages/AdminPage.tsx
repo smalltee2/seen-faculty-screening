@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
 import { TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { toBE } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { copyText } from '../download'
 import type { Faculty } from '../types'
@@ -116,8 +117,15 @@ function AdminContent({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }:
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
 function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[]; screening: boolean; decisionFormUrl: string }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
+  // Same window as the automatic check: papers that can still fall in this year's or next year's 5-year window.
+  const minYear = new Date().getFullYear() - 5
+  let older = 0
   for (const p of pubs) {
     if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) continue
+    if ((p.year ?? 0) < minYear) {
+      older++
+      continue
+    }
     const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [] }
     g.pubs.push(p)
     groups.set(p.conference.key, g)
@@ -127,7 +135,12 @@ function ConferenceRegister({ pubs, screening, decisionFormUrl }: { pubs: Pub[];
   const pending = rows.filter((r) => r.match.verdict === 'pending').length
   return (
     <>
-      <h2 className="block-title">ทะเบียนงานประชุม (proceedings) · {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}</h2>
+      <h2 className="block-title">
+        ทะเบียนงานประชุม (proceedings) · {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
+      </h2>
+      <p className="note">
+        แสดงเฉพาะงานประชุมที่มีผลงานตั้งแต่ปี {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า{older > 0 && ` · ผลงานเก่ากว่านั้น ${older} รายการไม่ต้องตรวจ`}
+      </p>
       <p className="note">
         proceedings นับเมื่องานประชุมมีสมาคมวิชาการ/วิชาชีพจัดหรือร่วมจัด และอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
         ระบบค้นหาผู้จัดให้อัตโนมัติ (คอลัมน์ "ตรวจโดย") รายการที่ยังไม่ชัดเจนจะแสดงแต่ไม่นับจนกว่าผู้ดูแลจะยืนยันในไฟล์ data/conferences.csv (คอลัมน์ decision)
