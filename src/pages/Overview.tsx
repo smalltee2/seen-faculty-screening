@@ -146,10 +146,6 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           <h3>
             จำนวนผลงานต่อปี แยกตามประเภท
           </h3>
-          <p className="note">
-            รวมทุกคน (ผลงานร่วมนับแยกตามอาจารย์) · แถบสีเขียว = ช่วง 5 ปีที่ใช้ประเมิน · วารสารนานาชาติ = อยู่ใน Scopus · ระดับชาติ = อยู่ใน TCI กลุ่ม 1–2 ·
-            อื่น ๆ = ไม่พบในทั้งสองฐาน
-          </p>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
           <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} />
         </section>
