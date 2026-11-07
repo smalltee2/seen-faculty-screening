@@ -83,6 +83,24 @@ export function approvedRows(items: Submission[], lecturers: Set<string>, bundle
   return items.filter((s) => s.status === 'approved' && lecturers.has(s.nameEn) && !inBundle.has(submittedTag(s.id))).map(submissionRow)
 }
 
+/** Bundled rows (data/self.tsv) without the works a level-2 admin has since withdrawn or rejected
+ *  on the person page (Tum, 2026-11-07): the hourly job drops them from the file, but the build
+ *  in the browser may be older than the decision. A work the backend no longer lists is kept. */
+export function dropUnapproved(bundled: RawPub[], items: Submission[]): RawPub[] {
+  const status = new Map(items.map((s) => [submittedTag(s.id), s.status]))
+  return bundled.filter((p) => {
+    const st = p.submitted ? status.get(p.submitted) : undefined
+    return st === undefined || st === 'approved'
+  })
+}
+
+/** The approved self-added submission behind a work, when the level-2 admin may withdraw it. */
+export function selfSubmission(pub: { submitted?: string }, items: Submission[]): Submission | null {
+  if (!pub.submitted?.startsWith('self:')) return null
+  const s = items.find((x) => submittedTag(x.id) === pub.submitted)
+  return s && s.status === 'approved' ? s : null
+}
+
 /** Each live (pending or approved) conference work classified on its own, with its conference
  *  check, so the register and the approval table can show it before it is approved. */
 export function conferenceSubmissions(items: Submission[], conferences: ConferenceEntry[]): { sub: Submission; pub: Pub }[] {

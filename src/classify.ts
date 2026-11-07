@@ -276,6 +276,8 @@ function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: Conf
       ownDegree: null,
       duplicates,
       sources: [...new Set(members.map((m) => m.source ?? 'scholar'))],
+      // A submission tag on any merged row, so the person page can offer to withdraw that record.
+      submitted: members.map((m) => m.submitted).find(Boolean) ?? row.submitted,
       override: o,
     }
     if (o?.type) Object.assign(pub, { type: o.type, typeReason: `แก้ไขด้วยมือ (override)${o.note ? `: ${o.note}` : ''}`, typeUncertain: false })

@@ -5,8 +5,11 @@ import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { journalLevel, journalTag } from '../tci'
 import { TCI } from '../tciIndex'
+import { selfSubmission } from '../submissions'
+import { WithdrawButton, type WithdrawProps } from '../WithdrawButton'
 
-export function PersonPage({ result, settings, personal = false }: { result: PersonResult | undefined; settings: Settings; personal?: boolean }) {
+/** `withdraw` (level-2 admin only) lets approved self-added works be withdrawn from this list. */
+export function PersonPage({ result, settings, personal = false, withdraw }: { result: PersonResult | undefined; settings: Settings; personal?: boolean; withdraw?: WithdrawProps }) {
   const [allYears, setAllYears] = useState(false)
   if (!result) return <p>ไม่พบอาจารย์รายนี้{!personal && <> · <a href="#/">กลับหน้าภาพรวม</a></>}</p>
   const p = result.person
@@ -116,6 +119,10 @@ export function PersonPage({ result, settings, personal = false }: { result: Per
                           </a>
                         </>
                       )}</div>
+                    {withdraw && (() => {
+                      const sub = selfSubmission(e.pub, withdraw.submissions)
+                      return sub ? <WithdrawButton sub={sub} approvalKey={withdraw.approvalKey} onChanged={withdraw.onChanged} /> : null
+                    })()}
                   </td>
                   <td>
                     {TYPE_LABEL[e.pub.type]}{e.pub.typeUncertain && ' ?'}

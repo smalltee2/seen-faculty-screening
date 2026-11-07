@@ -576,3 +576,9 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .notify-status small { font-weight: 400; color: var(--muted); }
 .notify-status.notify-acked { color: var(--accent); }
 .notify-status-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* "ถอน" on the person page for approved self-added works (level 2, 2026-11-07) */
+.withdraw, .withdraw-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 4px; }
+.withdraw-btn { border-color: var(--not-mark); color: var(--not); }
+.withdraw-btn:hover { background: var(--accent-light); }
+.withdraw-confirm { padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--sub-panel); }

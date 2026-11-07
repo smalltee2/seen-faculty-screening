@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approvedRows, submittedTag, type Submission } from './submissions'
+import { approvedRows, dropUnapproved, selfSubmission, submittedTag, type Submission } from './submissions'
 import type { RawPub } from './types'
 
 const sub = (over: Partial<Submission>): Submission => ({
@@ -23,6 +23,25 @@ describe('approvedRows', () => {
   it('does not count a work twice once data/self.tsv has it', () => {
     const bundled = [{ submitted: submittedTag('a1') } as RawPub]
     expect(approvedRows([sub({})], lecturers, bundled)).toEqual([])
+  })
+})
+
+describe('dropUnapproved', () => {
+  const bundled = [{ submitted: submittedTag('a1') }, { submitted: submittedTag('b2') }, { submitted: 'manual:3' }, {}] as RawPub[]
+  it('drops a bundled self-added work once it is rejected (withdrawn) or withdrawn', () => {
+    expect(dropUnapproved(bundled, [sub({ id: 'a1', status: 'rejected' }), sub({ id: 'b2', status: 'withdrawn' })])).toEqual([{ submitted: 'manual:3' }, {}])
+  })
+  it('keeps approved works and works the backend no longer lists', () => {
+    expect(dropUnapproved(bundled, [sub({ id: 'a1', status: 'approved' })])).toEqual(bundled)
+  })
+})
+
+describe('selfSubmission', () => {
+  it('returns the approved submission behind a work, and null otherwise', () => {
+    expect(selfSubmission({ submitted: 'self:a1' }, [sub({})])?.id).toBe('a1')
+    expect(selfSubmission({ submitted: 'self:a1' }, [sub({ status: 'rejected' })])).toBeNull()
+    expect(selfSubmission({ submitted: 'manual:3' }, [sub({})])).toBeNull()
+    expect(selfSubmission({}, [sub({})])).toBeNull()
   })
 })
 

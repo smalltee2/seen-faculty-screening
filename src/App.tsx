@@ -12,7 +12,7 @@ import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adm
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
-import { approvedRows, fetchSubmissions, type Submission } from './submissions'
+import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
 import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
 import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
@@ -21,7 +21,7 @@ const data = raw as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
-const makePubs = (extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundledRows, ...extra], data.overrides, conferences)
+const makePubs = (bundled: RawPub[], extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundled, ...extra], data.overrides, conferences)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
@@ -115,7 +115,9 @@ export function App() {
     void fetchNotices().then(setNotices)
   }
   useEffect(refreshNotices, [])
-  const pubs = useMemo(() => makePubs([...liveRows, ...selfRows], conferences), [liveRows, selfRows, conferences])
+  // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
+  const keptBundled = useMemo(() => dropUnapproved(bundledRows, submissions), [submissions])
+  const pubs = useMemo(() => makePubs(keptBundled, [...liveRows, ...selfRows], conferences), [keptBundled, liveRows, selfRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
@@ -269,7 +271,13 @@ export function App() {
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
             <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} />
           )}
-          {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
+          {route.page === 'person' && admin !== null && (
+            <PersonPage
+              result={results.find((r) => r.person.nameEn === route.key)}
+              settings={settings}
+              withdraw={admin.level === 2 ? { approvalKey: admin.approvalKey, submissions, onChanged: refreshSubmissions } : undefined}
+            />
+          )}
           {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />}
         </main>
 

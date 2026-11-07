@@ -312,6 +312,12 @@ works under their own name, and stores them in the `submissions` sheet as `pendi
 (email, name, active). Approved works count at once in the browser (src/submissions.ts) and are copied to
 `data/self.tsv` by the hourly data job (`fetchSelf` in scripts/fetch-sources.mjs). A lecturer can withdraw a work
 while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
+**Withdrawing an approved work** (2026-11-07): on a lecturer's page (ผลงานที่นับ …) a level-2 admin sees "ถอน" on
+every approved self-added work (src/WithdrawButton.tsx). It is the backend's `decide` with status `rejected` and
+the note "ถอนโดยผู้ดูแลระดับ 2 …", so the work stops counting at once (bundled copies from `data/self.tsv` are
+dropped in the browser by `dropUnapproved`, and the hourly job removes them from the file); it can be undone with
+"ย้อนเป็นรออนุมัติ" in the approval table (show "ทั้งหมด"). Works from the admin Google Form have no "ถอน" button:
+remove them in the form's sheet or with `data/overrides.csv`.
 **Reminder e-mails** (2026-11-07): on ข้อมูลอาจารย์ a level-2 admin sees "แจ้งเตือน…" on every lecturer who fails a
 duty now or may fail next year (src/NotifyButton.tsx, src/notify.ts). The first click shows the subject and a
 ยืนยัน/ยกเลิก pair; confirming sends the message through the backend (action `notify`), which looks the address up
