@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { unlockAny } from './adminGate'
 
-const b64 = (buf: ArrayBuffer | Uint8Array) => Buffer.from(buf as ArrayBuffer).toString('base64')
+const b64 = (buf: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(buf)))
 async function gate(pass: string, payload: object) {
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
