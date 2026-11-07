@@ -357,3 +357,7 @@ rate-limits link requests to 5 per hour per e-mail, and never serves publication
 After editing Code.gs: paste into the script editor, Deploy → Manage deployments → edit → new version.
 
 The `folder` column of the users sheet (from `npm run personal-codes -- --users`, which needs the salt) is no longer used by the site.
+
+## Programme view (admin tab)
+
+`data/programmes.csv` lists each programme's lecturers (one row per lecturer per programme: `programme_id, programme_th, level (ba|ms|phd), name_en, role (ประธานหลักสูตร|อาจารย์), email, ext`). The build checks that every `name_en` is in `faculty.csv`. In the admin tab the "หลักสูตร" drop-down beside the year shows one programme: a panel with its lecturers, their role, contact and the responsible-lecturer result for that level, and the lecturer views below limited to those people (`#/lecturers?prog=<programme_id>`). The file is display only; it does not fill `faculty.csv` → `programs`, which the overview's programme check reads.

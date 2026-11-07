@@ -83,6 +83,22 @@ export interface DataBundle {
   conferenceScreening?: 'on' | 'off'
   /** Crossref record per DOI (data/crossref.tsv), used by the Scopus-style CSV export. */
   crossref?: CrossrefEntry[]
+  /** Programme membership (data/programmes.csv), shown in the admin tab's "หลักสูตร" view only. */
+  programmes?: Programme[]
+}
+
+export interface ProgrammeMember {
+  nameEn: string
+  role: 'ประธานหลักสูตร' | 'อาจารย์'
+  email: string
+  ext: string
+}
+
+export interface Programme {
+  id: string
+  th: string
+  level: 'ba' | 'ms' | 'phd'
+  members: ProgrammeMember[]
 }
 
 export interface CrossrefEntry {

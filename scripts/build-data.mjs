@@ -161,6 +161,25 @@ const overrides = toRecords(
   }
 })
 
+// Programme membership for the admin tab's "หลักสูตร" view (Tum, 2026-11-08; list supplied by Tum from
+// the faculty's programme pages). Display only: it does not fill faculty.programs, which the
+// programme-level check in src/rules.ts reads.
+const programmes = []
+const PROG_FILE = join(ROOT, 'data/programmes.csv')
+if (existsSync(PROG_FILE)) {
+  const rows = toRecords(parseCsv(read(PROG_FILE)), ['programme_id', 'programme_th', 'level', 'name_en', 'role', 'email', 'ext'], 'programmes.csv')
+  for (const r of rows) {
+    if (!/^[a-z0-9-]+$/.test(r.programme_id)) fail(`programmes.csv line ${r._line}: programme_id "${r.programme_id}" must be lowercase letters, digits and "-"`)
+    if (!['ba', 'ms', 'phd'].includes(r.level)) fail(`programmes.csv line ${r._line}: level "${r.level}" is not one of ba | ms | phd`)
+    if (!['ประธานหลักสูตร', 'อาจารย์'].includes(r.role)) fail(`programmes.csv line ${r._line}: role "${r.role}" is not ประธานหลักสูตร | อาจารย์`)
+    if (!faculty.some((f) => f.nameEn === r.name_en)) fail(`programmes.csv line ${r._line}: name_en "${r.name_en}" is not in faculty.csv`)
+    let prog = programmes.find((x) => x.id === r.programme_id)
+    if (!prog) { prog = { id: r.programme_id, th: r.programme_th, level: r.level, members: [] }; programmes.push(prog) }
+    else if (prog.th !== r.programme_th || prog.level !== r.level) fail(`programmes.csv line ${r._line}: programme_th/level differ from earlier rows of "${r.programme_id}"`)
+    if (prog.members.some((m) => m.nameEn === r.name_en)) fail(`programmes.csv line ${r._line}: "${r.name_en}" listed twice in "${r.programme_id}"`)
+    prog.members.push({ nameEn: r.name_en, role: r.role, email: r.email, ext: r.ext })
+  }
+}
 if (errors.length) {
   for (const e of errors) console.error(`[build-data] ERROR: ${e}`)
   process.exit(1)
@@ -224,6 +243,6 @@ function publicSources() {
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref, programmes }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides) -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides), ${programmes.length} programmes -> src/generated/data.json`)

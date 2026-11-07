@@ -26,6 +26,8 @@ import type { LecturerFilter, LecturerScope, LecturerView } from "../App";
 import { LecturerOutputsBlock } from "./Overview";
 import { NotifyButton, type NotifyProps } from "../NotifyButton";
 import { noticeKind } from "../notify";
+import { ProgrammePanel } from "../ProgrammePanel";
+import type { Programme } from "../types";
 
 type View = "cards" | "table";
 
@@ -49,6 +51,7 @@ export function LecturersPage({
   view: initialView,
   onLock,
   notify,
+  programme,
 }: {
   results: PersonResult[];
   settings: Settings;
@@ -58,6 +61,8 @@ export function LecturersPage({
   onLock?: () => void;
   /** Level-2 reminder e-mails (src/notify.ts); undefined on pages without an admin sign-in. */
   notify?: NotifyProps;
+  /** Programme chosen in the admin tab's "หลักสูตร" drop-down; `results` is then its lecturers only. */
+  programme?: Programme;
 }) {
   const [state, setState] = useState(() =>
     initialView ? { view: initialView } : loadState(),
@@ -158,6 +163,8 @@ export function LecturersPage({
           )}
         </div>
       </div>
+
+      {programme && <ProgrammePanel programme={programme} results={results} />}
 
       <div className="section-switch no-print">
         <Segmented

@@ -32,10 +32,23 @@ export type LecturerScope = 'all' | 'ba' | 'grad'
 export type LecturerView = 'cards' | 'table'
 type Route =
   | { page: 'overview' }
-  | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView }
+  | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView; prog?: string }
   | { page: 'person'; key: string }
   | { page: 'admin' }
   | { page: 'me'; login?: string }
+
+/** #/lecturers link that keeps the current filter, scope and view and sets the programme. */
+function lecturersHash(route: Route, prog: string): string {
+  const q = new URLSearchParams()
+  if (route.page === 'lecturers') {
+    if (route.filter !== 'all') q.set('filter', route.filter)
+    if (route.scope !== 'all') q.set('scope', route.scope)
+    if (route.view) q.set('view', route.view)
+  }
+  if (prog) q.set('prog', prog)
+  const qs = q.toString()
+  return qs ? `#/lecturers?${qs}` : '#/lecturers'
+}
 
 function parseHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '')
@@ -57,6 +70,7 @@ function parseHash(): Route {
       filter: f === 'not_met' || f === 'risk' ? f : 'all',
       scope: sc === 'ba' || sc === 'grad' ? sc : 'all',
       view: v === 'table' || v === 'cards' ? v : undefined, // &view=table opens the matrix (used by the manual's screenshots)
+      prog: q.get('prog') || undefined, // &prog=<programme_id> (data/programmes.csv), 2026-11-08
     }
   }
   if (h === 'admin') return { page: 'admin' }
@@ -148,6 +162,9 @@ export function App() {
   const years: number[] = []
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
 
+  const programmes = data.programmes ?? []
+  const programme = route.page === 'lecturers' && route.prog ? programmes.find((p) => p.id === route.prog) : undefined
+
   // รายชื่ออาจารย์ (#/lecturers, #/person/…) and เพิ่มผลงานด้วยตนเอง (#/admin) share one tab (2026-11-07).
   const adminView = (route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin !== null
   const tab = route.page === 'lecturers' || route.page === 'person' || route.page === 'admin' ? 'admin' : route.page
@@ -218,6 +235,19 @@ export function App() {
                   <option value="admin">{admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง'}</option>
                 </select>
               </label>
+              {route.page === 'lecturers' && programmes.length > 0 && (
+                <label className="control" htmlFor="admin-programme">
+                  <span className="control-label">หลักสูตร</span>
+                  <select id="admin-programme" value={programme?.id ?? ''} onChange={(e) => (window.location.hash = lecturersHash(route, e.target.value))}>
+                    <option value="">ทุกหลักสูตร (อาจารย์ทั้งหมด)</option>
+                    {programmes.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.th.replace(/^หลักสูตร\s*/, '')}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {lock && (
                 <div className="control control-end">
                   <span className={`level-badge level-badge-${admin?.level}`}>{admin?.level === 1 ? 'ผู้ดูแลระดับ 1 · ดูข้อมูลอาจารย์' : 'ผู้ดูแลระดับ 2 · สิทธิ์ทั้งหมด'}</span>
@@ -250,8 +280,9 @@ export function App() {
           )}
           {route.page === 'lecturers' && admin !== null && (
             <LecturersPage
-              key={`${route.filter}|${route.scope}|${route.view ?? ''}`}
-              results={results}
+              key={`${route.filter}|${route.scope}|${route.view ?? ''}|${programme?.id ?? ''}`}
+              results={programme ? results.filter((r) => programme.members.some((m) => m.nameEn === r.person.nameEn)) : results}
+              programme={programme}
               settings={settings}
               filter={route.filter}
               scope={route.scope}

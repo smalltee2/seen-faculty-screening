@@ -645,3 +645,16 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 /* Banner segments centred (Tum, 2026-11-08) */
 .stat { align-items: center; text-align: center; }
 .stat-value, .stat-sub { justify-content: center; }
+
+/* Admin tab: programme panel (Tum, 2026-11-08) */
+.programme-panel { margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; }
+.programme-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.programme-head h2 { margin: 0; font-size: 1.15rem; text-wrap: balance; min-width: 0; }
+.programme-level { padding: 3px 10px; border-radius: 999px; font: 700 0.8rem/1.3 var(--font-body); border: 1px solid var(--line); }
+.programme-level.lvl-ba { color: var(--lvl-ba); background: var(--lvl-ba-soft); border-color: var(--lvl-ba-line); }
+.programme-level.lvl-ms { color: var(--lvl-ms); background: var(--lvl-ms-soft); border-color: var(--lvl-ms-line); }
+.programme-level.lvl-phd { color: var(--lvl-phd); background: var(--lvl-phd-soft); border-color: var(--lvl-phd-line); }
+.programme-summary { margin: 0; }
+.programme-table { overflow-x: auto; }
+.programme-table td, .programme-table th { white-space: nowrap; }
+#admin-programme { max-width: min(30rem, 100%); }
