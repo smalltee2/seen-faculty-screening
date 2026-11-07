@@ -4,7 +4,9 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import type { DataBundle } from './types'
 
-export type AdminLinks = { formUrl: string; decisionFormUrl: string }
+/** level 1 = ข้อมูลอาจารย์ only; level 2 = everything incl. เพิ่มผลงาน and conference decisions (2026-11-07). */
+export type AdminLevel = 1 | 2
+export type AdminLinks = { formUrl: string; decisionFormUrl: string; level: AdminLevel }
 
 const SESSION_KEY = 'seen-admin-form'
 /** Focus the first field only on desktop; on phones autofocus pops the keyboard over the card. */
@@ -16,9 +18,10 @@ export function readSavedAdmin(): AdminLinks | null {
     const v = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
     if (!v) return null
     // Older versions saved the bare form link.
-    if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '' }
+    if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '', level: 2 }
     const o = JSON.parse(v) as Partial<AdminLinks>
-    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '' }
+    // Saved before levels existed = unlocked with the (level-2) admin passcode.
+    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '', level: o.level === 1 ? 1 : 2 }
   } catch {
     return null
   }
@@ -40,7 +43,26 @@ export function forgetAdmin() {
 }
 const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 
-async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pass: string): Promise<AdminLinks> {
+type Gate = NonNullable<DataBundle['sources']['adminGate']>
+
+/** Tries the level-2 passcode first, then level 1; a wrong passcode fails AES-GCM authentication. */
+export async function unlockAny(gates: { admin?: Gate; viewer?: Gate }, pass: string): Promise<AdminLinks> {
+  if (gates.admin) {
+    try {
+      const v = await unlock(gates.admin, pass)
+      return { ...v, level: 2 }
+    } catch (e) {
+      if (e instanceof Error && e.message === 'nocrypto') throw e
+    }
+  }
+  if (gates.viewer) {
+    await unlock(gates.viewer, pass)
+    return { formUrl: '', decisionFormUrl: '', level: 1 }
+  }
+  throw new Error('wrong')
+}
+
+async function unlock(gate: Gate, pass: string): Promise<Omit<AdminLinks, 'level'>> {
   // WebCrypto is only available on https://, localhost and file:// (not a plain http:// LAN share).
   if (!globalThis.crypto?.subtle) throw new Error('nocrypto')
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
@@ -52,19 +74,20 @@ async function unlock(gate: NonNullable<DataBundle['sources']['adminGate']>, pas
     ['decrypt'],
   )
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(gate.iv) }, key, fromB64(gate.data))
-  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl: string; decisionFormUrl?: string }
-  return { formUrl: v.formUrl, decisionFormUrl: v.decisionFormUrl ?? '' }
+  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl?: string; decisionFormUrl?: string }
+  return { formUrl: v.formUrl ?? '', decisionFormUrl: v.decisionFormUrl ?? '' }
 }
 
 /** Initial admin state: open when the site has no gate configured, else whatever was saved. */
 export function initialAdmin(data: DataBundle): AdminLinks | null {
-  if (!data.sources.adminGate) return { formUrl: data.sources.googleFormUrl ?? '', decisionFormUrl: data.sources.decisionFormUrl ?? '' }
+  if (!data.sources.adminGate) return { formUrl: data.sources.googleFormUrl ?? '', decisionFormUrl: data.sources.decisionFormUrl ?? '', level: 2 }
   return readSavedAdmin()
 }
 
 /** The passcode card shown in place of an admin-only tab. */
-export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; title: string; onUnlocked: (l: AdminLinks) => void }) {
+export function AdminGateForm({ data, title, onUnlocked, needLevel = 1, note }: { data: DataBundle; title: string; onUnlocked: (l: AdminLinks) => void; needLevel?: AdminLevel; note?: string }) {
   const gate = data.sources.adminGate
+  const viewer = data.sources.viewerGate
   const [remember, setRemember] = useState(false)
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
@@ -76,12 +99,14 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
     setBusy(true)
     setError('')
     try {
-      const v = await unlock(gate, pass)
+      const v = await unlockAny({ admin: gate, viewer }, pass)
+      if (v.level < needLevel) throw new Error('level')
       save(v, remember)
       setPass('')
       onUnlocked(v)
     } catch (e) {
-      setError(e instanceof Error && e.message === 'nocrypto' ? 'เบราว์เซอร์นี้ถอดรหัสไม่ได้: ต้องเปิดผ่าน https:// หรือเปิดไฟล์โดยตรง' : 'รหัสไม่ถูกต้อง')
+      const m = e instanceof Error ? e.message : ''
+      setError(m === 'nocrypto' ? 'เบราว์เซอร์นี้ถอดรหัสไม่ได้: ต้องเปิดผ่าน https:// หรือเปิดไฟล์โดยตรง' : m === 'level' ? 'รหัสนี้เป็นของผู้ดูแลระดับ 1 ซึ่งดูได้เฉพาะข้อมูลอาจารย์' : 'รหัสไม่ถูกต้อง')
     } finally {
       setBusy(false)
     }
@@ -92,7 +117,7 @@ export function AdminGateForm({ data, title, onUnlocked }: { data: DataBundle; t
       icon="lock"
       eyebrow="เฉพาะผู้ที่มีรหัสผู้ดูแล"
       title={title}
-      intro="ดูผลงานและผลการประเมินของอาจารย์ทุกคน และเพิ่มผลงานด้วยตนเอง"
+      intro={note ?? 'ระดับ 1 ดูข้อมูลอาจารย์ · ระดับ 2 ดูข้อมูลอาจารย์ เพิ่มผลงาน และตัดสินงานประชุม'}
       aside={
         <p className="gate-aside-note">
           อาจารย์ที่ต้องการดูข้อมูลของตนเอง ไปที่แถบ <a href="#/me">ตรวจสอบคุณสมบัติของฉัน</a>

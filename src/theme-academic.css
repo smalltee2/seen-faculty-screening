@@ -520,3 +520,7 @@ html { scroll-padding-top: 92px; }
 .section-head h1::after { margin-top: 8px; }
 .section-head { margin-top: 30px; }
 @media (max-width: 720px) { .section-head { margin-top: 22px; } }
+/* Admin level badge (2026-11-07) */
+.controls .control-end { flex-direction: row !important; align-items: center !important; gap: 10px; flex-wrap: wrap; }
+.level-badge { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid var(--line); background: var(--bg-secondary); color: var(--muted); }
+.level-badge-2 { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }

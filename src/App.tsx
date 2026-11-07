@@ -188,11 +188,12 @@ export function App() {
                 <span className="control-label">เลือกดู</span>
                 <select id="admin-view" value={route.page === 'admin' ? 'admin' : 'lecturers'} onChange={(e) => (window.location.hash = e.target.value === 'admin' ? '#/admin' : '#/lecturers')}>
                   <option value="lecturers">ข้อมูลอาจารย์</option>
-                  <option value="admin">เพิ่มผลงานด้วยตนเอง</option>
+                  <option value="admin">{admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง'}</option>
                 </select>
               </label>
               {lock && (
                 <div className="control control-end">
+                  <span className={`level-badge level-badge-${admin?.level}`}>{admin?.level === 1 ? 'ผู้ดูแลระดับ 1 · ดูข้อมูลอาจารย์' : 'ผู้ดูแลระดับ 2 · สิทธิ์ทั้งหมด'}</span>
                   <button type="button" className="btn" onClick={lock}>
                     ออกจากระบบผู้ดูแล
                   </button>
@@ -230,7 +231,16 @@ export function App() {
               view={route.view}
             />
           )}
-          {route.page === 'admin' && admin !== null && (
+          {route.page === 'admin' && admin !== null && admin.level === 1 && (
+            <AdminGateForm
+              data={data}
+              title="เพิ่มผลงานด้วยตนเอง"
+              needLevel={2}
+              note="ส่วนนี้สำหรับผู้ดูแลระดับ 2 (เพิ่มผลงานและตัดสินงานประชุม) กรุณาใส่รหัสผู้ดูแลระดับ 2"
+              onUnlocked={setAdmin}
+            />
+          )}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && (
             <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} />
           )}
           {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}

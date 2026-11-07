@@ -61,6 +61,8 @@ export interface DataBundle {
     decisionFormUrl?: string
     /** Form link encrypted with the admin passcode (scripts/set-admin-passcode.mjs). */
     adminGate?: { iterations: number; salt: string; iv: string; data: string }
+    /** Level-1 passcode (ข้อมูลอาจารย์ only), scripts/set-admin-passcode.mjs --level=1. */
+    viewerGate?: { iterations: number; salt: string; iv: string; data: string }
   }
   faculty: Faculty[]
   publications: RawPub[]

@@ -289,6 +289,10 @@ that the admin's decision then governs. `--only=decisions` runs just this step.
 - **สำหรับผู้ดูแลระบบ** (admin passcode, `src/adminGate.tsx`): a "เลือกดู" drop-down switches between
   ข้อมูลอาจารย์ (`#/lecturers`: the per-lecturer 5-year output chart, then every lecturer's duties as cards or a
   table; person pages `#/person/...`) and เพิ่มผลงานด้วยตนเอง (`#/admin`: the add-works and decision forms).
+- **Two admin levels** (2026-11-07): level 2 = the existing admin passcode (`adminGate`, everything incl.
+  เพิ่มผลงานด้วยตนเอง and conference decisions); level 1 = ข้อมูลอาจารย์ only (`viewerGate`). Set or change the
+  level-1 passcode with `npm run set-passcode -- --level=1` (it must differ from level 2); a level-1 user who opens
+  เพิ่มผลงาน is asked for the level-2 passcode.
 - **ตรวจสอบคุณสมบัติของฉัน** (`#/me`, `src/pages/MyPage.tsx`): a lecturer signs in with their @up.ac.th e-mail and
   sees only their own result.
 

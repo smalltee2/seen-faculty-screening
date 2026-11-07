@@ -1,4 +1,9 @@
-// Sets (or changes) the passcode that unlocks the เพิ่มผลงาน (admin) tab.
+// Sets (or changes) an admin passcode. Two levels (2026-11-07):
+//   level 2 (default) unlocks the whole สำหรับผู้ดูแลระบบ tab: ข้อมูลอาจารย์, เพิ่มผลงานด้วยตนเอง,
+//           the conference register and the decision form (stored as adminGate);
+//   level 1 (--level=1) unlocks only ข้อมูลอาจารย์ (stored as viewerGate).
+//   npm run set-passcode -- --level=1          # set or change the level-1 passcode
+// The two passcodes must differ.
 // The admin form link is encrypted with the passcode (PBKDF2-SHA256 -> AES-GCM) and
 // stored in data/sources.json as adminGate; the plain googleFormUrl is removed, so the
 // published site does not contain the link. The passcode itself is never stored.
@@ -35,6 +40,39 @@ function askHidden(question) {
 const b64 = (buf) => Buffer.from(buf).toString('base64')
 
 const sources = JSON.parse(readFileSync(SOURCES, 'utf8'))
+const level = process.argv.includes('--level=1') ? 1 : 2
+
+async function encrypt(pass, payload) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITERATIONS }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt'])
+  const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(payload)))
+  return { iterations: ITERATIONS, salt: b64(salt), iv: b64(iv), data: b64(data) }
+}
+
+async function askPass(label) {
+  const pass = await askHidden(`New ${label} passcode (hidden, at least 8 characters): `)
+  if (pass.length < 8) {
+    console.error('Passcode too short; nothing changed.')
+    process.exit(1)
+  }
+  const again = await askHidden('Type it again: ')
+  if (again !== pass) {
+    console.error('The two entries differ; nothing changed.')
+    process.exit(1)
+  }
+  return pass
+}
+
+if (level === 1) {
+  const pass = await askPass('level-1 (ข้อมูลอาจารย์ only)')
+  sources.viewerGate = await encrypt(pass, { level: 1 })
+  writeFileSync(SOURCES, JSON.stringify(sources, null, 2) + '\n')
+  console.log('Level-1 passcode set (viewerGate in data/sources.json). It must differ from the level-2 passcode. Commit and push to publish.')
+  process.exit(0)
+}
+
 const formUrl = process.argv.find((a) => a.startsWith('--form-url='))?.slice('--form-url='.length) ?? sources.googleFormUrl
 if (!formUrl) {
   console.error('No form link: pass --form-url=<Google Form link> (the plain link is no longer in data/sources.json).')
@@ -43,25 +81,9 @@ if (!formUrl) {
 
 const decisionFormUrl = process.argv.find((a) => a.startsWith('--decision-form-url='))?.slice('--decision-form-url='.length) ?? sources.decisionFormUrl ?? ''
 
-const pass = await askHidden('New admin passcode (hidden, at least 8 characters): ')
-if (pass.length < 8) {
-  console.error('Passcode too short; nothing changed.')
-  process.exit(1)
-}
-const again = await askHidden('Type it again: ')
-if (again !== pass) {
-  console.error('The two entries differ; nothing changed.')
-  process.exit(1)
-}
-
-const salt = crypto.getRandomValues(new Uint8Array(16))
-const iv = crypto.getRandomValues(new Uint8Array(12))
-const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
-const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITERATIONS }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt'])
-const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify({ formUrl, decisionFormUrl })))
-
+const pass = await askPass('level-2 admin')
 delete sources.googleFormUrl
 delete sources.decisionFormUrl
-sources.adminGate = { iterations: ITERATIONS, salt: b64(salt), iv: b64(iv), data: b64(data) }
+sources.adminGate = await encrypt(pass, { formUrl, decisionFormUrl, level: 2 })
 writeFileSync(SOURCES, JSON.stringify(sources, null, 2) + '\n')
 console.log('Admin passcode set. The form link is now stored encrypted in data/sources.json. Commit and push to publish.')
