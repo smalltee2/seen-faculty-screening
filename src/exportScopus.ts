@@ -28,9 +28,12 @@ export function parseVenue(venue: string, year: number | null): VenueParts {
   let v = venue.trim()
   if (!v) return out
   if (year !== null) v = v.replace(new RegExp(`,\\s*${year}$`), '')
-  const parts = v.split(/,\s*/)
-  const head = parts[0] ?? ''
-  const loc = parts.slice(1).join(', ').trim()
+  // Journal names may hold commas ("Water, Air, & Soil Pollution 234 (6), 396"): the name ends at the
+  // first comma that is followed by a number (volume, pages or article number), as tci.venueName does.
+  const cut = v.search(/,\s*(?=[a-z]?\d)/i)
+  const head = (cut >= 0 ? v.slice(0, cut) : v).trim()
+  const loc = cut >= 0 ? v.slice(cut + 1).trim() : ''
+  const parts = [head, ...(loc ? loc.split(/,\s*/) : [])]
   const m = /^(.*?)(?:\s+(\d+[A-Za-z]?))?(?:\s*\(([^)]*)\))?$/.exec(head)
   if (m) {
     out.source = (m[1] ?? '').trim()
@@ -107,7 +110,7 @@ export function biblioOf(p: Pub, crossref: CrossrefIndex): VenueParts & { date: 
   // Crossref sometimes files an article number as the page ("11212"): then it is not a page range.
   const samePage = pageStart && pageStart === pageEnd && !cr?.articleNumber && !sc?.articleNumber && !v.pageEnd
   return {
-    source: v.source || cr?.journal || '',
+    source: cr?.journal || v.source || '',
     volume: cr?.volume || sc?.volume || v.volume,
     issue: cr?.issue || sc?.issue || v.issue,
     artNo: samePage ? pageStart : artNo,

@@ -206,10 +206,24 @@ for (const o of biblioOverrides) {
   }
   for (const [k, v] of Object.entries(fields)) if (v) entry[k] = v.trim()
 }
+if (errors.length) {
+  for (const e of errors) console.error(`[build-data] ERROR: ${e}`)
+  process.exit(1)
+}
+
+// Only the keys the browser uses go into the public bundle (2026-11-07: a retired form's sheet
+// URL, whose sheet carried respondents' e-mail addresses, used to be copied along with everything else).
+const PUBLIC_SOURCE_KEYS = ['manualSheetCsvUrl', 'googleFormUrl', 'adminGate', 'viewerGate', 'loginApiUrl', 'approvalKeyHash']
+function publicSources() {
+  const f = join(ROOT, 'data/sources.json')
+  if (!existsSync(f)) return {}
+  const all = JSON.parse(read(f))
+  return Object.fromEntries(PUBLIC_SOURCE_KEYS.filter((k) => k in all).map((k) => [k, all[k]]))
+}
 
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref }, null, 1),
 )
 log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides) -> src/generated/data.json`)

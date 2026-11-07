@@ -208,6 +208,9 @@ Not checked automatically (the data has no field for them):
 5. **Systematic reviews and meta-analyses.** Whether they count as ผลงานวิจัย under 9.4 is left to the review queue.
 
 ## Privacy
+The retired conference-decision form's sheet (it holds respondents' e-mail addresses) is no longer in
+`data/sources.json` or the site bundle (2026-11-07); `fetchDecisions` reads its URL only from the
+`DECISION_SHEET_CSV_URL` secret, and `build-data` copies only the keys the browser needs (`PUBLIC_SOURCE_KEYS`).
 
 A GitHub Pages site on a public repository can be seen by anyone. Names, ranks and publication lists on public Scholar profiles are already public, but anything you add to `faculty.csv` (degree year, notes) will be public too. To keep the site private, your options are:
 

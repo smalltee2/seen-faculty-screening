@@ -212,8 +212,10 @@ function requestLink(body) {
   // Rate limits are counted from the log for every address, known or not, so the answer does
   // not reveal which addresses exist; a global cap protects the daily mail quota.
   var hourAgo = Date.now() - 3600 * 1000;
+  // Only links actually sent count (ok = yes): otherwise 60 requests for made-up addresses, or 5
+  // for a victim's, would lock everyone (or that lecturer) out for an hour (review, 2026-11-07).
   var recentAll = rows('log').filter(function (l) {
-    return l.action === 'request' && new Date(l.time).getTime() > hourAgo;
+    return l.action === 'request' && String(l.ok) === 'yes' && new Date(l.time).getTime() > hourAgo;
   });
   var recent = recentAll.filter(function (l) {
     return normEmail(l.email) === email;
@@ -389,6 +391,7 @@ function decideWork(body) {
   if (!status) return { ok: false, error: 'bad_request' };
   var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
   if (!r) return { ok: false, error: 'not_found' };
+  if (r.status === 'withdrawn') return { ok: false, error: 'not_pending' };
   var col = function (name) { return SUB_HEAD.indexOf(name) + 1; };
   var sh = sheet('submissions');
   sh.getRange(r._row, col('status')).setValue(status);
@@ -446,7 +449,7 @@ function notifyLecturer(body) {
   if (auth.error) return { ok: false, error: auth.error };
   var nameEn = cell(body.nameEn, 120);
   var kind = oneOf(body.kind, ['fail', 'risk']) ? String(body.kind) : '';
-  var subject = cell(body.subject, 200);
+  var subject = String(body.subject == null ? '' : body.subject).replace(/\s+/g, ' ').trim().slice(0, 200);
   var text = String(body.body == null ? '' : body.body).slice(0, 4000).trim();
   if (!nameEn || !kind || !subject || !text) return { ok: false, error: 'bad_request' };
   var user = rows('users').filter(function (r) { return String(r.name_en).trim() === nameEn && isActive(r.active); })[0];
@@ -474,7 +477,7 @@ function notifyLecturer(body) {
     noReply: true,
   });
   var sh = sheet('notices');
-  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, subject, sha256(ackToken), '']);
+  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, cell(subject, 200), sha256(ackToken), '']);
   log('notify', auth.who, true, nameEn + ' ' + kind);
   return { ok: true };
 }

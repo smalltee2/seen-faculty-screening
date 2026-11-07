@@ -6,7 +6,7 @@ on:
   schedule:
     # Every day at 03:00 Thailand time (20:00 UTC): refresh OpenAlex, Scopus, TCI and both forms.
     - cron: '0 20 * * *'
-    # Every hour at :30: only the two Google Forms (add works, conference decisions), so a
+    # Every hour at :15: the admin form, self-added works, button decisions and Crossref, so a
     # submission takes effect within about an hour (decided by Tum, 2026-11-06).
     - cron: '15 * * * *'
   workflow_dispatch:

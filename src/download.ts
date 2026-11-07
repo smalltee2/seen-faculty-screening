@@ -10,7 +10,8 @@ export function downloadCsv(filename: string, header: string[], rows: (string | 
   document.body.appendChild(a)
   a.click()
   a.remove()
-  URL.revokeObjectURL(url)
+  // Safari and some Firefox builds abort the download if the URL is revoked in the same tick.
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export async function copyText(text: string): Promise<boolean> {

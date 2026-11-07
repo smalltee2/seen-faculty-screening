@@ -26,6 +26,7 @@ import {
   windowYears,
   type Settings,
 } from './rules'
+import { inProgramme } from './rules'
 import type { Faculty, Pub } from './types'
 
 const Y = 2026
@@ -332,3 +333,17 @@ describe('next-year risk', () => {
   })
 })
 
+
+describe('inProgramme (review, 2026-11-07)', () => {
+  const f = (name: string) => ({ programs: [name] }) as Faculty
+  it('does not read "…and Engineering" as a doctoral programme', () => {
+    expect(inProgramme(f('B.Sc. Environmental Science and Engineering'), 'phd')).toBe(false)
+    expect(inProgramme(f('B.Sc. Environmental Science and Engineering'), 'ba')).toBe(true)
+    expect(inProgramme(f('D.Eng. Energy Engineering'), 'phd')).toBe(true)
+    expect(inProgramme(f('Ph.D. Environmental Science'), 'phd')).toBe(true)
+  })
+  it('matches the full words Graduate Diploma', () => {
+    expect(inProgramme(f('Graduate Diploma in Environmental Management'), 'gd')).toBe(true)
+    expect(inProgramme(f('Higher Graduate Diploma in X'), 'gd')).toBe(false)
+  })
+})

@@ -27,7 +27,10 @@ export function reviewItems(results: PersonResult[]): ReviewItem[] {
 }
 
 export function csvField(v: string | number | null | undefined): string {
-  const s = v === null || v === undefined ? '' : String(v)
+  let s = v === null || v === undefined ? '' : String(v)
+  // A field that a spreadsheet would read as a formula (=, +, -, @) gets a leading apostrophe,
+  // the usual guard against CSV injection from free-text titles (review, 2026-11-07).
+  if (typeof v === 'string' && /^[=+\-@]/.test(s)) s = `'${s}`
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 

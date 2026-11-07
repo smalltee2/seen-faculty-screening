@@ -20,13 +20,18 @@ function stripYear(venue: string): string {
   return joinThai(venue).replace(/,?\s*\b((19|20)\d{2}|0)\s*$/, '').trim()
 }
 
-const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|\bpreprints?\b|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review|\bdiscussions\b/i
+// Preprint servers are venue words; "preprint"/"discussions" alone are tested on the venue only,
+// so a title such as "Policy discussions on PM2.5" is not excluded (review, 2026-11-07).
+const PREPRINT = /arxiv|research\s*square|ssrn|eartharxiv|preprints?\.org|biorxiv|medrxiv|chemrxiv|essoar|authorea|egusphere|awaiting peer review/i
+const PREPRINT_VENUE = /\bpreprints?\b|\bdiscussions\b/i
 // Also "Author Correction: …" (Springer Nature), "Publisher Correction: …" and "Correction to “X”" (no colon).
 const ERRATUM = /^(author |publisher )?(correction|erratum|corrigendum)( to\b|( notice)?\s*[:.\-–—]|\s*$)|^(retraction( notice)?|retracted|expression of concern)\b/i
 const PATENT = /patent|สิทธิบัตร|อนุสิทธิบัตร/i
 const DATASET = /zenodo|figshare|pangaea|dryad|mendeley data|\bdata\s?set\b/i
 const THESIS = /thesis|dissertation|วิทยานิพนธ์|ปริญญานิพนธ์|การค้นคว้าอิสระ|\bph\.?\s?d\b|master'?s|graduate school|บัณฑิตวิทยาลัย/i
-const POSTER = /poster|abstracts?\b|agu fall meeting|egu general assembly|ams annual meeting|goldschmidt|บทคัดย่อ|โปสเตอร์/i
+// Meeting names may sit in the title; the generic words (poster, abstract) only count in the venue.
+const POSTER = /agu fall meeting|egu general assembly|ams annual meeting|goldschmidt/i
+const POSTER_VENUE = /poster|abstracts?\b|บทคัดย่อ|โปสเตอร์/i
 const PROCEEDING = /proceedings?|\bproc\.|conference|symposium|congress|workshop|e3s web of|matec web of|\bspie\b|การประชุมวิชาการ|ประชุมวิชาการ|รายงานสืบเนื่อง/i
 const LECTURE_NOTES = /lecture notes in/i
 const BOOK = /\bbook\b|chapter|handbook|encyclopedia|\bisbn\b|^in:|หนังสือ|ต(?:ำ|ํา)รา|intechopen/i
@@ -65,11 +70,11 @@ export function classifyType(title: string, venue: string): TypeResult {
   const both = joinThai(`${title} ${venue}`)
   if (!v) return { type: 'exclude', reason: 'ไม่มีชื่อแหล่งตีพิมพ์ (no venue)', uncertain: false }
   if (ERRATUM.test(joinThai(title).trim())) return { type: 'exclude', reason: 'คำแก้ไข/ถอนบทความ (erratum)', uncertain: false }
-  if (PREPRINT.test(both)) return { type: 'exclude', reason: 'ฉบับก่อนตีพิมพ์ (preprint)', uncertain: false }
+  if (PREPRINT.test(both) || PREPRINT_VENUE.test(v)) return { type: 'exclude', reason: 'ฉบับก่อนตีพิมพ์ (preprint)', uncertain: false }
   if (PATENT.test(v)) return { type: 'exclude', reason: 'สิทธิบัตร (patent)', uncertain: false }
   if (DATASET.test(v)) return { type: 'exclude', reason: 'ชุดข้อมูล (dataset)', uncertain: false }
   if (THESIS.test(v)) return { type: 'exclude', reason: 'วิทยานิพนธ์ (thesis/dissertation)', uncertain: false }
-  if (POSTER.test(both)) return { type: 'poster', reason: 'โปสเตอร์/บทคัดย่อ (poster/abstract)', uncertain: false }
+  if (POSTER.test(both) || POSTER_VENUE.test(v)) return { type: 'poster', reason: 'โปสเตอร์/บทคัดย่อ (poster/abstract)', uncertain: false }
   if (PROCEEDING.test(v)) return { type: 'proceeding', reason: 'รายงานการประชุมวิชาการ (proceedings)', uncertain: false }
   if (LECTURE_NOTES.test(v))
     return { type: 'proceeding', reason: 'Lecture Notes series — อาจเป็น proceedings หรือหนังสือ', uncertain: true }
@@ -135,16 +140,24 @@ const SCOPUS_EXCLUDE = ['book chapter', 'book', 'erratum', 'conference review', 
 export function classifyRow(p: RawPub): TypeResult {
   const ext = (p.extType ?? '').toLowerCase()
   const st = (p.sourceType ?? '').toLowerCase()
-  const isPoster = POSTER.test(joinThai(`${p.title} ${p.venue}`))
+  const isPoster = POSTER.test(joinThai(`${p.title} ${p.venue}`)) || POSTER_VENUE.test(stripYear(p.venue))
+  // OpenAlex and Scopus file many proceedings series (Materials Today: Proceedings, E3S Web of
+  // Conferences, Procedia, IOP Conf. Series) as journal articles; the venue name decides, so the
+  // paper goes through the conference register instead of counting as a journal article.
+  const proceedingsVenue = (p.source === 'openalex' || p.source === 'scopus') && PROCEEDING.test(stripYear(p.venue))
   if (p.source === 'manual' && (ext === 'journal' || ext === 'proceeding' || ext === 'poster'))
     return { type: ext, reason: 'เพิ่มโดยผู้ดูแล (Google Form)', uncertain: false }
   if (p.source === 'openalex') {
-    if (OA_EXCLUDE[ext]) return { type: 'exclude', reason: `OpenAlex: ${OA_EXCLUDE[ext]}`, uncertain: false }
+    if (Object.hasOwn(OA_EXCLUDE, ext)) return { type: 'exclude', reason: `OpenAlex: ${OA_EXCLUDE[ext]}`, uncertain: false }
     if (st === 'repository') return { type: 'exclude', reason: 'OpenAlex: คลังเอกสาร/preprint (repository)', uncertain: false }
     if (st === 'conference')
       return isPoster
         ? { type: 'poster', reason: 'OpenAlex: งานประชุม — บทคัดย่อ/โปสเตอร์', uncertain: false }
         : { type: 'proceeding', reason: 'OpenAlex: งานประชุมวิชาการ (conference)', uncertain: false }
+    if (proceedingsVenue && ['article', 'review'].includes(ext))
+      return isPoster
+        ? { type: 'poster', reason: 'OpenAlex: งานประชุม (ชื่อแหล่งตีพิมพ์) — บทคัดย่อ/โปสเตอร์', uncertain: false }
+        : { type: 'proceeding', reason: 'OpenAlex: ชื่อแหล่งตีพิมพ์เป็น proceedings', uncertain: false }
     if ((st === 'journal' || st === 'book series') && ['article', 'review', 'letter', 'editorial'].includes(ext))
       return { type: 'journal', reason: `OpenAlex: วารสาร (${ext})`, uncertain: false }
   }
@@ -154,6 +167,10 @@ export function classifyRow(p: RawPub): TypeResult {
       return isPoster
         ? { type: 'poster', reason: 'Scopus: งานประชุม — บทคัดย่อ/โปสเตอร์', uncertain: false }
         : { type: 'proceeding', reason: 'Scopus: conference paper', uncertain: false }
+    if (proceedingsVenue && ['article', 'review'].includes(ext))
+      return isPoster
+        ? { type: 'poster', reason: 'Scopus: งานประชุม (ชื่อแหล่งตีพิมพ์) — บทคัดย่อ/โปสเตอร์', uncertain: false }
+        : { type: 'proceeding', reason: 'Scopus: ชื่อแหล่งตีพิมพ์เป็น proceedings', uncertain: false }
     if (SCOPUS_JOURNAL.includes(ext) && st === 'journal') return { type: 'journal', reason: `Scopus: วารสาร (${p.extType})`, uncertain: false }
   }
   return classifyType(p.title, p.venue)

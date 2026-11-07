@@ -101,7 +101,7 @@ const minTri = (...xs: Tri[]): Tri => (xs.includes('no') ? 'no' : xs.includes('m
 
 /** Academic rank written out in full for display (Tum, 2026-11-07); name titles such as "รศ.ดร." stay short. */
 export const RANK_FULL: Record<string, string> = { 'ศ.': 'ศาสตราจารย์', 'รศ.': 'รองศาสตราจารย์', 'ผศ.': 'ผู้ช่วยศาสตราจารย์', 'อ.': 'อาจารย์', อาจารย์: 'อาจารย์' }
-export const rankFull = (rank: string | null | undefined) => (rank ? (RANK_FULL[rank] ?? rank) : '')
+export const rankFull = (rank: string | null | undefined) => (rank ? (Object.hasOwn(RANK_FULL, rank) ? RANK_FULL[rank] : rank) : '')
 
 export function rankAtLeast(rank: Rank | null, min: Rank): boolean {
   return rank !== null && RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf(min)
@@ -356,9 +356,10 @@ export function nextYearRisk(r: PersonResult, s: Settings): RoleSpec[] {
 const LEVEL_PATTERNS: Record<Level, RegExp> = {
   ba: /bachelor|^b\.|^bs\b|^bsc\b|^beng\b|ป\.?\s?ตรี|ปริญญาตรี|วท\.?บ|วศ\.?บ/i,
   hgd: /higher\s*grad|ป\.?\s?บัณฑิตชั้นสูง|บัณฑิตชั้นสูง/i,
-  gd: /^(?!.*(higher|ชั้นสูง)).*(grad\.?\s?dip|ป\.?\s?บัณฑิต)/i,
+  gd: /^(?!.*(higher|ชั้นสูง)).*(grad(uate)?\.?\s?dip(loma)?|ป\.?\s?บัณฑิต|ประกาศนียบัตรบัณฑิต)/i,
   ms: /^m\.|master|^ms\b|ป\.?\s?โท|ปริญญาโท|วท\.?ม|วศ\.?ม/i,
-  phd: /ph\.?\s?d|d\.?\s?eng|doctor|ป\.?\s?เอก|ปริญญาเอก|ปร\.?ด/i,
+  // \bd\.eng / \bdeng: "d\.?\s?eng" used to match "…and Engineering" in a bachelor's programme name.
+  phd: /ph\.?\s?d|\bd\.\s?eng\b|\bdeng\b|doctor|ป\.?\s?เอก|ปริญญาเอก|ปร\.?ด/i,
 }
 
 export function inProgramme(p: Faculty, level: Level): boolean {

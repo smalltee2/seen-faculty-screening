@@ -15,6 +15,10 @@ describe('parseVenue', () => {
     expect(parseVenue('Advances in Meteorology 2024, 1653062, 2024', 2024)).toMatchObject({ source: 'Advances in Meteorology', volume: '2024', artNo: '1653062' })
     expect(parseVenue('Geophysical Research Letters 49 (19), e2022GL100223, 2022', 2022)).toMatchObject({ volume: '49', issue: '19', artNo: 'e2022GL100223' })
   })
+  it('keeps commas inside a journal name', () => {
+    expect(parseVenue('Water, Air, & Soil Pollution 234 (6), 396, 2023', 2023)).toMatchObject({ source: 'Water, Air, & Soil Pollution', volume: '234', issue: '6', artNo: '396' })
+    expect(parseVenue('Journal of Human, Earth, and Future 6 (1), 166-179, 2025', 2025)).toMatchObject({ source: 'Journal of Human, Earth, and Future', volume: '6', issue: '1', pageStart: '166', pageEnd: '179', pageCount: '14' })
+  })
   it('leaves a bare venue name alone', () => {
     expect(parseVenue('Proceedings of EnvSci 2023', 2023)).toMatchObject({ source: 'Proceedings of EnvSci 2023', volume: '', artNo: '' })
     expect(parseVenue('', 2023).source).toBe('')
@@ -76,6 +80,7 @@ describe('biblioOf and formatDate', () => {
   it('prefers Crossref issue, pages and date over the venue string', () => {
     const idx = crossrefIndex([{ doi: '10.1/a', journal: 'Sustainability', volume: '18', issue: '21', pageStart: '1', pageEnd: '20', articleNumber: '11212', published: '2026-10-15', publishedOnline: '2026-10-10' }])
     expect(biblioOf(base, idx)).toMatchObject({ source: 'Sustainability', volume: '18', issue: '21', artNo: '11212', pageStart: '1', pageEnd: '20', pageCount: '20', date: '2026-10-15' })
+    expect(biblioOf({ ...base, venue: 'Sustainability Switzerland 18 (21), 11212, 2026' }, idx).source).toBe('Sustainability')
   })
   it('treats a Crossref page equal to the article number as an article number, not a page range', () => {
     const idx = crossrefIndex([{ doi: '10.1/a', journal: '', volume: '18', issue: '', pageStart: '11212', pageEnd: '11212', articleNumber: '', published: '', publishedOnline: '2026-10-10' }])

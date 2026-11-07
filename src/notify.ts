@@ -32,6 +32,13 @@ export function noticeKind(r: PersonResult, settings: Settings): NoticeKind | nu
   return null
 }
 
+/** The reason a duty failed: the output line ("ต้องการ … ; มี …") when the qualification passed,
+ *  otherwise every line (review, 2026-11-07: reasons[0] is always the qualification line). */
+export const failReason = (reasons: string[]): string => {
+  const rest = reasons.filter((x) => !x.startsWith('คุณวุฒิ:'))
+  return (rest.length ? rest : reasons).join('; ')
+}
+
 const levelTh = (level: string) => (level === 'ba' ? 'ปริญญาตรี' : level === 'ms' ? 'ปริญญาโท' : level === 'phd' ? 'ปริญญาเอก' : level)
 
 /** Subject and body of the reminder, built from the lecturer's own result (plain text, Thai). */
@@ -44,7 +51,7 @@ export function buildNotice(r: PersonResult, settings: Settings, kind: NoticeKin
   if (kind === 'fail') {
     const failing = ROLES.filter((role) => isShownLevel(role.level) && r.roles[role.id].status === 'not_met')
     lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ปีการประเมิน พ.ศ. ${Y} ท่านยังไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)
-    for (const role of failing) lines.push(`  • ${levelTh(role.level)} ข้อ ${role.clause} ${role.labelTh}: ${r.roles[role.id].reasons[0] ?? ''}`)
+    for (const role of failing) lines.push(`  • ${levelTh(role.level)} ข้อ ${role.clause} ${role.labelTh}: ${failReason(r.roles[role.id].reasons)}`)
   } else {
     const risk = nextYearRisk(r, settings).filter((role) => isShownLevel(role.level))
     lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ ปัจจุบัน (พ.ศ. ${Y}) ท่านผ่านเกณฑ์ แต่หากไม่มีผลงานเพิ่มภายในปี พ.ศ. ${toBE(settings.year + 1)} จะไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)

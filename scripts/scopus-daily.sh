@@ -5,7 +5,7 @@
 # content changed, and pushes; the push makes GitHub rebuild and redeploy the site.
 # The key is read from the macOS Keychain (service "seen-scopus-api-key"), never a file.
 set -u
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 REPO="$HOME/Library/Application Support/seen-scopus/repo"
 log() { print -r -- "$(date '+%Y-%m-%d %H:%M:%S') $*" }
 
@@ -18,6 +18,11 @@ cd "$REPO" || { log "ERROR: $REPO missing; run install-scopus-daily.sh"; exit 1;
 git rebase --abort >/dev/null 2>&1 || true
 git fetch -q origin main || { log "ERROR: git fetch failed"; exit 1; }
 git reset -q --hard origin/main || { log "ERROR: git reset failed"; exit 1; }
+# The clone needs its packages for build-data and the conference screening (tsx); install once
+# and again whenever package-lock.json changes.
+if [[ ! -d node_modules || package-lock.json -nt node_modules/.package-lock.json ]]; then
+  npm ci --silent --no-audit --no-fund || { log "ERROR: npm ci failed"; exit 1; }
+fi
 
 # Off the university network Elsevier refuses the key; the script then keeps the
 # previous rows, so nothing changes and nothing is pushed.
@@ -28,7 +33,8 @@ SCOPUS_API_KEY="$KEY" node scripts/fetch-sources.mjs --only=scopus || { log "ERR
 # A failure here (not signed in, no network) must not block the Scopus push.
 if command -v claude >/dev/null 2>&1; then
   if node scripts/build-data.mjs >/dev/null 2>&1; then
-    npx tsx scripts/screen-conferences.ts --limit 10 2>&1 | while IFS= read -r l; do log "$l"; done
+    node_modules/.bin/tsx scripts/screen-conferences.ts --limit 10 2>&1 | while IFS= read -r l; do log "$l"; done
+    log "conference screening exit status ${pipestatus[1]}"
   else
     log "WARNING: build-data failed; conference screening skipped this run"
   fi

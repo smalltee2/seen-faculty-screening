@@ -49,6 +49,8 @@ const CONFIG = {
 const log = (m) => console.log(`[fetch] ${m}`)
 const warn = (m) => console.warn(`[fetch] WARNING: ${m}`)
 const clean = (s) => String(s ?? '').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
+/** Crossref returns some names HTML-escaped ("Air Quality, Atmosphere &amp; Health"). */
+const unescapeHtml = (s) => String(s ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function getJson(url, tries = 3, headers = {}) {
@@ -311,7 +313,7 @@ function writeRegister(path, entries) {
  *  The latest submission per key wins; a key not yet in the register gets a new row. */
 async function fetchDecisions(url, admins = []) {
   if (!url) {
-    log('Decisions sheet: no decisionSheetCsvUrl in data/sources.json; skipped')
+    log('Decisions sheet: DECISION_SHEET_CSV_URL not set (form retired); skipped')
     return
   }
   let text
@@ -351,7 +353,7 @@ async function fetchDecisions(url, admins = []) {
   for (const r of rows.slice(1)) {
     const key = col(r, 'key')
     const decisionLabel = col(r, 'decision')
-    if (!key || !(decisionLabel in DECISION_MAP)) {
+    if (!key || !(Object.hasOwn(DECISION_MAP, decisionLabel))) {
       skipped.push(key || '(no key)')
       continue
     }
@@ -459,7 +461,7 @@ async function fetchManual(faculty, url) {
   for (const [i, r] of rows.slice(1).entries()) {
     // Dropdown options read "ชื่อไทย (English name)"; the English name in brackets is the key.
     const key = col(r, 'key').match(/\(([^()]+)\)\s*$/)?.[1].trim() ?? col(r, 'key')
-    const type = TYPE_MAP[col(r, 'type')]
+    const type = Object.hasOwn(TYPE_MAP, col(r, 'type')) ? TYPE_MAP[col(r, 'type')] : undefined
     const year = Number(col(r, 'year'))
     if (!names.has(key) || !type || !Number.isInteger(year) || year < 1900 || year > 2100 || !col(r, 'title')) {
       warn(`Google Sheet row ${i + 2} skipped: lecturer, type, year (must be ค.ศ. 1900–2100) or title is missing or not recognised`)
@@ -481,6 +483,12 @@ async function fetchManual(faculty, url) {
     })
   }
   const previousManual = readTsv(CONFIG.manualOut).rows
+  // A sheet that parses but matches nothing (renamed dropdown option, year format) must not
+  // empty the file: the hourly job would commit an empty manual.tsv and every form work would vanish.
+  if (rows.length > 1 && !out.length) {
+    warn(`Google Sheet: ${rows.length - 1} rows but none usable; data/manual.tsv left unchanged`)
+    return
+  }
   for (const r of out) r.issn = await issnByDoi(r.doi, previousManual)
   writeTsv(CONFIG.manualOut, MANUAL_HEADER, out)
   log(`Google Sheet: ${out.length} rows (${out.filter((r) => r.issn).length} with ISSN from DOI) -> data/manual.tsv`)
@@ -657,7 +665,7 @@ async function fetchCrossref(refresh) {
       const pages = String(m.page ?? '').split(/\s*[-–]\s*/)
       byDoi.set(doi, {
         doi,
-        journal: clean(Array.isArray(m['container-title']) ? m['container-title'][0] : m['container-title']),
+        journal: clean(unescapeHtml(Array.isArray(m['container-title']) ? m['container-title'][0] : m['container-title'])),
         volume: clean(m.volume),
         issue: clean(m.issue),
         page_start: clean(pages[0]),
@@ -671,7 +679,10 @@ async function fetchCrossref(refresh) {
       ok++
     } catch (e) {
       failed++
-      if (!byDoi.has(doi)) byDoi.set(doi, { doi, journal: '', volume: '', issue: '', page_start: '', page_end: '', article_number: '', published: '', published_online: '', fetched: '' })
+      // A 404 means Crossref has no record (NRCT DOIs, figshare, zenodo): remember that and stop asking;
+      // a network or 5xx error leaves fetched empty so the next run tries again.
+      const final = /HTTP 404/.test(e.message)
+      if (!byDoi.has(doi) || final) byDoi.set(doi, { doi, journal: '', volume: '', issue: '', page_start: '', page_end: '', article_number: '', published: '', published_online: '', fetched: final ? new Date().toISOString().slice(0, 10) : '' })
       if (failed <= 5) warn(`Crossref: ${doi}: ${e.message}`)
     }
     await sleep(120)
@@ -700,7 +711,8 @@ if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
 // Crossref runs after every file that can bring a new DOI (daily full run and the hourly forms run).
 if (run('manual') || run('self') || run('crossref')) await fetchCrossref(process.argv.includes('--refresh-crossref'))
-if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
+// The retired decision form's sheet (it holds respondents' e-mails) is read only from a secret, never from sources.json.
+if (run('decisions')) await fetchDecisions(process.env.DECISION_SHEET_CSV_URL ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
 // Button decisions run after the (retired) decision form, so a button press is the latest word.
 if (run('decisions')) await fetchConfDecisions(sources.loginApiUrl ?? '')
 if (run('tci')) {

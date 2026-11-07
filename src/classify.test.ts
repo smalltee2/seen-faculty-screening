@@ -71,6 +71,21 @@ describe('classifyType', () => {
   })
 })
 
+describe('classifyRow on proceedings series and title words (review, 2026-11-07)', () => {
+  it('an OpenAlex or Scopus "article in a journal" whose venue is a proceedings series is a proceeding', () => {
+    expect(classifyRow(raw({ source: 'openalex', extType: 'article', sourceType: 'journal', venue: 'Materials Today: Proceedings 47, 3525-3528, 2021' })).type).toBe('proceeding')
+    expect(classifyRow(raw({ source: 'openalex', extType: 'article', sourceType: 'journal', venue: 'E3S Web of Conferences 346, 01001, 2022' })).type).toBe('proceeding')
+    expect(classifyRow(raw({ source: 'scopus', extType: 'Article', sourceType: 'Journal', venue: 'IOP Conference Series: Earth and Environmental Science 1234, 012001, 2023' })).type).toBe('proceeding')
+    expect(classifyRow(raw({ source: 'openalex', extType: 'article', sourceType: 'journal', venue: 'Atmospheric Environment 300, 119000, 2023' })).type).toBe('journal')
+  })
+  it('"discussions" or "abstract" in a title does not exclude or demote a journal article', () => {
+    expect(classifyType('Policy discussions on PM2.5 in Thailand', 'Atmospheric Environment 300, 119000, 2023').type).toBe('journal')
+    expect(classifyType('Abstract reasoning about air quality', 'Atmospheric Environment 300, 119000, 2023').type).toBe('journal')
+    expect(classifyType('A study', 'Atmospheric Chemistry and Physics Discussions 12, 1-20, 2023').type).toBe('exclude')
+    expect(classifyType('A study', 'EGU General Assembly Abstracts 2023').type).toBe('poster')
+  })
+})
+
 describe('classifyResearch', () => {
   it('marks review articles as not research', () => {
     expect(classifyResearch('A review of air quality models', 'J 1 (2), 1-2')).toMatchObject({ isResearch: false, uncertain: false })

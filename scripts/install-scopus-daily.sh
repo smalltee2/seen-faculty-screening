@@ -3,7 +3,7 @@
 # it runs when it wakes). Run once:  zsh scripts/install-scopus-daily.sh
 # Remove:  launchctl bootout gui/$UID ~/Library/LaunchAgents/th.ac.up.seen.scopus-daily.plist
 set -e
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 LABEL=th.ac.up.seen.scopus-daily
 DIR="$HOME/Library/Application Support/seen-scopus"
 REPO="$DIR/repo"
@@ -21,6 +21,7 @@ mkdir -p "$DIR" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 git -C "$REPO" config user.name "Teerachai Amnuaylojaroen"
 git -C "$REPO" config user.email "teerachai.am@up.ac.th"
 gh auth setup-git
+(cd "$REPO" && npm ci --silent --no-audit --no-fund)
 
 cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

@@ -15,6 +15,9 @@ describe('reminder e-mails', () => {
     expect(body).toContain('เรียน ผศ.ดร.ทดสอบ ทดสอบ')
     expect(body).toContain('ข้อ 9.3.1')
     expect(body).toContain('0 เรื่อง')
+    // The reason after each duty is the output shortfall, not the (satisfied) qualification line.
+    expect(body).toMatch(/ข้อ 9\.3\.1 [^\n]*: ต้องการ /)
+    expect(body).not.toMatch(/ข้อ 9\.3\.1 [^\n]*: คุณวุฒิ:/)
     expect(body).not.toMatch(/\S@up\.ac\.th/) // the domain is named as an instruction, never as someone's address
   })
   it('the body never contains an e-mail address placeholder', () => {

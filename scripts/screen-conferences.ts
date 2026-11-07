@@ -31,7 +31,8 @@ const flag = (name: string) => {
   return i >= 0 ? args[i + 1] : undefined
 }
 const LIST_ONLY = args.includes('--list')
-const LIMIT = Number(flag('--limit') ?? Infinity)
+// `--limit` without a number (or a bad one) would be NaN, which every comparison treats as unlimited.
+const LIMIT = Number.isFinite(Number(flag('--limit'))) && Number(flag('--limit')) > 0 ? Number(flag('--limit')) : Infinity
 const MODEL = flag('--model') ?? 'sonnet'
 
 const SCHEMA = {

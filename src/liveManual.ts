@@ -74,7 +74,7 @@ export function manualRowsFromCsv(text: string, faculty: Faculty[]): RawPub[] {
   const out: RawPub[] = []
   rows.slice(1).forEach((r, i) => {
     const key = col(r, 'key').match(/\(([^()]+)\)\s*$/)?.[1].trim() ?? col(r, 'key')
-    const type = TYPE_MAP[col(r, 'type')]
+    const type = Object.hasOwn(TYPE_MAP, col(r, 'type')) ? TYPE_MAP[col(r, 'type')] : undefined
     const year = Number(col(r, 'year'))
     if (!names.has(key) || !type || !Number.isInteger(year) || year < 1900 || year > 2100 || !col(r, 'title')) return // a blank year is Number('') = 0
     const venue = [col(r, 'venue'), col(r, 'volume')].filter(Boolean).join(' ')
