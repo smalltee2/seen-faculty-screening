@@ -36,12 +36,6 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <div className="report-head">
         <div className="min0">
           <h1>รายงานสรุปผลการตรวจสอบคุณสมบัติอาจารย์ ตามเกณฑ์มาตรฐานหลักสูตรระดับปริญญาตรี และระดับบัณฑิตศึกษา พ.ศ. 2565 (ประกาศ กมอ.)</h1>
-          <div className="hero-chips">
-            <span className="hero-chip hero-chip-muted">อาจารย์ {results.length} คน</span>
-            <span className="hero-chip lvl-ba">ปริญญาตรี ข้อ 10.1</span>
-            <span className="hero-chip lvl-ms">ปริญญาโท ข้อ 9.3</span>
-            <span className="hero-chip lvl-phd">ปริญญาเอก ข้อ 9.4</span>
-          </div>
         </div>
       </div>
 
