@@ -10,19 +10,22 @@ const S = { year: 2026, countPosters: false }
 const results = bundle.faculty.map((p) => evaluatePerson(p, [], S))
 
 describe('programmes.csv / ProgrammePanel', () => {
-  it('lists the seven programmes and covers every lecturer', () => {
+  it('lists the seven programmes', () => {
     const progs = bundle.programmes ?? []
     expect(progs.map((p) => [p.id, p.members.length])).toEqual([
-      ['beng-enveng', 5], ['bsc-eem', 9], ['meng-enveng', 3], ['msc-emcc', 4], ['meng-emi', 3], ['phd-emi', 3], ['phd-emcc', 5],
+      ['beng-enveng', 5], ['bsc-eem', 5], ['meng-enveng', 3], ['msc-emcc', 4], ['meng-emi', 3], ['phd-emi', 3], ['phd-emcc', 5],
     ])
+    // Not on any programme list since the B.Sc. EEM list was cut to its five responsible lecturers (2026-11-08).
     const listed = new Set(progs.flatMap((p) => p.members.map((m) => m.nameEn)))
-    expect(bundle.faculty.filter((f) => !listed.has(f.nameEn)).map((f) => f.nameEn)).toEqual([])
+    expect(bundle.faculty.filter((f) => !listed.has(f.nameEn)).map((f) => f.nameEn).sort()).toEqual(
+      ['Chayanan Jitmanee', 'Pimsiri Suwannapat', 'Rattapoom Prommana', 'Sumol Nilratnisakorn'],
+    )
   })
 
   it('marks the five responsible lecturers of the B.Sc. programme (programme document 9.1)', () => {
     const prog = bundle.programmes!.find((p) => p.id === 'bsc-eem')!
     expect(prog.members.filter((m) => m.responsible).map((m) => m.nameEn)).toEqual([
-      'Kritchaya Issakul', 'Buran Phansawan', 'Suchanya Thongkrua', 'Poramate Sittisun', 'Surat Sedpho',
+      'Buran Phansawan', 'Kritchaya Issakul', 'Suchanya Thongkrua', 'Poramate Sittisun', 'Surat Sedpho',
     ])
     const html = renderToStaticMarkup(<ProgrammePanel programme={prog} results={results} />)
     expect(html).toContain('อาจารย์ผู้รับผิดชอบหลักสูตร <b>5</b> คน')
