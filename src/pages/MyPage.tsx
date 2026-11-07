@@ -47,6 +47,10 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState('')
+  // Withdraw: one click. The row is hidden at once and the button shows progress while the
+  // backend answers (2–3 s), so nobody clicks twice (Tum, 2026-11-07).
+  const [withdrawing, setWithdrawing] = useState('')
+  const [gone, setGone] = useState<string[]>([])
   const set = (k: keyof typeof EMPTY) => (e: { target: { value: string } }) => setW({ ...w, [k]: e.target.value })
   const thisYear = new Date().getFullYear()
   const valid = Number(w.year) >= 1990 && Number(w.year) <= thisYear + 1 && w.title.trim() && w.type && w.venue.trim() && w.research
@@ -72,10 +76,17 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
   }
 
   const withdraw = async (id: string) => {
+    if (withdrawing) return
+    setWithdrawing(id)
+    setError('')
     const r = await api({ action: 'withdraw', session: sessionStore.get(), id }).catch(() => ({ ok: false, error: '' }) as const)
-    if (r.ok) onChanged()
-    else setError(errorText(r.error))
+    if (r.ok) {
+      setGone((g) => [...g, id])
+      onChanged()
+    } else setError(errorText(r.error))
+    setWithdrawing('')
   }
+  const shown = mine.filter((s) => !gone.includes(s.id))
 
   return (
     <section className="panel add-work no-print" aria-labelledby="add-work-title">
@@ -147,7 +158,7 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
       </form>
 
       <h3 className="mine-title">ผลงานที่ฉันเพิ่ม ({mine.length})</h3>
-      {mine.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="note">ยังไม่มีผลงานที่เพิ่มเอง</p>
       ) : (
         <div className="table-wrap">
@@ -162,7 +173,7 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
               </tr>
             </thead>
             <tbody>
-              {mine.map((s) => (
+              {shown.map((s) => (
                 <tr key={s.id}>
                   <td className="nowrap">{s.year}</td>
                   <td>
@@ -176,8 +187,8 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
                   </td>
                   <td>
                     {s.status === 'pending' && (
-                      <button type="button" className="btn btn-small" onClick={() => void withdraw(s.id)}>
-                        ถอน
+                      <button type="button" className="btn btn-small" disabled={withdrawing === s.id} onClick={() => void withdraw(s.id)}>
+                        {withdrawing === s.id ? 'กำลังถอน…' : 'ถอน'}
                       </button>
                     )}
                   </td>
