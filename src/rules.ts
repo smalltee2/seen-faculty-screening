@@ -241,13 +241,15 @@ function newGradPath(role: RoleSpec, p: Faculty, evals: PubEval[], s: Settings):
   const clause = role.newGrad.clause
   if (role.newGrad.mode === 'teach')
     return { ok: 'maybe', reason: `ข้อ ${clause}: อาจารย์ใหม่วุฒิปริญญาเอก อนุโลมให้สอนได้แม้ยังไม่มีผลงาน — ต้องยืนยันว่าเป็น "อาจารย์ใหม่"` }
-  // TODO(criteria): "ภายใน 2 ปี" is counted in whole years (pub year − degree year ≤ 2),
-  // because Scholar gives only the year; outputs in the degree year itself are included.
+  // "ภายใน 2 ปี" is counted in whole years (pub year − degree year ≤ 2), because Scholar gives
+  // only the year. Outputs dated D−2…D are flagged as possibly pre-degree (ownDegreeRisk), so in
+  // strict mode (the site's setting) they do not count here; only non-strict mode includes the
+  // degree year itself. Reviewed and kept as is by Tum, 2026-11-07.
   const D = p.degreeYear as number
   const pick = (e: PubEval) => (role.researchOnly ? e.research : e.eligible)
   // The tier is the one that matches the years since the degree (decision by Tum, 2026-11-05):
   // within 2 years 1 output, within 4 years 2, within 5 years 3. Outputs from the degree
-  // year through the evaluation year count.
+  // year through the evaluation year are considered (subject to the strict-mode note above).
   const elapsed = s.year - D
   const [years, n] = NEW_GRAD_TIERS.find(([y]) => elapsed <= y) ?? NEW_GRAD_TIERS[NEW_GRAD_TIERS.length - 1]
   const after = evals.filter((e) => e.pub.year !== null && e.pub.year >= D && e.pub.year <= s.year)
