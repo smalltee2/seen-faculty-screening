@@ -58,16 +58,36 @@ const ticks = (max: number) => {
 // Journal level (see tci.ts): Scopus = international, TCI กลุ่ม 1–2 = national, else outside.
 export const levelOf = (p: Pub) => journalLevel(p, TCI)?.level ?? null
 
-const SERIES = [
-  { key: 'journalIntl', th: 'วารสารนานาชาติ', cls: 'c-journal' },
-  { key: 'journalNatl', th: 'วารสารระดับชาติ', cls: 'c-journal-natl' },
-  { key: 'journalNone', th: 'วารสารอื่น ๆ', cls: 'c-journal-none' },
-  { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding' },
-  { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster' },
-] as const
+/** Series of the per-year chart and its table: by type, or by quality (2026-11-08: international
+ *  journals by CiteScore quartile, national journals by TCI tier; the rest not split). */
+export type YearMode = 'type' | 'quality'
+export interface YearSeries { key: string; th: string; cls: string; match: (p: Pub) => boolean }
+const isQ = (k: QualityKey) => (p: Pub) => qualityOf(p, TCI, QUARTILES) === k
+export const YEAR_SERIES: Record<YearMode, YearSeries[]> = {
+  type: [
+    { key: 'journalIntl', th: 'วารสารนานาชาติ', cls: 'c-journal', match: (p) => levelOf(p) === 'intl' },
+    { key: 'journalNatl', th: 'วารสารระดับชาติ', cls: 'c-journal-natl', match: (p) => levelOf(p) === 'natl' },
+    { key: 'journalNone', th: 'วารสารอื่น ๆ', cls: 'c-journal-none', match: (p) => levelOf(p) === 'none' },
+    { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding', match: (p) => p.type === 'proceeding' },
+    { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster', match: (p) => p.type === 'poster' },
+  ],
+  quality: [
+    { key: 'q1', th: 'นานาชาติ Q1', cls: 'c-q1', match: isQ('q1') },
+    { key: 'q2', th: 'นานาชาติ Q2', cls: 'c-q2', match: isQ('q2') },
+    { key: 'q3', th: 'นานาชาติ Q3', cls: 'c-q3', match: isQ('q3') },
+    { key: 'q4', th: 'นานาชาติ Q4', cls: 'c-q4', match: isQ('q4') },
+    { key: 'qNone', th: 'นานาชาติ (ไม่มี Quartile)', cls: 'c-qnone', match: isQ('qNone') },
+    { key: 'tier1', th: 'TCI กลุ่ม 1', cls: 'c-tier1', match: isQ('tier1') },
+    { key: 'tier2', th: 'TCI กลุ่ม 2', cls: 'c-tier2', match: isQ('tier2') },
+    { key: 'journalNone', th: 'วารสารอื่น ๆ', cls: 'c-journal-none', match: isQ('journalNone') },
+    { key: 'proceeding', th: 'Proceedings', cls: 'c-proceeding', match: (p) => p.type === 'proceeding' },
+    { key: 'poster', th: 'โปสเตอร์/บทคัดย่อ', cls: 'c-poster', match: (p) => p.type === 'poster' },
+  ],
+}
 
 /** Publications per year by type, all lecturers, with the 5-year window shaded. */
-export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Settings }) {
+export function PubsPerYear({ pubs, settings, mode = 'type' }: { pubs: Pub[]; settings: Settings; mode?: YearMode }) {
+  const SERIES = YEAR_SERIES[mode]
   const { show, hide, el } = useTip()
   const [ref, width] = useWidth(640)
   const Y = settings.year
@@ -75,18 +95,11 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
   for (let y = Y - 9; y <= Y; y++) years.push(y)
   const rows = years.map((y) => {
     const ofYear = pubs.filter((p) => p.year === y)
-    return {
-      y,
-      journalIntl: ofYear.filter((p) => levelOf(p) === 'intl').length,
-      journalNatl: ofYear.filter((p) => levelOf(p) === 'natl').length,
-      journalNone: ofYear.filter((p) => levelOf(p) === 'none').length,
-      proceeding: ofYear.filter((p) => p.type === 'proceeding').length,
-      poster: ofYear.filter((p) => p.type === 'poster').length,
-      excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length,
-    }
+    const n: Record<string, number> = Object.fromEntries(SERIES.map((sr) => [sr.key, ofYear.filter(sr.match).length]))
+    return { y, n, total: SERIES.reduce((a, sr) => a + n[sr.key], 0), excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length }
   })
   // 15% headroom so the bar totals never collide with the window label.
-  const max = niceMax(Math.max(1, ...rows.map((r) => r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster)) * 1.15)
+  const max = niceMax(Math.max(1, ...rows.map((r) => r.total)) * 1.15)
   const W = Math.max(280, width)
   const narrow = W < 480
   const H = narrow ? 280 : 330
@@ -121,7 +134,7 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
           <i className="swatch swatch-window" /> ช่วง 5 ปีที่ใช้ประเมิน
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="จำนวนผลงานต่อปีแยกตามประเภท">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={mode === 'quality' ? 'จำนวนผลงานต่อปีแยกตามคุณภาพ' : 'จำนวนผลงานต่อปีแยกตามประเภท'}>
         <rect className="window-band" x={winX} y={m.t - 14 - dy} width={band * 5 + dx} height={ih + 14 + dy + ph + 2} rx={8} />
         <text className="window-label" x={winX + band * 2.5} y={m.t - 4 - dy} textAnchor="middle">
           ช่วงประเมิน {toBE(Y - 4)}–{toBE(Y)}
@@ -140,8 +153,8 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
           const x = cxBand - (bw + dx) / 2
           const y0 = sy(0)
           const px = cxBand - (pw + dx) / 2
-          const total = r.journalIntl + r.journalNatl + r.journalNone + r.proceeding + r.poster
-          const segs = SERIES.map((sr) => ({ cls: sr.cls, v: r[sr.key] })).filter((z) => z.v > 0)
+          const total = r.total
+          const segs = SERIES.map((sr) => ({ cls: sr.cls, v: r.n[sr.key] })).filter((z) => z.v > 0)
           let acc = 0
           return (
             <g key={r.y}>
@@ -189,11 +202,11 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
                       <b>
                         พ.ศ. {toBE(r.y)} ({r.y})
                       </b>
-                      <span>วารสารนานาชาติ {r.journalIntl}</span>
-                      <span>วารสารระดับชาติ {r.journalNatl}</span>
-                      <span>วารสารอื่น ๆ {r.journalNone}</span>
-                      <span>Proceedings {r.proceeding}</span>
-                      <span>โปสเตอร์/บทคัดย่อ {r.poster}</span>
+                      {SERIES.map((sr) => (
+                        <span key={sr.key}>
+                          {sr.th} {r.n[sr.key]}
+                        </span>
+                      ))}
                       <span className="muted">ไม่นับ/ไม่ทราบประเภท {r.excluded}</span>
                     </>,
                   )

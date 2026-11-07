@@ -674,3 +674,5 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .chart .c-qnone { fill: var(--c-qnone); } .swatch.c-qnone { background: var(--c-qnone); }
 .chart .c-tier1 { fill: var(--c-tier1); } .swatch.c-tier1 { background: var(--c-tier1); }
 .chart .c-tier2 { fill: var(--c-tier2); } .swatch.c-tier2 { background: var(--c-tier2); }
+.dash-pubs-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.dash-pubs-head h3 { margin: 0; min-width: 0; }

@@ -1,12 +1,13 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
-import { LecturerOutputs, PubsPerYear, ReadinessPie, levelOf, type OutputsView } from '../charts'
+import { LecturerOutputs, PubsPerYear, ReadinessPie, YEAR_SERIES, type OutputsView, type YearMode } from '../charts'
 import { LEVEL_GROUPS, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
+  const [yearMode, setYearMode] = useState<YearMode>('type')
   const fullyMet = results.filter((r) => SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length
   // Per level group: fails now (any duty not met) and next-year risk, for the summary links.
   const failing = (g: 'ba' | 'grad') => results.filter((r) => SHOWN_ROLES.some((x) => levelGroup(x.level) === g && r.roles[x.id].status === 'not_met')).length
@@ -128,11 +129,20 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         </section>
 
         <section className="panel dash-pubs">
-          <h3>
-            จำนวนผลงานต่อปี แยกตามประเภท
-          </h3>
-          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} />
-          <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} />
+          <div className="dash-pubs-head">
+            <h3>จำนวนผลงานต่อปี แยกตาม{yearMode === 'quality' ? 'คุณภาพ' : 'ประเภท'}</h3>
+            <Segmented
+              label="มุมมองจำนวนผลงานต่อปี"
+              value={yearMode}
+              onChange={setYearMode}
+              options={[
+                { id: 'type', label: 'แยกตามประเภท' },
+                { id: 'quality', label: 'แยกตามคุณภาพ' },
+              ]}
+            />
+          </div>
+          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />
+          <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />
         </section>
       </div>
 
@@ -175,15 +185,9 @@ export function LecturerOutputsBlock({ results, settings }: { results: PersonRes
 
 /** Outputs by type in the 5-year window, per year and total: the same counting as the chart above
  *  (every lecturer's own list, so a co-authored paper counts once per lecturer). */
-function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings: Settings }) {
+function TypeSummary({ pubs, settings, mode }: { pubs: PersonResult['pubs']; settings: Settings; mode: YearMode }) {
   const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
-  const types = [
-    { id: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'intl' },
-    { id: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'natl' },
-    { id: 'journalNone', cls: 'c-journal-none', th: 'วารสารอื่น ๆ', match: (p: PersonResult['pubs'][number]) => levelOf(p) === 'none' },
-    { id: 'proceeding', cls: 'c-proceeding', th: 'Proceedings', match: (p: PersonResult['pubs'][number]) => p.type === 'proceeding' },
-    { id: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ', match: (p: PersonResult['pubs'][number]) => p.type === 'poster' },
-  ]
+  const types = YEAR_SERIES[mode].map((sr) => ({ id: sr.key, cls: sr.cls, th: sr.th, match: sr.match }))
   const rows = types.map((t) => {
     const perYear = years.map((y) => pubs.filter((p) => p.year === y && t.match(p)).length)
     return { ...t, perYear, total: perYear.reduce((a, b) => a + b, 0) }
@@ -193,10 +197,10 @@ function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings:
   return (
     <div className="table-wrap type-summary">
       <table className="data compact">
-        <caption className="sr-only">จำนวนผลงานแยกตามประเภท ช่วง 5 ปีที่ใช้ประเมิน (นับซ้ำตามรายชื่ออาจารย์)</caption>
+        <caption className="sr-only">จำนวนผลงานแยกตาม{mode === 'quality' ? 'คุณภาพ' : 'ประเภท'} ช่วง 5 ปีที่ใช้ประเมิน (นับซ้ำตามรายชื่ออาจารย์)</caption>
         <thead>
           <tr>
-            <th>ประเภท</th>
+            <th>{mode === 'quality' ? 'คุณภาพ' : 'ประเภท'}</th>
             {years.map((y) => (
               <th key={y} className="num">{toBE(y)}</th>
             ))}
