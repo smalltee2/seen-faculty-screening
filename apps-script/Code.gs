@@ -19,6 +19,9 @@
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
  */
 var SITE = 'https://smalltee2.github.io/seen-faculty-screening/';
+// This web app's own URL (data/sources.json loginApiUrl), used in the รับทราบ link; a constant so
+// the script needs no extra permission to read its deployment.
+var APP_URL = 'https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec';
 var CODE_MINUTES = 15;
 var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
@@ -459,7 +462,7 @@ function notifyLecturer(body) {
   });
   if (recent.length) return { ok: false, error: 'notified_recently' };
   var ackToken = randomToken();
-  var ackUrl = ScriptApp.getService().getUrl() + '?ack=' + ackToken;
+  var ackUrl = APP_URL + '?ack=' + ackToken;
   MailApp.sendEmail({
     to: email,
     subject: subject,
