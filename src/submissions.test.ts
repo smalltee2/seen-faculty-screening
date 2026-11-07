@@ -25,3 +25,19 @@ describe('approvedRows', () => {
     expect(approvedRows([sub({})], lecturers, bundled)).toEqual([])
   })
 })
+
+describe('conferenceSubmissions', () => {
+  it('gives pending and approved proceedings/posters a conference check; skips journals and withdrawn', async () => {
+    const { conferenceSubmissions } = await import('./submissions')
+    const items = [
+      sub({ id: 'c1', type: 'proceeding', venue: 'Engineering', status: 'pending' }),
+      sub({ id: 'c2', type: 'poster', venue: 'Thai Env Conf', status: 'approved' }),
+      sub({ id: 'c3', type: 'journal', status: 'pending' }),
+      sub({ id: 'c4', type: 'proceeding', status: 'withdrawn' }),
+    ]
+    const out = conferenceSubmissions(items, [])
+    expect(out.map((x) => x.sub.id)).toEqual(['c1', 'c2'])
+    expect(out[0].pub.conference?.verdict).toBe('pending')
+    expect(out[0].pub.conference?.key).toMatch(/^venue:engineering/)
+  })
+})

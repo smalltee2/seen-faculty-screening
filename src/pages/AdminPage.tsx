@@ -5,7 +5,7 @@ import { toBE } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { copyText } from '../download'
 import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
-import { STATUS_TH, TYPE_TH, type Submission, type SubmissionStatus } from '../submissions'
+import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -90,9 +90,10 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
 
-      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} />
+      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={data.conferences ?? []} />
 
-      <ConferenceRegister pubs={pubs} />
+      {/* Pending proceedings/posters lecturers added also enter the register, so the conference can be judged before approval */}
+      <ConferenceRegister pubs={pubs} pendingPubs={conferenceSubmissions(submissions, data.conferences ?? []).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} />
 
       <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
       {manual.length === 0 ? (
@@ -173,16 +174,19 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 }
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs }: { pubs: Pub[] }) {
-  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[] }>()
+function ConferenceRegister({ pubs, pendingPubs = [] }: { pubs: Pub[]; pendingPubs?: Pub[] }) {
+  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[]; pending: number }>()
   const { minYear } = registerWindow(pubs)
-  for (const p of pubs) {
-    if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) continue
-    if ((p.year ?? 0) < minYear) continue
-    const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [] }
+  const add = (p: Pub, isPending: boolean) => {
+    if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) return
+    if ((p.year ?? 0) < minYear) return
+    const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [], pending: 0 }
     g.pubs.push(p)
+    if (isPending) g.pending++
     groups.set(p.conference.key, g)
   }
+  for (const p of pubs) add(p, false)
+  for (const p of pendingPubs) add(p, true)
   const order: Record<string, number> = { pending: 0, no_count: 1, count: 2 }
   const rows = [...groups.values()].sort((a, b) => order[a.match.verdict] - order[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0))
   const pending = rows.filter((r) => r.match.verdict === 'pending').length
@@ -241,7 +245,7 @@ function ConferenceRegister({ pubs }: { pubs: Pub[] }) {
               </tr>
             </thead>
             <tbody>
-              {shown.map(({ match, pubs: ps }) => {
+              {shown.map(({ match, pubs: ps, pending: np }) => {
                 const e = match.entry
                 return (
                   <tr key={match.key}>
@@ -267,7 +271,10 @@ function ConferenceRegister({ pubs }: { pubs: Pub[] }) {
                       <div className="muted small">{match.reason}</div>
                     </td>
                     <td className="small muted">{match.by === 'admin' ? `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}` : e ? `AI (${e.checkedAt.slice(0, 10)}) ความมั่นใจ ระดับ ${e.confidence}` : '—'}</td>
-                    <td className="small">{ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}</td>
+                    <td className="small">
+                      {ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}
+                      {np > 0 && <div className="sub-status sub-pending">รออนุมัติ {np} (อาจารย์เพิ่มเอง)</div>}
+                    </td>
                   </tr>
                 )
               })}
@@ -322,7 +329,7 @@ function CopyKey({ value }: { value: string }) {
 /** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
  *  The level-2 sign-in carries an approval key the backend checks; an admin signed in by e-mail
  *  (listed in the admins sheet) can also decide. */
-function ApproveWorks({ submissions, faculty, onChanged, approvalKey }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string }) {
+function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: NonNullable<DataBundle['conferences']> }) {
   const { user, checking } = useEmailUser()
   const [show, setShow] = useState<'pending' | 'all'>('pending')
   const [busy, setBusy] = useState('')
@@ -335,6 +342,8 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey }: { submis
   const pending = live.filter((s) => s.status === 'pending')
   const rows = (show === 'pending' ? pending : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
   const canDecide = !!approvalKey || !!user?.isAdmin
+  // Conference check for proceedings/posters, same register as below (src/conferences.ts).
+  const confOf = new Map(conferenceSubmissions(submissions, conferences).map((x) => [x.sub.id, x.pub.conference]))
 
   const decide = async (id: string, status: SubmissionStatus) => {
     setBusy(id)
@@ -416,6 +425,16 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey }: { submis
                   <td className="small">
                     {TYPE_TH[s.type]}
                     <div className="muted">{s.research ? 'งานวิจัย' : 'ไม่ใช่งานวิจัย'}</div>
+                    {(() => {
+                      const c = confOf.get(s.id)
+                      if (!c) return null
+                      return (
+                        <div className="sub-conf">
+                          <span className={`jl cf cf-${c.verdict}`}>งานประชุม: {CONFERENCE_TAG[c.verdict]}</span>
+                          <CopyKey value={c.key} />
+                        </div>
+                      )
+                    })()}
                   </td>
                   <td>
                     <span className={`sub-status sub-${s.status}`}>{STATUS_TH[s.status]}</span>

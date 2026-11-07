@@ -549,3 +549,5 @@ html { scroll-padding-top: 92px; }
 .sub-rejected { background: var(--not-bg); color: var(--not); }
 .sub-withdrawn { background: var(--bg-secondary); color: var(--muted); }
 @media (max-width: 720px) { .work-form { grid-template-columns: 1fr; } }
+.sub-conf { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+td .sub-status { margin-top: 4px; }

@@ -4,7 +4,8 @@
 // level-2 admin) are counted like works from the admin form. The hourly data job also copies
 // approved works into data/self.tsv (scripts/fetch-sources.mjs), so they survive in the build.
 import { api } from './emailLogin'
-import type { RawPub } from './types'
+import { preparePubs } from './classify'
+import type { ConferenceEntry, Pub, RawPub } from './types'
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
 export type WorkType = 'journal' | 'proceeding' | 'poster'
@@ -56,25 +57,37 @@ const bareDoi = (v: string) => {
 /** Submission marker kept in RawPub.submitted, so a work is never counted twice. */
 export const submittedTag = (id: string) => `self:${id}`
 
-/** Approved works as publication rows (same shape as manual-form rows), skipping any already in the bundle. */
+/** One submission as a publication row (same shape as manual-form rows). */
+export function submissionRow(s: Submission, i = 0): RawPub {
+  return {
+    line: i + 1,
+    source: 'manual' as const,
+    key: s.nameEn,
+    year: s.year,
+    title: s.title,
+    authors: s.authors,
+    venue: `${[s.venue, s.volume].filter(Boolean).join(' ')}, ${s.year}`,
+    cites: 0,
+    doi: bareDoi(s.doi),
+    issn: '',
+    extType: s.type,
+    manualResearch: s.research,
+    submitted: submittedTag(s.id),
+    live: true,
+  }
+}
+
+/** Approved works as publication rows, skipping any already in the bundle. */
 export function approvedRows(items: Submission[], lecturers: Set<string>, bundled: RawPub[]): RawPub[] {
   const inBundle = new Set(bundled.map((p) => p.submitted).filter(Boolean))
+  return items.filter((s) => s.status === 'approved' && lecturers.has(s.nameEn) && !inBundle.has(submittedTag(s.id))).map(submissionRow)
+}
+
+/** Each live (pending or approved) conference work classified on its own, with its conference
+ *  check, so the register and the approval table can show it before it is approved. */
+export function conferenceSubmissions(items: Submission[], conferences: ConferenceEntry[]): { sub: Submission; pub: Pub }[] {
   return items
-    .filter((s) => s.status === 'approved' && lecturers.has(s.nameEn) && !inBundle.has(submittedTag(s.id)))
-    .map((s, i) => ({
-      line: i + 1,
-      source: 'manual' as const,
-      key: s.nameEn,
-      year: s.year,
-      title: s.title,
-      authors: s.authors,
-      venue: `${[s.venue, s.volume].filter(Boolean).join(' ')}, ${s.year}`,
-      cites: 0,
-      doi: bareDoi(s.doi),
-      issn: '',
-      extType: s.type,
-      manualResearch: s.research,
-      submitted: submittedTag(s.id),
-      live: true,
-    }))
+    .filter((s) => (s.status === 'pending' || s.status === 'approved') && (s.type === 'proceeding' || s.type === 'poster'))
+    .map((s) => ({ sub: s, pub: preparePubs([submissionRow(s)], [], conferences)[0] }))
+    .filter((x): x is { sub: Submission; pub: Pub } => !!x.pub)
 }

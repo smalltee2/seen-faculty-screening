@@ -312,6 +312,9 @@ works under their own name, and stores them in the `submissions` sheet as `pendi
 (email, name, active). Approved works count at once in the browser (src/submissions.ts) and are copied to
 `data/self.tsv` by the hourly data job (`fetchSelf` in scripts/fetch-sources.mjs). A lecturer can withdraw a work
 while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
+Pending proceedings/posters also enter the conference register (labelled "รออนุมัติ … (อาจารย์เพิ่มเอง)"), and the
+approval table shows each one's conference check with its key, so the conference can be judged first (decision form)
+before approving. The iMac's AI screening (scripts/screen-conferences.ts) also queues these conferences.
 
 **Backend** (`apps-script/Code.gs`): a Google Apps Script bound to the private sheet "SEEN Login (private)" in
 the admin's Google account, deployed as a web app (execute as me, anyone). Sheets: `users` (email, name_en,

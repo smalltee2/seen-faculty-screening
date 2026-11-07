@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
 import { preparePubs } from '../src/classify'
 import { conferenceKey } from '../src/conferences'
-import type { ConferenceEntry, DataBundle, Pub } from '../src/types'
+import type { ConferenceEntry, DataBundle, Pub, RawPub } from '../src/types'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const REGISTER = join(ROOT, 'data/conferences.csv')
@@ -132,9 +132,29 @@ function ask(key: string, pubs: Pub[]): Answer {
   return res.structured_output
 }
 
-function main(): void {
+/** Proceedings/posters lecturers added on "ตรวจสอบคุณสมบัติของฉัน" (pending or approved), read from the
+ *  login backend's public list, so their conferences are checked before an admin approves them. */
+async function submittedRows(data: DataBundle): Promise<RawPub[]> {
+  const url = (data.sources as { loginApiUrl?: string }).loginApiUrl
+  if (!url) return []
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow' })
+    const js = (await res.json()) as { ok: boolean; items?: { id: string; nameEn: string; year: number; title: string; authors: string; type: string; venue: string; volume: string; status: string }[] }
+    return (js.items ?? [])
+      .filter((s) => (s.status === 'pending' || s.status === 'approved') && (s.type === 'proceeding' || s.type === 'poster'))
+      .map((s, i) => ({ line: i + 1, source: 'manual' as const, key: s.nameEn, year: s.year, title: s.title, authors: s.authors, venue: `${[s.venue, s.volume].filter(Boolean).join(' ')}, ${s.year}`, cites: 0, extType: s.type, submitted: `self:${s.id}` }))
+  } catch (e) {
+    console.log(`[screen-conferences] could not read lecturer-added works (${(e as Error).message}); continuing without them`)
+    return []
+  }
+}
+
+async function main(): Promise<void> {
   const data = JSON.parse(readFileSync(join(ROOT, 'src/generated/data.json'), 'utf8')) as DataBundle
-  const pubs = preparePubs(data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key)), data.overrides, [])
+  const own = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
+  const known = new Set(own.map((p) => p.submitted).filter(Boolean))
+  const extra = (await submittedRows(data)).filter((r) => !known.has(r.submitted))
+  const pubs = preparePubs([...own, ...extra], data.overrides, [])
   const register = readRegister()
   const todo = queue(pubs, new Set(register.map((e) => e.key)))
   console.log(`[screen-conferences] ${register.length} in register, ${todo.length} conference(s) to check`)
@@ -162,4 +182,7 @@ function main(): void {
   }
 }
 
-main()
+main().catch((e) => {
+  console.error(`[screen-conferences] ${(e as Error).message}`)
+  process.exit(1)
+})
