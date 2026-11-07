@@ -39,31 +39,6 @@ export function AdminPage({ data, pubs, faculty, formUrl, onLock, submissions = 
 
       <div className="admin-grid">
         <section className="panel">
-          <h3>ขั้นตอน</h3>
-          {/* All admin steps in one list: adding works, then deciding conferences (Tum, 2026-11-07) */}
-          <h4 className="steps-sub">เพิ่มผลงาน</h4>
-          <ol className="steps">
-            <li>กรอกแบบฟอร์มด้วยบัญชี @up.ac.th หนึ่งครั้งต่อหนึ่งผลงาน ถ้ามีผู้เขียนหลายคนในคณะ ให้กรอกแยกทีละคน</li>
-            <li>ผลงานที่ส่งจะปรากฏในระบบภายในไม่กี่นาที (อ่านจากชีตคำตอบโดยตรง) และถูกบันทึกถาวรในรอบอัปเดตทุกชั่วโมง</li>
-            <li>ผลงานที่เพิ่มจะแสดงในตารางด้านล่าง และนับตามประเภทที่เลือก (วารสาร / proceedings / โปสเตอร์)</li>
-            <li>ถ้ากรอกผิด ให้ลบแถวนั้นในชีตคำตอบของแบบฟอร์ม แล้วรอรอบอัปเดตถัดไป</li>
-          </ol>
-          {formUrl ? (
-            <a className="btn btn-primary" href={formUrl} target="_blank" rel="noreferrer">
-              เปิดแบบฟอร์มเพิ่มผลงาน
-            </a>
-          ) : (
-            <p className="note">ยังไม่ได้ตั้งค่าลิงก์แบบฟอร์ม (googleFormUrl ใน data/sources.json)</p>
-          )}
-          <h4 className="steps-sub">ตัดสินงานประชุม (proceedings)</h4>
-          <ol className="steps" start={5}>
-            <li>ในทะเบียนงานประชุมด้านล่าง เปิดลิงก์ "หลักฐาน" เพื่อตรวจผู้จัดและสาขาของงานประชุม</li>
-            <li>กดปุ่ม "นับ" หรือ "ไม่นับ" ในแถวของงานประชุมนั้น ผลมีทันที</li>
-            <li>ถ้าต้องการกลับไปใช้ผลตรวจอัตโนมัติ กด "ใช้ผลอัตโนมัติ"</li>
-          </ol>
-        </section>
-
-        <section className="panel">
           <h3>แหล่งข้อมูล</h3>
           <dl className="source-list">
             {(['openalex', 'scopus', 'manual', 'scholar'] as PubSource[]).map((s) => (
@@ -87,7 +62,17 @@ export function AdminPage({ data, pubs, faculty, formUrl, onLock, submissions = 
       {/* Pending proceedings/posters lecturers added also enter the register, so the conference can be judged before approval */}
       <ConferenceRegister pubs={pubs} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
 
-      <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
+      {/* Steps box removed (Tum, 2026-11-07); the admin form button moved here */}
+      <div className="block-head-row">
+        <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
+        {formUrl ? (
+          <a className="btn btn-primary no-print" href={formUrl} target="_blank" rel="noreferrer">
+            เปิดแบบฟอร์มเพิ่มผลงาน ↗
+          </a>
+        ) : (
+          <span className="note">ยังไม่ได้ตั้งค่าลิงก์แบบฟอร์ม</span>
+        )}
+      </div>
       {manual.length === 0 ? (
         <p className="note">ยังไม่มีผลงานที่เพิ่มผ่านแบบฟอร์ม</p>
       ) : (
