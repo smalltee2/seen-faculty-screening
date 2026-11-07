@@ -558,3 +558,6 @@ td .sub-status { margin-top: 4px; }
 .admin-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 /* Lecturer name on the person page: same size as the admin page titles (Tum, 2026-11-07) */
 h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-height: 1.4; }
+/* Space above the signed-in bar on ตรวจสอบคุณสมบัติของฉัน (Tum, 2026-11-07) */
+.me-bar { margin-top: 24px; }
+@media (max-width: 720px) { .me-bar { margin-top: 18px; } }
