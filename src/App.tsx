@@ -23,6 +23,8 @@ const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeS
 const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
 const makePubs = (bundled: RawPub[], extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundled, ...extra], data.overrides, conferences)
 const CURRENT_YEAR = new Date().getFullYear()
+/** True on sfs-real.html, whose <html> carries data-years="current-next" (scripts/build-personal.mjs). */
+const REAL_USE = document.documentElement.dataset.years === 'current-next'
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
 const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/item/6942-2022-07-22-03-17-22'
@@ -168,6 +170,8 @@ export function App() {
   const minYear = Math.max(CURRENT_YEAR - 30, Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4)))
   const years: number[] = []
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
+  // sfs-real.html (Tum, 2026-11-08): the page for real use offers only this year and next year.
+  if (REAL_USE) years.splice(0, years.length, CURRENT_YEAR, CURRENT_YEAR + 1)
 
   const programmes = data.programmes ?? []
   // Level 2 only (Tum, 2026-11-08); level 1 sees every lecturer as before.

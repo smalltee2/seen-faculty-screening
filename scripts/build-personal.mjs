@@ -20,6 +20,10 @@ console.log('[personal] dist/me/index.html forwards to #/me')
 // address and every link already sent (e-mails, manual, bookmarks) still open the right page.
 const app = readFileSync(join(DIST, 'index.html'), 'utf8')
 writeFileSync(join(DIST, 'sfs.html'), app)
+// sfs-real.html: the same app for real use; data-years makes its year menu offer only the current
+// and the next year (src/App.tsx → REAL_USE). sfs.html keeps the full year range (Tum, 2026-11-08).
+if (!/<html[^>]*>/.test(app)) throw new Error('[personal] dist/index.html has no <html> tag')
+writeFileSync(join(DIST, 'sfs-real.html'), app.replace(/<html([^>]*)>/, '<html$1 data-years="current-next">'))
 writeFileSync(
   join(DIST, 'index.html'),
   `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ระบบตรวจสอบคุณสมบัติอาจารย์ SEEN</title>
@@ -27,4 +31,4 @@ writeFileSync(
 <script>location.replace('sfs.html'+location.search+location.hash);</script></head>
 <body><p><a href="sfs.html">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์</a></p></body></html>\n`,
 )
-console.log('[personal] dist/sfs.html is the app; dist/index.html forwards to it')
+console.log('[personal] dist/sfs.html and dist/sfs-real.html are the app; dist/index.html forwards to sfs.html')
