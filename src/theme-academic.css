@@ -593,3 +593,17 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .metric.metric-card .metric-value { margin-top: 8px; }
 /* Badge and title centred as well (Tum, 2026-11-07) */
 .metric.metric-card .metric-head { justify-content: center; text-align: center; }
+/* Wide cards (Tum, 2026-11-07): badge above the title, both centred, a clearer type scale
+   (title 0.98rem, number 2.5rem) and even vertical rhythm. */
+.metric.metric-card { padding: 20px 18px 18px; gap: 6px; }
+.metric.metric-card .metric-head { flex-direction: column; gap: 10px; min-height: 0; }
+.metric.metric-card .metric-badge { min-width: 56px; padding: 5px 12px; font-size: 0.84rem; }
+.metric.metric-card .metric-label { font: 700 0.98rem/1.3 var(--font-body); letter-spacing: 0.005em; text-wrap: balance; }
+.metric.metric-card .metric-value { font-size: 2.5rem; margin-top: 10px; }
+.metric.metric-card .metric-value small { font-size: 1rem; margin-left: 4px; }
+.metric.metric-card .metric-sub { margin-top: 2px; font-size: 0.82rem; }
+@media (max-width: 720px) {
+  .metric.metric-card { padding: 16px 14px; }
+  .metric.metric-card .metric-label { font-size: 0.9rem; }
+  .metric.metric-card .metric-value { font-size: 2.1rem; }
+}
