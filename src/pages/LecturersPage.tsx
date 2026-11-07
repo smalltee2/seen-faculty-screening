@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LEVELS,
   ROLES,
@@ -21,8 +21,9 @@ import {
   isShownLevel,
   levelGroup,
   roleShort,
+  lecturersReturn,
 } from "../ui";
-import type { LecturerFilter, LecturerScope, LecturerView } from "../App";
+import type { LecturerFilter, LecturerScope, LecturerSection, LecturerView } from "../App";
 import { LecturerOutputsBlock } from "./Overview";
 import { NotifyButton, type NotifyProps } from "../NotifyButton";
 import { noticeKind } from "../notify";
@@ -49,6 +50,7 @@ export function LecturersPage({
   filter: initialFilter = "all",
   scope: initialScope = "all",
   view: initialView,
+  section: initialSection,
   onLock,
   notify,
   programme,
@@ -58,6 +60,7 @@ export function LecturersPage({
   filter?: LecturerFilter;
   scope?: LecturerScope;
   view?: LecturerView;
+  section?: LecturerSection;
   onLock?: () => void;
   /** Level-2 reminder e-mails (src/notify.ts); undefined on pages without an admin sign-in. */
   notify?: NotifyProps;
@@ -72,9 +75,22 @@ export function LecturersPage({
   const [scope, setScope] = useState<LecturerScope>(initialScope);
   // Switch between the 5-year output chart and the per-duty results (Tum, 2026-11-07).
   // Links that preset a filter or the table view open on the per-duty results.
-  const [section, setSection] = useState<"outputs" | "duties">(
-    initialFilter !== "all" || initialView ? "duties" : "outputs",
+  const [section, setSection] = useState<LecturerSection>(
+    initialSection ?? (initialFilter !== "all" || initialView ? "duties" : "outputs"),
   );
+  // Keep the section and filters in the address (replaceState, no new history entry), so the
+  // browser's Back from a lecturer's page returns to the same view (Tum, 2026-11-08).
+  useEffect(() => {
+    const q = new URLSearchParams();
+    if (filter !== "all") q.set("filter", filter);
+    if (scope !== "all") q.set("scope", scope);
+    if (section === "duties") q.set("view", state.view);
+    q.set("section", section);
+    if (programme) q.set("prog", programme.id);
+    const hash = `#/lecturers?${q.toString()}`;
+    if (window.location.hash !== hash) history.replaceState(history.state, "", hash);
+    lecturersReturn.hash = hash;
+  }, [filter, scope, section, state.view, programme]);
   const update = (s: typeof state) => {
     setState(s);
     try {

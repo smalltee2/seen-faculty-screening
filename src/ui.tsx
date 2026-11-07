@@ -118,3 +118,6 @@ export function StatusBar({ met, review, notMet }: { met: number; review: number
     </div>
   )
 }
+
+/** Last lecturers-list address (section, filters, programme), for the person page's back link (2026-11-08). */
+export const lecturersReturn = { hash: '#/lecturers' }

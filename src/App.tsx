@@ -30,22 +30,21 @@ const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/it
 export type LecturerFilter = 'all' | 'not_met' | 'risk'
 export type LecturerScope = 'all' | 'ba' | 'grad'
 export type LecturerView = 'cards' | 'table'
+export type LecturerSection = 'outputs' | 'duties'
 type Route =
   | { page: 'overview' }
-  | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView; prog?: string }
+  | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView; prog?: string; section?: LecturerSection }
   | { page: 'person'; key: string }
   | { page: 'admin' }
   | { page: 'me'; login?: string }
 
-/** #/lecturers link that keeps the current filter, scope and view and sets the programme. */
-function lecturersHash(route: Route, prog: string): string {
-  const q = new URLSearchParams()
-  if (route.page === 'lecturers') {
-    if (route.filter !== 'all') q.set('filter', route.filter)
-    if (route.scope !== 'all') q.set('scope', route.scope)
-    if (route.view) q.set('view', route.view)
-  }
+/** #/lecturers link that keeps the current section, filter, scope and view (read from the address,
+ *  which LecturersPage keeps up to date) and sets the programme. */
+function lecturersHash(prog: string): string {
+  const h = window.location.hash
+  const q = new URLSearchParams(h.startsWith('#/lecturers?') ? h.slice('#/lecturers?'.length) : '')
   if (prog) q.set('prog', prog)
+  else q.delete('prog')
   const qs = q.toString()
   return qs ? `#/lecturers?${qs}` : '#/lecturers'
 }
@@ -70,6 +69,7 @@ function parseHash(): Route {
       filter: f === 'not_met' || f === 'risk' ? f : 'all',
       scope: sc === 'ba' || sc === 'grad' ? sc : 'all',
       view: v === 'table' || v === 'cards' ? v : undefined, // &view=table opens the matrix (used by the manual's screenshots)
+      section: q.get('section') === 'duties' ? 'duties' : q.get('section') === 'outputs' ? 'outputs' : undefined,
       prog: q.get('prog') || undefined, // &prog=<programme_id> (data/programmes.csv), 2026-11-08
     }
   }
@@ -239,7 +239,7 @@ export function App() {
               {route.page === 'lecturers' && admin?.level === 2 && programmes.length > 0 && (
                 <label className="control" htmlFor="admin-programme">
                   <span className="control-label">หลักสูตร</span>
-                  <select id="admin-programme" value={programme?.id ?? ''} onChange={(e) => (window.location.hash = lecturersHash(route, e.target.value))}>
+                  <select id="admin-programme" value={programme?.id ?? ''} onChange={(e) => (window.location.hash = lecturersHash(e.target.value))}>
                     <option value="">ทุกหลักสูตร (อาจารย์ทั้งหมด)</option>
                     {programmes.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -288,6 +288,7 @@ export function App() {
               filter={route.filter}
               scope={route.scope}
               view={route.view}
+              section={route.section}
               notify={admin.level === 2 ? { approvalKey: admin.approvalKey, notices, onSent: refreshNotices } : undefined}
             />
           )}

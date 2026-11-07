@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { evaluatePub, toBE, type PersonResult, type Settings, rankFull } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { downloadCsv } from '../download'
-import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, lecturersReturn, yearLabel } from '../ui'
 import { journalLevel, journalTag } from '../tci'
 import { TCI } from '../tciIndex'
 import type { CrossrefEntry } from '../types'
@@ -45,7 +45,7 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
   return (
     <>
       <p className="no-print">
-        {!personal && <a href="#/lecturers">← รายชื่ออาจารย์</a>}
+        {!personal && <a href={lecturersReturn.hash}>← รายชื่ออาจารย์</a>}
       </p>
       <h1 className="person-name">
         {displayName(p)}
