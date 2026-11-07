@@ -67,6 +67,17 @@ export type EmailUser = { email: string; nameEn: string; isAdmin: boolean }
 /** Signed-in account, kept for the page's lifetime so switching tabs does not re-check. */
 let cached: EmailUser | null = null
 let checked = false
+/** One "me" request shared by every component that mounts in the same render. */
+let inflight: Promise<EmailUser | null> | null = null
+
+async function fromSavedSession(): Promise<EmailUser | null> {
+  const saved = sessionStore.get()
+  if (!saved) return null
+  const r = await api({ action: 'me', session: saved }).catch(() => ({ ok: false, error: '' }) as ApiErr)
+  if (r.ok) return { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }
+  if (r.error === 'no_session') sessionStore.clear()
+  return null
+}
 
 /** Resolves the e-mail session: a one-time code from the link, else the stored session. */
 export function useEmailUser(loginCode?: string) {
@@ -76,6 +87,7 @@ export function useEmailUser(loginCode?: string) {
   useEffect(() => {
     if (checked && !loginCode) return
     let on = true
+    if (loginCode) setChecking(true)
     const run = async (): Promise<EmailUser | null> => {
       if (loginCode) {
         try {
@@ -89,15 +101,13 @@ export function useEmailUser(loginCode?: string) {
           sessionStore.set(r.session, remember)
           return { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }
         }
-        if (on) setNotice(errorText(r.ok ? '' : r.error))
-        return null
+        // A used or expired link must not log out a session this browser still has.
+        const kept = await fromSavedSession()
+        if (on && !kept) setNotice(errorText(r.ok ? '' : r.error))
+        return kept
       }
-      const saved = sessionStore.get()
-      if (!saved) return null
-      const r = await api({ action: 'me', session: saved }).catch(() => ({ ok: false, error: '' }) as ApiErr)
-      if (r.ok) return { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }
-      if (r.error === 'no_session') sessionStore.clear()
-      return null
+      if (!inflight) inflight = fromSavedSession().finally(() => (inflight = null))
+      return inflight
     }
     void run()
       .then((v) => {

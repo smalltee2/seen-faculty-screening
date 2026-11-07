@@ -76,7 +76,7 @@ export function manualRowsFromCsv(text: string, faculty: Faculty[]): RawPub[] {
     const key = col(r, 'key').match(/\(([^()]+)\)\s*$/)?.[1].trim() ?? col(r, 'key')
     const type = TYPE_MAP[col(r, 'type')]
     const year = Number(col(r, 'year'))
-    if (!names.has(key) || !type || !Number.isInteger(year) || !col(r, 'title')) return
+    if (!names.has(key) || !type || !Number.isInteger(year) || year < 1900 || year > 2100 || !col(r, 'title')) return // a blank year is Number('') = 0
     const venue = [col(r, 'venue'), col(r, 'volume')].filter(Boolean).join(' ')
     out.push({
       line: i + 2,
@@ -100,8 +100,9 @@ export function manualRowsFromCsv(text: string, faculty: Faculty[]): RawPub[] {
 
 /** Live rows not yet in the bundle (same lecturer, title and submission time). */
 export function newLiveRows(live: RawPub[], bundled: RawPub[]): RawPub[] {
-  const seen = new Set(bundled.filter((p) => (p.source ?? 'scholar') === 'manual').map((p) => `${p.key}|${p.title.trim().toLowerCase()}|${p.submitted ?? ''}`))
-  return live.filter((p) => !seen.has(`${p.key}|${p.title.trim().toLowerCase()}|${p.submitted ?? ''}`))
+  const norm = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase() // the nightly import collapses whitespace too
+  const seen = new Set(bundled.filter((p) => (p.source ?? 'scholar') === 'manual').map((p) => `${p.key}|${norm(p.title)}|${p.submitted ?? ''}`))
+  return live.filter((p) => !seen.has(`${p.key}|${norm(p.title)}|${p.submitted ?? ''}`))
 }
 
 /** Fetches the published responses sheet; [] when offline, on file://, or when anything fails. */

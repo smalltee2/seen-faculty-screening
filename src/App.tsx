@@ -134,7 +134,8 @@ export function App() {
   const newerBuild = useAutoRefresh(data.builtAt, route.page === 'overview' || (admin !== null && (route.page === 'lecturers' || route.page === 'person')))
 
   const pubYears = pubs.map((p) => p.year).filter((y): y is number => y !== null)
-  const minYear = Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4))
+  // Oldest year in the menu: 4 years after the oldest publication, but never more than 30 years back (a mistyped year must not flood the menu).
+  const minYear = Math.max(CURRENT_YEAR - 30, Math.min(CURRENT_YEAR - 10, ...pubYears.map((y) => y + 4)))
   const years: number[] = []
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
 

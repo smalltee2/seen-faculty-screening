@@ -165,8 +165,13 @@ const SOURCE_RANK: Record<string, number> = { manual: 4, scopus: 3, openalex: 2,
 function richness(p: RawPub): number {
   const t = classifyRow(p)
   const typeScore = t.type === 'journal' || t.type === 'proceeding' ? 2 : t.type === 'poster' ? 1 : 0
-  // A structured source (admin form, Scopus, OpenAlex) decides the type over Scholar's venue string.
-  return (SOURCE_RANK[p.source ?? 'scholar'] ?? 1) * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(p.cites, 99)
+  // A structured source (admin form, Scopus, OpenAlex) decides the type over Scholar's venue string,
+  // except when its row says nothing positive: unclassifiable, or excluded only because that copy
+  // sits in a repository (the same article may be in a journal per another row). A positive
+  // exclusion (book chapter, erratum, retracted) keeps its priority. (2026-11-07)
+  const weak = t.type === 'unknown' || (t.type === 'exclude' && /repository/.test(t.reason))
+  const rank = weak ? 1 : (SOURCE_RANK[p.source ?? 'scholar'] ?? 1)
+  return rank * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(p.cites, 99)
 }
 
 const TRUNCATED = /(…|\.\.\.)\s*$/

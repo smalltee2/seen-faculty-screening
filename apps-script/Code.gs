@@ -22,9 +22,9 @@ var CODE_MINUTES = 15;
 var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 5;
+var MAX_REQUESTS_PER_HOUR_ALL = 60; // across all e-mails, so the mail quota cannot be drained
 var MAX_SUBMISSIONS_PER_DAY = 30;
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
-var SUB_TYPES = { journal: 1, proceeding: 1, poster: 1 };
 // SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
 // approvalKeyHash; scripts/set-admin-passcode.mjs). Safe to publish. Update after each level-2 passcode change.
 var APPROVAL_KEY_HASH = 'abe28d12e9f557e4cee21b82b007a2eeb7314379a7025fe74c9476b390075082';
@@ -101,6 +101,7 @@ function sheet(name) {
 
 function rows(name) {
   var sh = sheet(name);
+  if (!sh) return []; // sheet not created yet (run setup)
   var values = sh.getDataRange().getValues();
   var header = values[0];
   return values.slice(1).map(function (r, i) {
@@ -113,7 +114,18 @@ function rows(name) {
 }
 
 function log(action, email, ok, note) {
-  sheet('log').appendRow([new Date(), action, email || '', ok ? 'yes' : 'no', note || '']);
+  var sh = sheet('log');
+  if (sh) sh.appendRow([new Date(), action, cell(email, 200), ok ? 'yes' : 'no', cell(note, 300)]);
+}
+
+/** "active" column: anything but no / false / 0 / unchecked box counts as active. */
+function isActive(v) {
+  var t = String(v == null ? '' : v).trim().toLowerCase();
+  return t !== 'no' && t !== 'false' && t !== '0';
+}
+/** Own enum membership (Object.prototype names such as "constructor" must not pass). */
+function oneOf(v, list) {
+  return list.indexOf(String(v)) >= 0;
 }
 
 function normEmail(v) {
@@ -137,7 +149,7 @@ function randomToken() {
 
 function findUser(email) {
   var u = rows('users').filter(function (r) {
-    return normEmail(r.email) === email && String(r.active).toLowerCase() !== 'no' && String(r.active) !== 'FALSE';
+    return normEmail(r.email) === email && isActive(r.active);
   });
   return u.length ? u[0] : null;
 }
@@ -146,19 +158,24 @@ function findUser(email) {
 function requestLink(body) {
   var email = normEmail(body.email);
   if (!/^[^@\s]+@up\.ac\.th$/.test(email)) return { ok: false, error: 'not_up_email' };
+  // Rate limits are counted from the log for every address, known or not, so the answer does
+  // not reveal which addresses exist; a global cap protects the daily mail quota.
+  var hourAgo = Date.now() - 3600 * 1000;
+  var recentAll = rows('log').filter(function (l) {
+    return l.action === 'request' && new Date(l.time).getTime() > hourAgo;
+  });
+  var recent = recentAll.filter(function (l) {
+    return normEmail(l.email) === email;
+  }).length;
+  if (recent >= MAX_REQUESTS_PER_HOUR || recentAll.length >= MAX_REQUESTS_PER_HOUR_ALL) {
+    log('request', email, false, 'rate limit');
+    return { ok: false, error: 'rate_limit' };
+  }
   var user = findUser(email);
   var admin = findAdmin(email);
   if (!user && !admin) {
     log('request', email, false, 'unknown e-mail');
     return { ok: true };
-  }
-  var hourAgo = Date.now() - 3600 * 1000;
-  var recent = rows('tokens').filter(function (t) {
-    return normEmail(t.email) === email && new Date(t.created).getTime() > hourAgo;
-  }).length;
-  if (recent >= MAX_REQUESTS_PER_HOUR) {
-    log('request', email, false, 'rate limit');
-    return { ok: false, error: 'rate_limit' };
   }
   var code = randomToken();
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
@@ -250,7 +267,7 @@ function findAdmin(email) {
   var sh = sheet('admins');
   if (!sh) return null;
   var a = rows('admins').filter(function (r) {
-    return normEmail(r.email) === email && String(r.active).toLowerCase() !== 'no' && String(r.active) !== 'FALSE';
+    return normEmail(r.email) === email && isActive(r.active);
   });
   return a.length ? a[0] : null;
 }
@@ -271,7 +288,7 @@ function submitWork(body) {
   var w = body.work || {};
   var year = Number(w.year);
   var thisYear = new Date().getFullYear();
-  if (!(year >= 1990 && year <= thisYear + 1) || !String(w.title || '').trim() || !SUB_TYPES[w.type] || !String(w.venue || '').trim()) {
+  if (!(year >= 1990 && year <= thisYear + 1) || !String(w.title || '').trim() || !oneOf(w.type, ['journal', 'proceeding', 'poster']) || !String(w.venue || '').trim()) {
     return { ok: false, error: 'bad_work' };
   }
   var dayAgo = Date.now() - 24 * 3600 * 1000;
@@ -279,7 +296,7 @@ function submitWork(body) {
     return normEmail(r.email) === email && new Date(r.created).getTime() > dayAgo;
   }).length;
   if (recent >= MAX_SUBMISSIONS_PER_DAY) return { ok: false, error: 'rate_limit' };
-  var id = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+  var id = 'w' + Utilities.getUuid().replace(/-/g, '').slice(0, 9); // letter first: Sheets keeps it as text
   sheet('submissions').appendRow([
     id, email, user.name_en, year, cell(w.title, 600), cell(w.authors, 800), w.type, cell(w.venue, 300), cell(w.volume, 120),
     cell(w.doi, 300), w.research ? 'yes' : 'no', new Date(), 'pending', '', '', '',
@@ -317,7 +334,7 @@ function decideWork(body) {
   var auth = adminWho(body);
   if (auth.error) return { ok: false, error: auth.error };
   var email = auth.who;
-  var status = { approved: 1, rejected: 1, pending: 1 }[body.status] ? body.status : '';
+  var status = oneOf(body.status, ['approved', 'rejected', 'pending']) ? String(body.status) : '';
   if (!status) return { ok: false, error: 'bad_request' };
   var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
   if (!r) return { ok: false, error: 'not_found' };
@@ -350,7 +367,7 @@ function confDecide(body) {
   var auth = adminWho(body);
   if (auth.error) return { ok: false, error: auth.error };
   var key = cell(body.key, 300);
-  var decision = { count: 1, no_count: 1, clear: 1 }[body.decision] ? body.decision : '';
+  var decision = oneOf(body.decision, ['count', 'no_count', 'clear']) ? String(body.decision) : '';
   if (!/^(venue|work):/.test(key) || !decision) return { ok: false, error: 'bad_request' };
   var sh = sheet('conf_decisions');
   if (!sh) return { ok: false, error: 'not_configured' };
@@ -364,7 +381,9 @@ function confList() {
   var sh = sheet('conf_decisions');
   if (!sh) return { ok: true, items: [] };
   var items = rows('conf_decisions').map(function (r) {
-    return { at: r.time ? new Date(r.time).toISOString() : '', key: String(r.key), decision: String(r.decision), by: String(r.by), note: String(r.note || ''), name: String(r.name || '') };
+    var by = String(r.by);
+    if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')'; // no full e-mail addresses in the public list
+    return { at: r.time ? new Date(r.time).toISOString() : '', key: String(r.key), decision: String(r.decision), by: by, note: String(r.note || ''), name: String(r.name || '') };
   });
   return { ok: true, items: items };
 }

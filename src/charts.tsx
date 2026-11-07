@@ -323,7 +323,8 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                   {(() => {
                     // Narrow screens drop the title (รศ.ดร.) so the name itself fits.
                     const label = narrow ? x.r.person.nameTh || x.name : x.name
-                    return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label
+                    // Cut only after a full Thai syllable: drop a dangling vowel/tone mark left at the cut.
+                    return label.length > maxChars ? `${label.slice(0, maxChars - 1).replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+$/, '')}…` : label
                   })()}
                 </text>
               </a>
@@ -357,7 +358,8 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                   </g>,
                 )
               })()}
-              {x.failed > 0 ? (
+              {/* On narrow screens the row frame and bubble colour carry the status; the text would overlap the bubble. */}
+              {narrow ? null : x.failed > 0 ? (
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
                   {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${roles.length} หน้าที่`}
                 </text>
@@ -548,8 +550,11 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
               const left = i === 0 && pins.length > 1
               const level = left ? 0 : pins.length - 1 - i
               const yTop = pieTop - 24 - level * LEVEL
-              const tx = left ? x - 10 : x + 10
-              const anchor = left ? 'end' : 'start'
+              // Labels near the right edge are anchored to the left of the pin so they stay inside the SVG
+              // (each pin has its own row, so this cannot collide with another label).
+              const flip = !left && x > W - 130
+              const tx = left || flip ? x - 10 : x + 10
+              const anchor = left || flip ? 'end' : 'start'
               const g = sl.g
               return (
                 <g key={`pin-${g.key}`} className="pie3d-pin">

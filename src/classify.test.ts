@@ -219,3 +219,19 @@ describe('errata next to their original', () => {
   })
 })
 
+
+describe('dedupe keeps a counted copy over a weak structured copy (2026-11-07)', () => {
+  const base = { line: 1, key: 'A', year: 2015, authors: '', cites: 0 }
+  it('a repository copy in OpenAlex does not override the Scholar journal row', () => {
+    const scholar = { ...base, source: 'scholar' as const, title: 'Exergetic evaluation of renewability', venue: 'Environment and Natural Resources Journal 13 (1), 39-46' }
+    const oa = { ...base, source: 'openalex' as const, title: 'Exergetic evaluation of renewability', venue: 'NRCT Data Center 13 (1), 39-46', extType: 'article', sourceType: 'repository', doi: '' }
+    const [p] = preparePubs([scholar, oa], [])
+    expect(p.type).toBe('journal')
+  })
+  it('a positive exclusion (book chapter) still wins over a Scholar row', () => {
+    const scholar = { ...base, source: 'scholar' as const, title: 'Estimation of PM10', venue: 'Air Quality Handbook, 12-30' }
+    const oa = { ...base, source: 'openalex' as const, title: 'Estimation of PM10', venue: 'CRC Press eBooks', extType: 'book-chapter', sourceType: 'book series', doi: '' }
+    const [p] = preparePubs([scholar, oa], [])
+    expect(p.type).toBe('exclude')
+  })
+})

@@ -8,7 +8,7 @@ on:
     - cron: '0 20 * * *'
     # Every hour at :30: only the two Google Forms (add works, conference decisions), so a
     # submission takes effect within about an hour (decided by Tum, 2026-11-06).
-    - cron: '30 * * * *'
+    - cron: '15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -38,7 +38,7 @@ jobs:
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: npm run fetch
       - name: Fetch the two Google Forms only (hourly run)
-        if: github.event.schedule == '30 * * * *'
+        if: github.event.schedule == '15 * * * *'
         env:
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: node scripts/fetch-sources.mjs --only=manual,decisions

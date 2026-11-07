@@ -65,6 +65,7 @@ type Answer = {
 function readRegister(): ConferenceEntry[] {
   if (!existsSync(REGISTER)) return []
   const rows = parseCsv(readFileSync(REGISTER, 'utf8'))
+  if (!rows.length) return [] // empty file: start a new register
   const header = rows[0].map((h) => h.trim())
   return rows.slice(1).map((r) => {
     const rec: Record<string, string> = {}

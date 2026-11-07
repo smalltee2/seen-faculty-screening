@@ -287,6 +287,7 @@ const CONF_COLS = ['key', 'display_name', 'conference_name', 'organiser', 'assoc
 function readRegister(path) {
   if (!existsSync(path)) return []
   const rows = parseCsv(readFileSync(path, 'utf8'))
+  if (!rows.length) return [] // header-less or empty file: start a new register
   const header = rows[0].map((h) => h.trim())
   return rows.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, (r[i] ?? '').trim()])))
 }
@@ -431,6 +432,10 @@ async function fetchManual(faculty, url) {
     warn(`Google Sheet response is not CSV (${e.message}); data/manual.tsv left unchanged`)
     return
   }
+  if (!rows.length) {
+    warn('Google Sheet returned no rows (empty body); data/manual.tsv left unchanged')
+    return
+  }
   // A Thai-language Google account names the first column "ประทับเวลา" instead of "Timestamp".
   const header = rows[0].map((h) => (h.trim() === 'ประทับเวลา' ? 'Timestamp' : h.trim()))
   const missing = Object.values(FORM).filter((h) => !header.includes(h))
@@ -446,8 +451,8 @@ async function fetchManual(faculty, url) {
     const key = col(r, 'key').match(/\(([^()]+)\)\s*$/)?.[1].trim() ?? col(r, 'key')
     const type = TYPE_MAP[col(r, 'type')]
     const year = Number(col(r, 'year'))
-    if (!names.has(key) || !type || !Number.isInteger(year) || !col(r, 'title')) {
-      warn(`Google Sheet row ${i + 2} skipped: lecturer, type, year or title is missing or not recognised`)
+    if (!names.has(key) || !type || !Number.isInteger(year) || year < 1900 || year > 2100 || !col(r, 'title')) {
+      warn(`Google Sheet row ${i + 2} skipped: lecturer, type, year (must be ค.ศ. 1900–2100) or title is missing or not recognised`)
       continue
     }
     const venue = [col(r, 'venue'), col(r, 'volume')].filter(Boolean).join(' ')
@@ -643,4 +648,4 @@ if (run('tci')) {
     warn(`TCI: ${e.message}`)
   }
 }
-if (run('tci') || only === 'tcihistory') await fetchTciHistory(process.argv.includes('--refresh-history'))
+if (run('tci') || only.includes('tcihistory')) await fetchTciHistory(process.argv.includes('--refresh-history'))

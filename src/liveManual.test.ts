@@ -28,3 +28,17 @@ describe('live form rows', () => {
     expect(manualRowsFromCsv('a,b\n1,2\n', faculty)).toEqual([])
   })
 })
+
+describe('live rows: year validation and whitespace (2026-11-07)', () => {
+  it('skips a row with a blank year instead of taking year 0', () => {
+    const header = ['Timestamp', 'อาจารย์ (name_en)', 'ปีที่ตีพิมพ์ (ค.ศ.)', 'ชื่อผลงาน', 'ผู้แต่ง', 'ประเภทผลงาน', 'ชื่อวารสารหรืองานประชุม', 'ปีที่/ฉบับที่/หน้า', 'DOI หรือ URL', 'เป็นงานวิจัยหรือไม่']
+    const row = ['2026-11-07 10:00', 'ธีรชัย (Teerachai Amnuaylojaroen)', '', 'A work', '', 'บทความวารสาร (journal)', 'J', '', '', 'ใช่']
+    const csv = [header, row].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
+    expect(manualRowsFromCsv(csv, [{ nameEn: 'Teerachai Amnuaylojaroen' } as never])).toEqual([])
+  })
+  it('matches bundled and live rows even when inner whitespace differs', () => {
+    const live = [{ key: 'A', title: 'Two  spaces', submitted: 't1' } as never]
+    const bundled = [{ key: 'A', title: 'Two spaces', submitted: 't1', source: 'manual' } as never]
+    expect(newLiveRows(live, bundled)).toEqual([])
+  })
+})

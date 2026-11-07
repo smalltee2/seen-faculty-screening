@@ -279,7 +279,7 @@ Admins can decide without touching the CSV: a second Google Form whose responses
 | `เหตุผล / หลักฐาน (URL)` | paragraph |
 
 Settings: collect verified email addresses (the email becomes `decided_by`). Only responses whose sender is listed in the `DECISION_ADMINS` GitHub secret (comma-separated e-mails, never committed) are applied; with no list nothing is applied, and skipped rows are logged.
-`npm run fetch` (the 03:00 GitHub Actions run, and an hourly run at :30 that fetches only the two forms) applies the responses to `data/conferences.csv`: the latest
+`npm run fetch` (the 03:00 GitHub Actions run, and an hourly run at :15 UTC that fetches only the forms and lecturer submissions) applies the responses to `data/conferences.csv`: the latest
 response per key wins, "ยกเลิก" clears the decision, and an unknown key creates a new register row (confidence low)
 that the admin's decision then governs. `--only=decisions` runs just this step.
 
