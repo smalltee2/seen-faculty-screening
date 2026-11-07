@@ -591,3 +591,5 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .metric.metric-card .metric-value, .metric.metric-card .metric-sub { text-align: center; }
 .metric.metric-card .metric-sub { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 8px; }
 .metric.metric-card .metric-value { margin-top: 8px; }
+/* Badge and title centred as well (Tum, 2026-11-07) */
+.metric.metric-card .metric-head { justify-content: center; text-align: center; }
