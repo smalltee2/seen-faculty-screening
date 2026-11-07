@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, levelOf, type OutputsView } from '../charts'
-import { LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
+import { LEVEL_GROUPS, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
@@ -77,13 +77,13 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       )}
       </div>
 
-      <div className="metrics">
-        <Metric badge="รวม" color="var(--card-total)" label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
-        <Metric badge="ป.ตรี" color="var(--lvl-ba)" label="ผู้รับผิดชอบหลักสูตร ป.ตรี" value={<>{ba.met.length}<small> คน</small></>} sub={<StatusChip status={ba.status} />} tone={ba.status} />
-        <Metric badge="ป.โท" color="var(--lvl-ms)" label="ผู้รับผิดชอบหลักสูตร ป.โท" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
-        <Metric badge="ป.เอก" color="var(--lvl-phd)" label="ผู้รับผิดชอบหลักสูตร ป.เอก" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
-        <Metric badge="5 ปี" color="var(--card-pubs)" label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} />
-      </div>
+      <section className="stat-banner" aria-label="สรุปผลการประเมิน">
+        <Stat badge="รวม" color="var(--card-total)" label="อาจารย์ทั้งหมด" value={results.length} unit="คน" sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
+        <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="ผู้รับผิดชอบหลักสูตร ป.ตรี" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
+        <Stat badge="ป.โท" color="var(--lvl-ms)" label="ผู้รับผิดชอบหลักสูตร ป.โท" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
+        <Stat badge="ป.เอก" color="var(--lvl-phd)" label="ผู้รับผิดชอบหลักสูตร ป.เอก" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
+        <Stat badge="5 ปี" color="var(--card-pubs)" label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} unit="รายการ" />
+      </section>
 
       <div className="dash">
         <section className="panel dash-pie">
@@ -223,6 +223,21 @@ function TypeSummary({ pubs, settings }: { pubs: PersonResult['pubs']; settings:
           </tr>
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/** One segment of the overview banner (Tum, 2026-11-08: a single banner instead of five cards). */
+function Stat({ badge, color, label, value, unit, sub }: { badge: string; color: string; label: string; value: number; unit: string; sub?: ReactNode }) {
+  return (
+    <div className="stat" style={{ '--card': color } as CSSProperties}>
+      <span className="stat-badge">{badge}</span>
+      <span className="stat-label">{label}</span>
+      <b className="stat-value">
+        {value}
+        <small>{unit}</small>
+      </b>
+      <span className="stat-sub">{sub}</span>
     </div>
   )
 }
