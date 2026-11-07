@@ -12,6 +12,8 @@ export interface Notice {
   nameEn: string
   kind: NoticeKind
   by: string
+  /** When the lecturer clicked the รับทราบ link in the e-mail; '' until then. */
+  ackAt?: string
 }
 
 export async function fetchNotices(): Promise<Notice[]> {

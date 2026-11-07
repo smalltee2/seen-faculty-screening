@@ -13,7 +13,7 @@
  *   submissions: works a lecturer adds on "ตรวจสอบคุณสมบัติของฉัน" (status pending → approved/rejected)
  *   admins:   email | name | active   ← level-2 admins who may approve works (Tum fills)
  *   conf_decisions: time | key | decision | by | note | name  ← conference decisions from the register buttons
- *   notices:  time | name_en | kind | by | subject  ← reminder e-mails sent to lecturers (fail / risk)
+ *   notices:  time | name_en | kind | by | subject | ack_hash | ack_at  ← reminder e-mails; ack_at = lecturer clicked รับทราบ
  *
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
@@ -24,7 +24,8 @@ var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 5;
 var MAX_REQUESTS_PER_HOUR_ALL = 60;
-var NOTICE_COOLDOWN_HOURS = 12; // one reminder per lecturer per kind within this window
+var NOTICE_COOLDOWN_HOURS = 12;
+var NOTICE_HEAD = ['time', 'name_en', 'kind', 'by', 'subject', 'ack_hash', 'ack_at']; // one reminder per lecturer per kind within this window
 var MAX_NOTICES_PER_DAY = 60; // across all e-mails, so the mail quota cannot be drained
 var MAX_SUBMISSIONS_PER_DAY = 30;
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
@@ -42,18 +43,57 @@ function setup() {
     submissions: SUB_HEAD,
     admins: ['email', 'name', 'active'],
     conf_decisions: ['time', 'key', 'decision', 'by', 'note', 'name'],
-    notices: ['time', 'name_en', 'kind', 'by', 'subject'],
+    notices: NOTICE_HEAD,
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     if (sh.getLastRow() === 0) sh.appendRow(want[name]);
+    else {
+      // Columns added later (e.g. notices ack_hash/ack_at): extend the header row in place.
+      var have = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+      want[name].forEach(function (col, i) {
+        if (have.indexOf(col) < 0) sh.getRange(1, i + 1).setValue(col);
+      });
+    }
   });
   var first = ss.getSheets()[0];
   if (first.getName() !== 'users' && first.getLastRow() <= 1 && !want[first.getName()]) ss.deleteSheet(first);
 }
 
-function doGet() {
+function doGet(e) {
+  var ack = e && e.parameter && e.parameter.ack;
+  if (ack) return ackPage(String(ack));
   return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'seen-login' })).setMimeType(ContentService.MimeType.JSON);
+}
+
+/** The lecturer clicked the รับทราบ link in a reminder: record the time (once) and show a small page. */
+function ackPage(token) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  var title = 'ไม่พบลิงก์นี้';
+  var text = 'ลิงก์ยืนยันการรับทราบไม่ถูกต้อง หรือถูกลบไปแล้ว';
+  try {
+    if (/^[0-9a-f]{32,64}$/.test(token)) {
+      var h = sha256(token);
+      var n = rows('notices').filter(function (r) { return String(r.ack_hash) === h; })[0];
+      if (n) {
+        if (!n.ack_at) {
+          sheet('notices').getRange(n._row, NOTICE_HEAD.indexOf('ack_at') + 1).setValue(new Date());
+          log('ack', n.name_en, true, n.kind);
+        }
+        title = 'บันทึกการรับทราบแล้ว';
+        text = 'ขอบคุณครับ ระบบบันทึกว่าท่านได้รับทราบอีเมลแจ้งเตือนแล้ว' + (n.ack_at ? ' (เคยยืนยันไว้ก่อนแล้ว)' : '') + ' ท่านสามารถดูข้อมูลและเพิ่มผลงานได้ที่แถบ "ตรวจสอบคุณสมบัติของฉัน"';
+      }
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  var html =
+    '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + title + '</title><style>body{font-family:Sarabun,"Noto Sans Thai",system-ui,sans-serif;background:#efebe2;color:#2c2a25;margin:0;padding:40px 16px}' +
+    '.card{max-width:520px;margin:0 auto;background:#fff;border:1px solid #d8d2c6;border-left:5px solid #1d5c33;border-radius:12px;padding:24px 28px}h1{font-size:1.3rem;margin:0 0 10px;color:#1d5c33}p{line-height:1.7;margin:0 0 12px}a{color:#1d5c33}</style></head>' +
+    '<body><div class="card"><h1>' + title + '</h1><p>' + text + '</p><p><a href="' + SITE + '#/me">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์ →</a></p></div></body></html>';
+  return HtmlService.createHtmlOutput(html).setTitle(title);
 }
 
 function doPost(e) {
@@ -418,16 +458,20 @@ function notifyLecturer(body) {
     return String(n.name_en).trim() === nameEn && n.kind === kind && new Date(n.time).getTime() > now - NOTICE_COOLDOWN_HOURS * 3600 * 1000;
   });
   if (recent.length) return { ok: false, error: 'notified_recently' };
+  var ackToken = randomToken();
+  var ackUrl = ScriptApp.getService().getUrl() + '?ack=' + ackToken;
   MailApp.sendEmail({
     to: email,
     subject: subject,
-    body: text + '\n\n— ' + 'ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา\n' +
+    body: text + '\n\n' +
+      'เมื่อได้รับอีเมลนี้แล้ว กรุณากดลิงก์ต่อไปนี้เพื่อยืนยันการรับทราบ (กดได้ครั้งเดียว):\n' + ackUrl + '\n\n' +
+      '— ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา\n' +
       'ดูข้อมูลของท่านและเพิ่มผลงานได้ที่ ' + SITE + '#/me',
     name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',
     noReply: true,
   });
   var sh = sheet('notices');
-  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, subject]);
+  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, subject, sha256(ackToken), '']);
   log('notify', auth.who, true, nameEn + ' ' + kind);
   return { ok: true };
 }
@@ -439,7 +483,7 @@ function noticeList() {
   var items = rows('notices').map(function (r) {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
-    return { at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), kind: String(r.kind), by: by };
+    return { at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), kind: String(r.kind), by: by, ackAt: r.ack_at ? new Date(r.ack_at).toISOString() : '' };
   });
   return { ok: true, items: items };
 }

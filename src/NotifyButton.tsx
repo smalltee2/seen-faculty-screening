@@ -12,6 +12,8 @@ export interface NotifyProps {
   onSent: () => void
 }
 
+const fmt = (iso: string) => new Date(iso).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })
+
 export function NotifyButton({ r, settings, kind, approvalKey, notices, onSent, compact = false }: { r: PersonResult; settings: Settings; kind: NoticeKind; compact?: boolean } & NotifyProps) {
   const { user } = useEmailUser()
   const [step, setStep] = useState<'idle' | 'confirm' | 'busy' | 'sent'>('idle')
@@ -56,9 +58,15 @@ export function NotifyButton({ r, settings, kind, approvalKey, notices, onSent, 
         {step === 'busy' ? 'กำลังส่ง…' : step === 'sent' ? 'ส่งแล้ว ✓' : compact ? 'แจ้งเตือน' : label}
       </button>
       {last ? (
-        <span className="notify-status" title={`ส่งโดย ${last.by}`}>
-          ✓ แจ้งเตือนแล้ว {new Date(last.at).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })} น.
-          <small> · {last.by}</small>
+        <span className="notify-status-group">
+          <span className="notify-status">
+            ✓ แจ้งเตือนแล้ว {fmt(last.at)} น.<small> · {last.by}</small>
+          </span>
+          {last.ackAt ? (
+            <span className="notify-status notify-acked">✓✓ รับทราบแล้ว {fmt(last.ackAt)} น.</span>
+          ) : (
+            <span className="muted small">ยังไม่รับทราบ</span>
+          )}
         </span>
       ) : (
         <span className="muted small">ยังไม่เคยแจ้งเตือน</span>

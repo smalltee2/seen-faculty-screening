@@ -30,4 +30,8 @@ describe('reminder e-mails', () => {
     expect(lastNotice(n, 'A', 'fail')?.at).toBe('2026-11-05T00:00:00Z')
     expect(lastNotice(n, 'B', 'fail')).toBeNull()
   })
+  it('acknowledgement time travels with the notice', () => {
+    const n: Notice[] = [{ at: '2026-11-07T03:07:00Z', nameEn: 'A', kind: 'fail', by: 'x', ackAt: '2026-11-08T02:15:00Z' }]
+    expect(lastNotice(n, 'A', 'fail')?.ackAt).toBe('2026-11-08T02:15:00Z')
+  })
 })
