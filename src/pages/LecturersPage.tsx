@@ -23,6 +23,8 @@ import {
 } from "../ui";
 import type { LecturerFilter, LecturerScope, LecturerView } from "../App";
 import { LecturerOutputsBlock } from "./Overview";
+import { NotifyButton, type NotifyProps } from "../NotifyButton";
+import { noticeKind } from "../notify";
 
 type View = "cards" | "table";
 
@@ -45,6 +47,7 @@ export function LecturersPage({
   scope: initialScope = "all",
   view: initialView,
   onLock,
+  notify,
 }: {
   results: PersonResult[];
   settings: Settings;
@@ -52,6 +55,8 @@ export function LecturersPage({
   scope?: LecturerScope;
   view?: LecturerView;
   onLock?: () => void;
+  /** Level-2 reminder e-mails (src/notify.ts); undefined on pages without an admin sign-in. */
+  notify?: NotifyProps;
 }) {
   const [state, setState] = useState(() =>
     initialView ? { view: initialView } : loadState(),
@@ -233,6 +238,7 @@ export function LecturersPage({
               {shown.map((r) => (
                 <PersonCard
                   key={r.person.nameEn}
+                  notify={notify}
                   r={r}
                   levels={levels}
                   settings={settings}
@@ -241,6 +247,7 @@ export function LecturersPage({
             </div>
           ) : (
             <MatrixTable
+              notify={notify}
               rows={shown}
               levels={levels}
               roles={roles}
@@ -257,11 +264,14 @@ function PersonCard({
   r,
   levels,
   settings,
+  notify,
 }: {
   r: PersonResult;
   levels: (typeof LEVELS)[number][];
   settings: Settings;
+  notify?: NotifyProps;
 }) {
+  const kind = noticeKind(r, settings);
   const risk = nextYearRisk(r, settings).filter((x) => isShownLevel(x.level));
   const p = r.person;
   const c = r.roles.ms_program.counts;
@@ -318,6 +328,9 @@ function PersonCard({
           )}
         </span>
       </div>
+      {notify && kind && (
+        <NotifyButton r={r} settings={settings} kind={kind} {...notify} />
+      )}
       {levels.map((l) => (
         <div key={l.id} className={`role-list level-${l.id}`}>
           <div className="role-list-head">
@@ -353,11 +366,13 @@ function MatrixTable({
   levels,
   roles,
   settings,
+  notify,
 }: {
   rows: PersonResult[];
   levels: (typeof LEVELS)[number][];
   roles: typeof ROLES;
   settings: Settings;
+  notify?: NotifyProps;
 }) {
   return (
     <>
@@ -419,6 +434,11 @@ function MatrixTable({
                         หน้าที่
                       </div>
                     )}
+                    {notify &&
+                      (() => {
+                        const k = noticeKind(r, settings);
+                        return k ? <NotifyButton r={r} settings={settings} kind={k} compact {...notify} /> : null;
+                      })()}
                   </td>
                   {roles.map((role) => {
                     const res = r.roles[role.id];

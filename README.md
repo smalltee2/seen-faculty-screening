@@ -312,6 +312,13 @@ works under their own name, and stores them in the `submissions` sheet as `pendi
 (email, name, active). Approved works count at once in the browser (src/submissions.ts) and are copied to
 `data/self.tsv` by the hourly data job (`fetchSelf` in scripts/fetch-sources.mjs). A lecturer can withdraw a work
 while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
+**Reminder e-mails** (2026-11-07): on ข้อมูลอาจารย์ a level-2 admin sees "แจ้งเตือน…" on every lecturer who fails a
+duty now or may fail next year (src/NotifyButton.tsx, src/notify.ts). The first click shows the subject and a
+ยืนยัน/ยกเลิก pair; confirming sends the message through the backend (action `notify`), which looks the address up
+in its private `users` sheet, allows one reminder per lecturer and kind per 12 hours (60 a day in all), and logs it
+in the `notices` sheet; the site shows "แจ้งเตือนแล้ว <date>" from the public `noticeList`. The text names the failing
+duties, the 5-year counts and the window, and points to ตรวจสอบคุณสมบัติของฉัน for adding works.
+
 **Conference decisions are buttons** (2026-11-07; replaces the decision Google Form): each register row (and the
 conference cell of the approval table) has นับ / ไม่นับ / ใช้ผลอัตโนมัติ for a level-2 admin (approval key) or an e-mail admin.
 The backend logs every press in the private `conf_decisions` sheet (action `confDecide`; public `confList`); the site

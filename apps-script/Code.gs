@@ -13,6 +13,7 @@
  *   submissions: works a lecturer adds on "ตรวจสอบคุณสมบัติของฉัน" (status pending → approved/rejected)
  *   admins:   email | name | active   ← level-2 admins who may approve works (Tum fills)
  *   conf_decisions: time | key | decision | by | note | name  ← conference decisions from the register buttons
+ *   notices:  time | name_en | kind | by | subject  ← reminder e-mails sent to lecturers (fail / risk)
  *
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
@@ -22,7 +23,9 @@ var CODE_MINUTES = 15;
 var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 5;
-var MAX_REQUESTS_PER_HOUR_ALL = 60; // across all e-mails, so the mail quota cannot be drained
+var MAX_REQUESTS_PER_HOUR_ALL = 60;
+var NOTICE_COOLDOWN_HOURS = 12; // one reminder per lecturer per kind within this window
+var MAX_NOTICES_PER_DAY = 60; // across all e-mails, so the mail quota cannot be drained
 var MAX_SUBMISSIONS_PER_DAY = 30;
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
 // SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
@@ -39,6 +42,7 @@ function setup() {
     submissions: SUB_HEAD,
     admins: ['email', 'name', 'active'],
     conf_decisions: ['time', 'key', 'decision', 'by', 'note', 'name'],
+    notices: ['time', 'name_en', 'kind', 'by', 'subject'],
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -83,6 +87,10 @@ function doPost(e) {
         return json(confDecide(body));
       case 'confList':
         return json(confList());
+      case 'notify':
+        return json(notifyLecturer(body));
+      case 'noticeList':
+        return json(noticeList());
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -384,6 +392,54 @@ function confList() {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')'; // no full e-mail addresses in the public list
     return { at: r.time ? new Date(r.time).toISOString() : '', key: String(r.key), decision: String(r.decision), by: by, note: String(r.note || ''), name: String(r.name || '') };
+  });
+  return { ok: true, items: items };
+}
+
+/** A level-2 admin e-mails a lecturer who fails a duty (kind "fail") or may fail next year
+ *  (kind "risk"). The address comes from the users sheet, never from the client. */
+function notifyLecturer(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var nameEn = cell(body.nameEn, 120);
+  var kind = oneOf(body.kind, ['fail', 'risk']) ? String(body.kind) : '';
+  var subject = cell(body.subject, 200);
+  var text = String(body.body == null ? '' : body.body).slice(0, 4000).trim();
+  if (!nameEn || !kind || !subject || !text) return { ok: false, error: 'bad_request' };
+  var user = rows('users').filter(function (r) { return String(r.name_en).trim() === nameEn && isActive(r.active); })[0];
+  if (!user) return { ok: false, error: 'not_found' };
+  var email = normEmail(user.email);
+  if (!/^[^@\s]+@up\.ac\.th$/.test(email)) return { ok: false, error: 'not_found' };
+  var now = Date.now();
+  var sent = rows('notices');
+  var dayCount = sent.filter(function (n) { return new Date(n.time).getTime() > now - 24 * 3600 * 1000; }).length;
+  if (dayCount >= MAX_NOTICES_PER_DAY) return { ok: false, error: 'rate_limit' };
+  var recent = sent.filter(function (n) {
+    return String(n.name_en).trim() === nameEn && n.kind === kind && new Date(n.time).getTime() > now - NOTICE_COOLDOWN_HOURS * 3600 * 1000;
+  });
+  if (recent.length) return { ok: false, error: 'notified_recently' };
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: text + '\n\n— ' + 'ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา\n' +
+      'ดูข้อมูลของท่านและเพิ่มผลงานได้ที่ ' + SITE + '#/me',
+    name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',
+    noReply: true,
+  });
+  var sh = sheet('notices');
+  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, subject]);
+  log('notify', auth.who, true, nameEn + ' ' + kind);
+  return { ok: true };
+}
+
+/** Public list of reminders sent (no e-mail addresses): the site shows "แจ้งเตือนแล้วเมื่อ …". */
+function noticeList() {
+  var sh = sheet('notices');
+  if (!sh) return { ok: true, items: [] };
+  var items = rows('notices').map(function (r) {
+    var by = String(r.by);
+    if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
+    return { at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), kind: String(r.kind), by: by };
   });
   return { ok: true, items: items };
 }

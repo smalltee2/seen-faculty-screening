@@ -561,3 +561,14 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 /* Space above the signed-in bar on ตรวจสอบคุณสมบัติของฉัน (Tum, 2026-11-07) */
 .me-bar { margin-top: 24px; }
 @media (max-width: 720px) { .me-bar { margin-top: 18px; } }
+
+/* Reminder e-mail buttons on lecturer cards / table (2026-11-07) */
+.notify { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 4px; }
+.notify-btn.notify-fail { border-color: var(--not-mark); color: var(--not); }
+.notify-btn.notify-risk { border-color: var(--rev-mark); color: var(--rev); }
+.notify-btn:hover { background: var(--accent-light); }
+.notify-confirm { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; margin: 2px 0 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--sub-panel); }
+.notify-preview { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notify-preview .small { word-break: break-word; }
+.notify-actions { display: flex; gap: 6px; }
+.notify-compact { margin-top: 6px; }

@@ -14,6 +14,7 @@ import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
 import { approvedRows, fetchSubmissions, type Submission } from './submissions'
 import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
+import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
 const data = raw as DataBundle
@@ -108,6 +109,12 @@ export function App() {
   }
   useEffect(refreshConf, [])
   const conferences = useMemo(() => applyConfDecisions(data.conferences ?? [], confItems), [confItems])
+  // Reminder e-mails sent to lecturers (src/notify.ts): when each was last notified.
+  const [notices, setNotices] = useState<Notice[]>([])
+  const refreshNotices = () => {
+    void fetchNotices().then(setNotices)
+  }
+  useEffect(refreshNotices, [])
   const pubs = useMemo(() => makePubs([...liveRows, ...selfRows], conferences), [liveRows, selfRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
@@ -247,6 +254,7 @@ export function App() {
               filter={route.filter}
               scope={route.scope}
               view={route.view}
+              notify={admin.level === 2 ? { approvalKey: admin.approvalKey, notices, onSent: refreshNotices } : undefined}
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 1 && (
