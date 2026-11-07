@@ -588,8 +588,20 @@ async function fetchScopusQuartiles(key, refresh) {
   // Journals that had no CiteScore last time are asked again every run (Tum, 2026-11-08), so a
   // journal that Scopus rates later gets its quartiles without a manual refresh.
   const none = new Set(rows.filter((r) => r.status === 'none').map((r) => r.issn))
-  const done = new Set(rows.filter((r) => r.status !== 'none').map((r) => r.issn))
   const today = new Date().toISOString().slice(0, 10)
+  // A journal is also asked again when its newest complete CiteScore year is older than last year
+  // (a new year is published around mid-year) and it was last checked more than 30 days ago, so
+  // later years arrive by themselves without asking Scopus about every journal every night.
+  const lastYear = new Date().getFullYear() - 1
+  const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const newest = new Map()
+  const checked = new Map()
+  for (const r of rows) {
+    if (r.status === 'Complete') newest.set(r.issn, Math.max(newest.get(r.issn) ?? 0, Number(r.year)))
+    if (r.checked > (checked.get(r.issn) ?? '')) checked.set(r.issn, r.checked)
+  }
+  const stale = new Set([...newest].filter(([i, y]) => y < lastYear && (checked.get(i) ?? '') < cutoff).map(([i]) => i))
+  const done = new Set(rows.filter((r) => r.status !== 'none' && !stale.has(r.issn)).map((r) => r.issn))
   let ok = 0
   let failed = 0
   for (const issn of issns.filter((i) => !done.has(i))) {
@@ -597,6 +609,8 @@ async function fetchScopusQuartiles(key, refresh) {
       const d = await scopusGet(`https://api.elsevier.com/content/serial/title/issn/${encodeURIComponent(issn)}?view=CITESCORE`, key)
       const e = d['serial-metadata-response']?.entry?.[0] ?? {}
       // Elsevier returns one year as an object, several as an array.
+      // Drop the journal's old rows (the "none" marker, or every year of a stale journal) before adding the fresh ones.
+      if (none.has(issn) || stale.has(issn)) for (let i = rows.length - 1; i >= 0; i--) if (rows[i].issn === issn) rows.splice(i, 1)
       const years = [].concat(e.citeScoreYearInfoList?.citeScoreYearInfo ?? [])
       let n = 0
       for (const y of years) {
@@ -608,7 +622,6 @@ async function fetchScopusQuartiles(key, refresh) {
         n++
       }
       // Drop last time's "none" marker; it is written again below only if there is still no CiteScore.
-      if (none.has(issn)) for (let i = rows.length - 1; i >= 0; i--) if (rows[i].issn === issn && rows[i].status === 'none') rows.splice(i, 1)
       if (!n) rows.push({ issn, year: '', status: 'none', best_percentile: '', quartile: '', checked: today })
       ok++
       await sleep(150)
