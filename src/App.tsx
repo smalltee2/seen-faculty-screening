@@ -163,7 +163,8 @@ export function App() {
   for (let y = CURRENT_YEAR + 1; y >= minYear; y--) years.push(y)
 
   const programmes = data.programmes ?? []
-  const programme = route.page === 'lecturers' && route.prog ? programmes.find((p) => p.id === route.prog) : undefined
+  // Level 2 only (Tum, 2026-11-08); level 1 sees every lecturer as before.
+  const programme = route.page === 'lecturers' && route.prog && admin?.level === 2 ? programmes.find((p) => p.id === route.prog) : undefined
 
   // รายชื่ออาจารย์ (#/lecturers, #/person/…) and เพิ่มผลงานด้วยตนเอง (#/admin) share one tab (2026-11-07).
   const adminView = (route.page === 'lecturers' || route.page === 'admin' || route.page === 'person') && admin !== null
@@ -235,7 +236,7 @@ export function App() {
                   <option value="admin">{admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง'}</option>
                 </select>
               </label>
-              {route.page === 'lecturers' && programmes.length > 0 && (
+              {route.page === 'lecturers' && admin?.level === 2 && programmes.length > 0 && (
                 <label className="control" htmlFor="admin-programme">
                   <span className="control-label">หลักสูตร</span>
                   <select id="admin-programme" value={programme?.id ?? ''} onChange={(e) => (window.location.hash = lecturersHash(route, e.target.value))}>
