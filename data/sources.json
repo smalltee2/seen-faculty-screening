@@ -2,9 +2,9 @@
   "manualSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtDtTz3U33L8b2WKytmgQcyrReg_ddk8VUNnuO4IsQfbIDtkJXdTTavRnEx2-3JIrPuKGnbtP4N1Pj/pub?gid=2020020635&single=true&output=csv",
   "adminGate": {
     "iterations": 210000,
-    "salt": "dc3GoWeMhk8PuAEbBqC5hg==",
-    "iv": "m3udvNRq5Qg1DhPn",
-    "data": "VaIp3lCV1n5vH39UIZa/TPtai7xrvZzs/HYYNtBvvrjnHl1Ticcw1yRYNd86tUOH2323SCR7Fl+4y7TY1RNzBtqmQKALQtlPlsuvdINUjEuvJQKWin6Cle6O2k/pWK2Q57ES5gTo7OoAE6HfIwvVv/v1FcL1hBu2AE6/JAPEa5GIroi0IF2T2R2XSDFGttfd3wFbd6ePKD63qc7zpO6MxDL/pPkFCXldPCV6td80aISUpkXcATG6ZIQs9S9rl65eypBm3dAckkWrvPqE+157O+6t8SFWMC+D1bRzHHTIh/zA9ibvVSvlN0Iczw1jqHSuihfZ6ZErAq6h0CanQaKFKoPuFA=="
+    "salt": "cCWnKkjeAVosQ5qgJSrzcA==",
+    "iv": "sITQRLv0hsLW1awm",
+    "data": "pBdy6avXDw/heNKnN8WHeQtbse/TJSxTSBI6wEExThUNUo2BwyoDUcmIgbtXzEiQAIKWr0CxDouL/BgIiXNb3eJ2fNpSCjsC612OXkjh4eVK7o8t7LEZNJgnNcB86gI8+Gz0ojTrHT4Mulie9Nd76wtrwuoeHEEqArTH3cyVis81OqaU3mzEOBUTx07T47y7jqW4ei7ZYAc1Xg7th34TIymu/vb2PrmKllmh+wGS5qEsJT/eZLJv1NOOOZo+vVf2j45p2fAIp+D+Gx8zjw5fiMCmoONbJI8fXI4q3Wb1OxhAsyXsUiOTUyZD6OAXg57wJc1ydYns+ItiDvrrm6N1pC54iO8AVXC3TiMI7ydkMjLsxeMcAVzrYpJr0CALFd7rtWSxpr/0JPl8R18sONquV92v1XWeutKEshaUzSbqO/GEeCZHDw1mG3lyJx1FqmyRHp1eIg=="
   },
   "decisionSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSt60OXRSsMo8m-xt4C2nVtiSweQuZGiuc6yjoc0r0Y5kjlA2DJSVAncLLCphNlsCg1WY3kNhmwb0bx/pub?gid=1770725136&single=true&output=csv",
   "loginApiUrl": "https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec",
@@ -13,5 +13,6 @@
     "salt": "6oSOaVQb0nXc80RsEEv0bA==",
     "iv": "iCDjPM6fSrks2jky",
     "data": "SmoUNO4G09Hx3C1hULQc3d88rzhS+v473obs"
-  }
+  },
+  "approvalKeyHash": "abe28d12e9f557e4cee21b82b007a2eeb7314379a7025fe74c9476b390075082"
 }

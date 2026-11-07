@@ -26,7 +26,7 @@ var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'v
 var SUB_TYPES = { journal: 1, proceeding: 1, poster: 1 };
 // SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
 // approvalKeyHash; scripts/set-admin-passcode.mjs). Safe to publish. Update after each level-2 passcode change.
-var APPROVAL_KEY_HASH = '';
+var APPROVAL_KEY_HASH = 'abe28d12e9f557e4cee21b82b007a2eeb7314379a7025fe74c9476b390075082';
 
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
