@@ -7,7 +7,7 @@ import type { DataBundle } from './types'
 import './styles.css'
 import './theme-academic.css'
 
-initTci(raw as DataBundle)
+initTci(raw as unknown as DataBundle)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

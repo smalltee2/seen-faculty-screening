@@ -42,7 +42,7 @@ else
   log "claude not installed; conference screening skipped"
 fi
 
-git add data/scopus.tsv data/scopus_journals.csv data/conferences.csv
+git add data/scopus.tsv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv
 if git diff --cached --quiet; then
   log "No Scopus or conference changes"
   exit 0

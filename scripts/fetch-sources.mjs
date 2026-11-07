@@ -38,6 +38,7 @@ const CONFIG = {
   tciHistoryOut: join(ROOT, 'data/tci_tier_history.csv'),
   tciInfoUrl: 'https://tci-thailand.org/backend/journal/get_journal_info',
   scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
+  scopusQuartilesOut: join(ROOT, 'data/scopus_quartiles.csv'),
   // Bibliographic details per DOI from Crossref (issue, pages, article number, publication date)
   // for the Scopus-style CSV export; cached, only new DOIs are looked up (Tum, 2026-11-07).
   crossrefOut: join(ROOT, 'data/crossref.tsv'),
@@ -569,6 +570,54 @@ async function fetchScopusJournals(key) {
   log(`Scopus journals: ${rows.length} ISSNs cached (${added} new), ${rows.filter((r) => r.in_scopus === 'yes').length} in Scopus -> data/scopus_journals.csv`)
 }
 
+/** CiteScore quartiles (Tum, 2026-11-08: "แยกตามคุณภาพผลงาน" chart view). For every journal in
+ *  scopus_journals.csv that Scopus indexes, the Serial Title API (view=CITESCORE) gives, per
+ *  CiteScore year, the journal's percentile in each of its subject areas. The quartile is taken
+ *  from the best percentile: >= 75 Q1, >= 50 Q2, >= 25 Q3, else Q4 (Scopus' own CiteScore
+ *  quartile rule). One row per ISSN and year in data/scopus_quartiles.csv; ISSNs already in the
+ *  file are skipped unless --refresh-quartiles is given. */
+const SQ_HEADER = ['issn', 'year', 'status', 'best_percentile', 'quartile', 'checked']
+const quartileOf = (pct) => (pct >= 75 ? 'Q1' : pct >= 50 ? 'Q2' : pct >= 25 ? 'Q3' : 'Q4')
+async function fetchScopusQuartiles(key, refresh) {
+  if (!key) return log('Scopus quartiles: no SCOPUS_API_KEY; skipped')
+  if (!existsSync(CONFIG.scopusJournalsOut)) return log('Scopus quartiles: no data/scopus_journals.csv yet; skipped')
+  const sj = parseCsv(readFileSync(CONFIG.scopusJournalsOut, 'utf8'))
+  const issns = sj.slice(1).filter((r) => r[sj[0].indexOf('in_scopus')] === 'yes').map((r) => r[sj[0].indexOf('issn')])
+  const prev = !refresh && existsSync(CONFIG.scopusQuartilesOut) ? parseCsv(readFileSync(CONFIG.scopusQuartilesOut, 'utf8')).slice(1) : []
+  const rows = prev.map((r) => Object.fromEntries(SQ_HEADER.map((h, i) => [h, r[i] ?? ''])))
+  const done = new Set(rows.map((r) => r.issn))
+  const today = new Date().toISOString().slice(0, 10)
+  let ok = 0
+  let failed = 0
+  for (const issn of issns.filter((i) => !done.has(i))) {
+    try {
+      const d = await scopusGet(`https://api.elsevier.com/content/serial/title/issn/${encodeURIComponent(issn)}?view=CITESCORE`, key)
+      const e = d['serial-metadata-response']?.entry?.[0] ?? {}
+      const years = e.citeScoreYearInfoList?.citeScoreYearInfo ?? []
+      let n = 0
+      for (const y of years) {
+        const infos = (y.citeScoreInformationList ?? []).flatMap((l) => l.citeScoreInfo ?? [])
+        const pcts = infos.flatMap((i) => i.citeScoreSubjectRank ?? []).map((r) => Number(r.percentile)).filter(Number.isFinite)
+        if (!pcts.length) continue
+        const best = Math.max(...pcts)
+        rows.push({ issn, year: y['@year'] ?? '', status: y['@status'] ?? '', best_percentile: String(best), quartile: quartileOf(best), checked: today })
+        n++
+      }
+      // No CiteScore: keep a marker row so the ISSN is not asked again every night.
+      if (!n) rows.push({ issn, year: '', status: 'none', best_percentile: '', quartile: '', checked: today })
+      ok++
+      await sleep(150)
+    } catch (err) {
+      failed++
+      warn(`Scopus quartiles: ISSN ${issn} failed (${err.message})`)
+      if (err.fatal) break
+    }
+  }
+  rows.sort((a, b) => a.issn.localeCompare(b.issn) || a.year.localeCompare(b.year))
+  writeFileSync(CONFIG.scopusQuartilesOut, [SQ_HEADER.join(','), ...rows.map((r) => SQ_HEADER.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
+  log(`Scopus quartiles: ${ok} journals fetched, ${failed} failed, ${new Set(rows.map((r) => r.issn)).size} journals in data/scopus_quartiles.csv`)
+}
+
 /** data/tci_tier_history.csv: one row per (journal, certification period). Journals already
  *  in the file are skipped unless --refresh-history is given, so the nightly run only adds
  *  new journals; a full refresh is about 1,700 requests. */
@@ -705,8 +754,10 @@ if (run('scopus')) {
   if (scopusHere) {
     await fetchScopus(faculty, process.env.SCOPUS_API_KEY ?? '')
     await fetchScopusJournals(process.env.SCOPUS_API_KEY ?? '')
+    await fetchScopusQuartiles(process.env.SCOPUS_API_KEY ?? '', process.argv.includes('--refresh-quartiles'))
   } else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
 }
+if (only.includes('quartiles')) await fetchScopusQuartiles(process.env.SCOPUS_API_KEY ?? '', process.argv.includes('--refresh-quartiles'))
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
 // Crossref runs after every file that can bring a new DOI (daily full run and the hourly forms run).

@@ -85,6 +85,8 @@ export interface DataBundle {
   crossref?: CrossrefEntry[]
   /** Programme membership (data/programmes.csv), shown in the admin tab's "หลักสูตร" view only. */
   programmes?: Programme[]
+  /** CiteScore quartile per Scopus journal and year: [issn, year, 1-4] (data/scopus_quartiles.csv, complete years). */
+  quartiles?: [string, number, number][]
 }
 
 export interface ProgrammeMember {

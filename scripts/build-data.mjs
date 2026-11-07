@@ -204,6 +204,15 @@ const scopusJournals = existsSync(sjFile)
       .map((j) => ({ issn: j.issn, name: j.name }))
   : []
 
+// CiteScore quartiles per Scopus journal and year (data/scopus_quartiles.csv, scripts/fetch-sources.mjs),
+// complete CiteScore years only, for the "แยกตามคุณภาพผลงาน" chart view (2026-11-08).
+const sqFile = join(ROOT, 'data/scopus_quartiles.csv')
+const quartiles = existsSync(sqFile)
+  ? toRecords(parseCsv(read(sqFile)), ['issn', 'year', 'status', 'quartile'], 'scopus_quartiles.csv')
+      .filter((q) => q.status === 'Complete' && /^Q[1-4]$/.test(q.quartile) && /^\d{4}$/.test(q.year))
+      .map((q) => [q.issn, Number(q.year), Number(q.quartile[1])])
+  : []
+
 // Crossref bibliographic details per DOI (data/crossref.tsv, scripts/fetch-sources.mjs), for the CSV export.
 const crFile = join(ROOT, 'data/crossref.tsv')
 const crossref = existsSync(crFile)
@@ -244,6 +253,6 @@ function publicSources() {
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref, programmes }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref, programmes, quartiles }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides), ${programmes.length} programmes -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides), ${programmes.length} programmes, ${quartiles.length} journal-year quartiles -> src/generated/data.json`)

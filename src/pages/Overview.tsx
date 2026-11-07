@@ -158,6 +158,7 @@ export function LecturerOutputsBlock({ results, settings }: { results: PersonRes
             options={[
               { id: 'research', label: 'งานวิจัย / ผลงานอื่น' },
               { id: 'type', label: 'แยกตามประเภทผลงาน' },
+              { id: 'quality', label: 'แยกตามคุณภาพผลงาน' },
             ]}
           />
         </div>

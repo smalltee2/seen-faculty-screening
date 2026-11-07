@@ -6,7 +6,8 @@ import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup, GROUP_SHORT } from './ui'
 import { journalLevel } from './tci'
-import { TCI } from './tciIndex'
+import { QUARTILES, TCI } from './tciIndex'
+import { qualityOf, type QualityKey } from './quality'
 
 interface Tip {
   x: number
@@ -209,10 +210,10 @@ export function PubsPerYear({ pubs, settings }: { pubs: Pub[]; settings: Setting
 }
 
 /** Each lecturer's eligible outputs in the window: research, other, and uncertain, against the 3-output line. */
-type OutputsView = 'research' | 'type'
+type OutputsView = 'research' | 'type' | 'quality'
 
 /** Bar segments per view; colours match the per-year chart in the 'type' view. */
-const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalIntl' | 'journalNatl' | 'journalNone' | 'proceeding' | 'poster'; cls: string; th: string }[]> = {
+const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalIntl' | 'journalNatl' | QualityKey; cls: string; th: string }[]> = {
   research: [
     { key: 'research', cls: 'c-journal', th: 'งานวิจัย' },
     { key: 'other', cls: 'c-other', th: 'ผลงานอื่น (บทความวิชาการ/ปริทัศน์)' },
@@ -220,6 +221,20 @@ const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalInt
   type: [
     { key: 'journalIntl', cls: 'c-journal', th: 'วารสารนานาชาติ' },
     { key: 'journalNatl', cls: 'c-journal-natl', th: 'วารสารระดับชาติ' },
+    { key: 'journalNone', cls: 'c-journal-none', th: 'วารสารอื่น ๆ' },
+    { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
+    { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
+  ],
+  // แยกตามคุณภาพผลงาน (Tum, 2026-11-08): international journals by CiteScore quartile (Scopus),
+  // national journals by TCI tier; other journals, proceedings and posters are not split.
+  quality: [
+    { key: 'q1', cls: 'c-q1', th: 'นานาชาติ Q1' },
+    { key: 'q2', cls: 'c-q2', th: 'นานาชาติ Q2' },
+    { key: 'q3', cls: 'c-q3', th: 'นานาชาติ Q3' },
+    { key: 'q4', cls: 'c-q4', th: 'นานาชาติ Q4' },
+    { key: 'qNone', cls: 'c-qnone', th: 'นานาชาติ (ไม่มี Quartile)' },
+    { key: 'tier1', cls: 'c-tier1', th: 'TCI กลุ่ม 1' },
+    { key: 'tier2', cls: 'c-tier2', th: 'TCI กลุ่ม 2' },
     { key: 'journalNone', cls: 'c-journal-none', th: 'วารสารอื่น ๆ' },
     { key: 'proceeding', cls: 'c-proceeding', th: 'Proceedings' },
     { key: 'poster', cls: 'c-poster', th: 'โปสเตอร์/บทคัดย่อ' },
@@ -241,6 +256,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
       // Counted outputs (eligible = yes) in the 5-year window, the same set the rules use.
       const used = r.roles.ms_program.used
       const ofType = (t: string) => used.filter((e) => e.pub.type === t).length
+      const ofQuality = (k: QualityKey) => used.filter((e) => qualityOf(e.pub, TCI, QUARTILES) === k).length
       return {
         r,
         research: c.research,
@@ -250,6 +266,13 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
         journalNone: used.filter((e) => levelOf(e.pub) === 'none').length,
         proceeding: ofType('proceeding'),
         poster: ofType('poster'),
+        q1: ofQuality('q1'),
+        q2: ofQuality('q2'),
+        q3: ofQuality('q3'),
+        q4: ofQuality('q4'),
+        qNone: ofQuality('qNone'),
+        tier1: ofQuality('tier1'),
+        tier2: ofQuality('tier2'),
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
         risk: nextYearRisk(r, settings).filter((role) => levelGroup(role.level) === group),

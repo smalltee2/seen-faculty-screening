@@ -17,7 +17,7 @@ import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from '.
 import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
-const data = raw as DataBundle
+const data = raw as unknown as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))

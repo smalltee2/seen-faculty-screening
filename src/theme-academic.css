@@ -662,3 +662,15 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .programme-table td, .programme-table th { white-space: normal; vertical-align: middle; }
 .programme-table td:first-child, .programme-table td.mono, .programme-table td:last-child { white-space: nowrap; }
 .programme-table td:first-child { min-width: 11rem; }
+
+/* "แยกตามคุณภาพผลงาน" (2026-11-08): CiteScore quartiles as one warm ramp (Q1 darkest), TCI tiers in purple. */
+:root { --c-q1: #6e2a00; --c-q2: #b94a00; --c-q3: #e3843f; --c-q4: #f4bf92; --c-qnone: #d9cbbd; --c-tier1: #5b3f9a; --c-tier2: #a993d8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --c-q1: #ffc08a; --c-q2: #ec8e45; --c-q3: #b8622a; --c-q4: #7d4220; --c-qnone: #4f453d; --c-tier1: #c3aef5; --c-tier2: #7a64b3; } }
+:root[data-theme='dark'] { --c-q1: #ffc08a; --c-q2: #ec8e45; --c-q3: #b8622a; --c-q4: #7d4220; --c-qnone: #4f453d; --c-tier1: #c3aef5; --c-tier2: #7a64b3; }
+.chart .c-q1 { fill: var(--c-q1); } .swatch.c-q1 { background: var(--c-q1); }
+.chart .c-q2 { fill: var(--c-q2); } .swatch.c-q2 { background: var(--c-q2); }
+.chart .c-q3 { fill: var(--c-q3); } .swatch.c-q3 { background: var(--c-q3); }
+.chart .c-q4 { fill: var(--c-q4); } .swatch.c-q4 { background: var(--c-q4); }
+.chart .c-qnone { fill: var(--c-qnone); } .swatch.c-qnone { background: var(--c-qnone); }
+.chart .c-tier1 { fill: var(--c-tier1); } .swatch.c-tier1 { background: var(--c-tier1); }
+.chart .c-tier2 { fill: var(--c-tier2); } .swatch.c-tier2 { background: var(--c-tier2); }
