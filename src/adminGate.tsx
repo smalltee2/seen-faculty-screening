@@ -1,4 +1,5 @@
-// The admin passcode for the tab "สำหรับผู้ดูแลระบบ" (ข้อมูลอาจารย์ and เพิ่มผลงานด้วยตนเอง). The passcode decrypts the admin form links (data/sources.json adminGate, AES-GCM);
+// Admin passcodes for the tab "สำหรับผู้ดูแลระบบ": level 2 (adminGate) opens ข้อมูลอาจารย์ and เพิ่มผลงานด้วยตนเอง,
+// level 1 (viewerGate) only ข้อมูลอาจารย์. The passcode decrypts the admin form links (data/sources.json adminGate, AES-GCM);
 // a wrong passcode fails authentication. This hides the views in the browser only: the site's
 // data are bundled with the page, so it is not access control against a determined reader.
 import { useState, type FormEvent, type ReactNode } from 'react'
@@ -7,28 +8,32 @@ import type { DataBundle } from './types'
 /** level 1 = ข้อมูลอาจารย์ only; level 2 = everything incl. เพิ่มผลงาน and conference decisions (2026-11-07). */
 export type AdminLevel = 1 | 2
 export type AdminLinks = { formUrl: string; decisionFormUrl: string; level: AdminLevel }
+/** What is saved in the browser: the links plus the salt of the gate that opened them, so a
+ *  sign-in made with an old passcode is dropped once that passcode is changed. */
+type Saved = AdminLinks & { gate?: string }
 
 const SESSION_KEY = 'seen-admin-form'
 /** Focus the first field only on desktop; on phones autofocus pops the keyboard over the card. */
 export const DESKTOP = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches === true
 
 /** The unlocked links: localStorage when "remember on this device", else sessionStorage. */
-export function readSavedAdmin(): AdminLinks | null {
+export function readSavedAdmin(): Saved | null {
   try {
     const v = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
     if (!v) return null
     // Older versions saved the bare form link.
     if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '', level: 2 }
-    const o = JSON.parse(v) as Partial<AdminLinks>
-    // Saved before levels existed = unlocked with the (level-2) admin passcode.
-    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '', level: o.level === 1 ? 1 : 2 }
+    const o = JSON.parse(v) as Partial<Saved>
+    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '', level: o.level === 1 ? 1 : 2, gate: o.gate }
   } catch {
     return null
   }
 }
-function save(links: AdminLinks, remember: boolean) {
+function save(links: AdminLinks, gate: string, remember: boolean) {
+  // Clear both stores first, so an older remembered sign-in cannot shadow this one.
+  forgetAdmin()
   try {
-    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(links))
+    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify({ ...links, gate } satisfies Saved))
   } catch {
     /* storage unavailable: stays unlocked until reload */
   }
@@ -81,7 +86,16 @@ async function unlock(gate: Gate, pass: string): Promise<Omit<AdminLinks, 'level
 /** Initial admin state: open when the site has no gate configured, else whatever was saved. */
 export function initialAdmin(data: DataBundle): AdminLinks | null {
   if (!data.sources.adminGate) return { formUrl: data.sources.googleFormUrl ?? '', decisionFormUrl: data.sources.decisionFormUrl ?? '', level: 2 }
-  return readSavedAdmin()
+  const saved = readSavedAdmin()
+  if (!saved) return null
+  // Keep a saved sign-in only while the passcode that made it is still the current one
+  // (sign-ins saved before 2026-11-07 carry no gate and must sign in again).
+  const current = saved.level === 2 ? data.sources.adminGate.salt : data.sources.viewerGate?.salt
+  if (!saved.gate || saved.gate !== current) {
+    forgetAdmin()
+    return null
+  }
+  return { formUrl: saved.formUrl, decisionFormUrl: saved.decisionFormUrl, level: saved.level }
 }
 
 /** The passcode card shown in place of an admin-only tab. */
@@ -101,7 +115,7 @@ export function AdminGateForm({ data, title, onUnlocked, needLevel = 1, note }: 
     try {
       const v = await unlockAny({ admin: gate, viewer }, pass)
       if (v.level < needLevel) throw new Error('level')
-      save(v, remember)
+      save(v, (v.level === 2 ? gate.salt : viewer?.salt) ?? '', remember)
       setPass('')
       onUnlocked(v)
     } catch (e) {

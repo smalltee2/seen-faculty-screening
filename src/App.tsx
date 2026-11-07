@@ -93,7 +93,7 @@ export function App() {
   }, [])
   const pubs = useMemo(() => makePubs(liveRows), [liveRows])
   const scrolled = useScrolled()
-  // One admin passcode opens both admin-only tabs (รายชื่ออาจารย์, เพิ่มผลงานด้วยตนเอง).
+  // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
   const lock = data.sources.adminGate
     ? () => {
