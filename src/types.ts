@@ -92,6 +92,8 @@ export interface ProgrammeMember {
   role: 'ประธานหลักสูตร' | 'อาจารย์'
   email: string
   ext: string
+  /** Listed as อาจารย์ผู้รับผิดชอบหลักสูตร in the programme document (data/programmes.csv → responsible). */
+  responsible: boolean
 }
 
 export interface Programme {

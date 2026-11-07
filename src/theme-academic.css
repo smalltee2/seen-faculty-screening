@@ -658,3 +658,7 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .programme-table { overflow-x: auto; }
 .programme-table td, .programme-table th { white-space: nowrap; }
 #admin-programme { max-width: min(30rem, 100%); }
+.programme-resp { text-align: center; color: var(--met, var(--accent)); font-weight: 700; }
+.programme-table td, .programme-table th { white-space: normal; vertical-align: middle; }
+.programme-table td:first-child, .programme-table td.mono, .programme-table td:last-child { white-space: nowrap; }
+.programme-table td:first-child { min-width: 11rem; }

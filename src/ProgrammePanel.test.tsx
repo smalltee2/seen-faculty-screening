@@ -19,6 +19,16 @@ describe('programmes.csv / ProgrammePanel', () => {
     expect(bundle.faculty.filter((f) => !listed.has(f.nameEn)).map((f) => f.nameEn)).toEqual([])
   })
 
+  it('marks the five responsible lecturers of the B.Sc. programme (programme document 9.1)', () => {
+    const prog = bundle.programmes!.find((p) => p.id === 'bsc-eem')!
+    expect(prog.members.filter((m) => m.responsible).map((m) => m.nameEn)).toEqual([
+      'Kritchaya Issakul', 'Buran Phansawan', 'Suchanya Thongkrua', 'Poramate Sittisun', 'Surat Sedpho',
+    ])
+    const html = renderToStaticMarkup(<ProgrammePanel programme={prog} results={results} />)
+    expect(html).toContain('อาจารย์ผู้รับผิดชอบหลักสูตร <b>5</b> คน')
+    expect(html).toContain('จาก 5')
+  })
+
   it('renders each member with role, contact and the level duty', () => {
     const prog = bundle.programmes!.find((p) => p.id === 'phd-emcc')!
     const html = renderToStaticMarkup(<ProgrammePanel programme={prog} results={results} />)

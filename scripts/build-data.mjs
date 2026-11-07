@@ -167,17 +167,18 @@ const overrides = toRecords(
 const programmes = []
 const PROG_FILE = join(ROOT, 'data/programmes.csv')
 if (existsSync(PROG_FILE)) {
-  const rows = toRecords(parseCsv(read(PROG_FILE)), ['programme_id', 'programme_th', 'level', 'name_en', 'role', 'email', 'ext'], 'programmes.csv')
+  const rows = toRecords(parseCsv(read(PROG_FILE)), ['programme_id', 'programme_th', 'level', 'name_en', 'role', 'email', 'ext', 'responsible'], 'programmes.csv')
   for (const r of rows) {
     if (!/^[a-z0-9-]+$/.test(r.programme_id)) fail(`programmes.csv line ${r._line}: programme_id "${r.programme_id}" must be lowercase letters, digits and "-"`)
     if (!['ba', 'ms', 'phd'].includes(r.level)) fail(`programmes.csv line ${r._line}: level "${r.level}" is not one of ba | ms | phd`)
     if (!['ประธานหลักสูตร', 'อาจารย์'].includes(r.role)) fail(`programmes.csv line ${r._line}: role "${r.role}" is not ประธานหลักสูตร | อาจารย์`)
+    if (!['yes', ''].includes(r.responsible)) fail(`programmes.csv line ${r._line}: responsible "${r.responsible}" must be yes or empty`)
     if (!faculty.some((f) => f.nameEn === r.name_en)) fail(`programmes.csv line ${r._line}: name_en "${r.name_en}" is not in faculty.csv`)
     let prog = programmes.find((x) => x.id === r.programme_id)
     if (!prog) { prog = { id: r.programme_id, th: r.programme_th, level: r.level, members: [] }; programmes.push(prog) }
     else if (prog.th !== r.programme_th || prog.level !== r.level) fail(`programmes.csv line ${r._line}: programme_th/level differ from earlier rows of "${r.programme_id}"`)
     if (prog.members.some((m) => m.nameEn === r.name_en)) fail(`programmes.csv line ${r._line}: "${r.name_en}" listed twice in "${r.programme_id}"`)
-    prog.members.push({ nameEn: r.name_en, role: r.role, email: r.email, ext: r.ext })
+    prog.members.push({ nameEn: r.name_en, role: r.role, email: r.email, ext: r.ext, responsible: r.responsible === 'yes' })
   }
 }
 if (errors.length) {
