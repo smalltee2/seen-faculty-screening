@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, levelOf, type OutputsView } from '../charts'
-import { Button, LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
+import { LEVEL_GROUPS, Metric, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
   const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
@@ -43,11 +43,6 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             <span className="hero-chip lvl-ms">ปริญญาโท ข้อ 9.3</span>
             <span className="hero-chip lvl-phd">ปริญญาเอก ข้อ 9.4</span>
           </div>
-        </div>
-        <div className="actions no-print">
-          <Button onClick={() => window.print()} kind="primary">
-            พิมพ์ / PDF
-          </Button>
         </div>
       </div>
 
