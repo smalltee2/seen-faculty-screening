@@ -15,20 +15,19 @@ writeFileSync(
 )
 console.log('[personal] dist/me/index.html forwards to #/me')
 
-// The site's address is …/seen-faculty-screening/sfs.html (Tum, 2026-11-08). The built app is
-// served as sfs.html; index.html only forwards there, keeping ?query and #route, so the old
-// address and every link already sent (e-mails, manual, bookmarks) still open the right page.
+// The site's address is …/seen-faculty-screening/sfs.html (Tum, 2026-11-08): the page for real use,
+// whose data-years makes the year menu offer only the current and the next year (src/App.tsx →
+// REAL_USE). sfs-test.html is the same app with the full year range. index.html and sfs-real.html
+// (the real page's name for a few hours) only forward to sfs.html, keeping ?query and #route, so
+// the old address and every link already sent (e-mails, manual, bookmarks) still open the right page.
 const app = readFileSync(join(DIST, 'index.html'), 'utf8')
-writeFileSync(join(DIST, 'sfs.html'), app)
-// sfs-real.html: the same app for real use; data-years makes its year menu offer only the current
-// and the next year (src/App.tsx → REAL_USE). sfs.html keeps the full year range (Tum, 2026-11-08).
 if (!/<html[^>]*>/.test(app)) throw new Error('[personal] dist/index.html has no <html> tag')
-writeFileSync(join(DIST, 'sfs-real.html'), app.replace(/<html([^>]*)>/, '<html$1 data-years="current-next">'))
-writeFileSync(
-  join(DIST, 'index.html'),
-  `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ระบบตรวจสอบคุณสมบัติอาจารย์ SEEN</title>
+writeFileSync(join(DIST, 'sfs.html'), app.replace(/<html([^>]*)>/, '<html$1 data-years="current-next">'))
+writeFileSync(join(DIST, 'sfs-test.html'), app)
+const forward = `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ระบบตรวจสอบคุณสมบัติอาจารย์ SEEN</title>
 <link rel="canonical" href="sfs.html">
 <script>location.replace('sfs.html'+location.search+location.hash);</script></head>
-<body><p><a href="sfs.html">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์</a></p></body></html>\n`,
-)
-console.log('[personal] dist/sfs.html and dist/sfs-real.html are the app; dist/index.html forwards to sfs.html')
+<body><p><a href="sfs.html">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์</a></p></body></html>\n`
+writeFileSync(join(DIST, 'index.html'), forward)
+writeFileSync(join(DIST, 'sfs-real.html'), forward)
+console.log('[personal] dist/sfs.html (current and next year) and dist/sfs-test.html (all years) are the app; index.html and sfs-real.html forward to sfs.html')
