@@ -586,3 +586,7 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 /* "ไม่ผ่าน (ป.โท/เอก)" note on cards and in the table, beside the yellow next-year note (2026-11-07) */
 .fail-note { color: var(--not); background: var(--not-bg, transparent); border-color: var(--not-mark); }
 .fail-inline { color: var(--not); }
+
+/* Overview metric cards: the number and its sub-line centred (Tum, 2026-11-07) */
+.metric.metric-card .metric-value, .metric.metric-card .metric-sub { text-align: center; }
+.metric.metric-card .metric-value { margin-top: 8px; }
