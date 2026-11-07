@@ -39,6 +39,8 @@ export interface RawPub {
   /** Admin form answer to "เป็นงานวิจัยหรือไม่". */
   manualResearch?: boolean
   submitted?: string
+  /** Scopus EID (scopus.tsv rows only), for the Scopus-style export. */
+  eid?: string
   /** Read live from the form's sheet in the browser; not yet in data/manual.tsv. */
   live?: boolean
 }
@@ -132,6 +134,10 @@ export interface Pub extends RawPub {
   duplicates: number
   /** Every source that listed this work. */
   sources: PubSource[]
+  /** Longest author list among the merged rows (OpenAlex full names when present). */
+  allAuthors?: string
+  /** Scopus document type (Article, Conference paper, …) when a Scopus row was merged in. */
+  scopusType?: string
   override: Override | null
   /** Conference screening result; only set for proceedings. */
   conference?: import('./conferences').ConferenceMatch

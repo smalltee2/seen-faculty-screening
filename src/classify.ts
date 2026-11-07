@@ -278,6 +278,9 @@ function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: Conf
       sources: [...new Set(members.map((m) => m.source ?? 'scholar'))],
       // A submission tag on any merged row, so the person page can offer to withdraw that record.
       submitted: members.map((m) => m.submitted).find(Boolean) ?? row.submitted,
+      eid: members.map((m) => m.eid).find(Boolean) ?? row.eid,
+      allAuthors: members.reduce((a, m) => ((m.authors ?? '').length > a.length ? m.authors : a), row.authors ?? ''),
+      scopusType: members.find((m) => m.source === 'scopus')?.extType,
       override: o,
     }
     if (o?.type) Object.assign(pub, { type: o.type, typeReason: `แก้ไขด้วยมือ (override)${o.note ? `: ${o.note}` : ''}`, typeUncertain: false })

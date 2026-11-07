@@ -7,6 +7,7 @@ import { journalLevel, journalTag } from '../tci'
 import { TCI } from '../tciIndex'
 import { selfSubmission } from '../submissions'
 import { WithdrawButton, type WithdrawProps } from '../WithdrawButton'
+import { SCOPUS_HEADER, scopusRow } from '../exportScopus'
 
 /** `withdraw` (level-2 admin only) lets approved self-added works be withdrawn from this list. */
 export function PersonPage({ result, settings, personal = false, withdraw }: { result: PersonResult | undefined; settings: Settings; personal?: boolean; withdraw?: WithdrawProps }) {
@@ -32,11 +33,12 @@ export function PersonPage({ result, settings, personal = false, withdraw }: { r
         return [role.clause, role.labelTh, role.labelEn, STATUS_LABEL[r.status].th, r.counts.total, r.counts.totalPossible, r.counts.research, r.counts.researchPossible, r.reasons.join(' | ')]
       }),
     )
+  // Scopus-style import layout (src/exportScopus.ts), same rows as the table below.
   const exportPubs = () =>
     downloadCsv(
       `${p.nameEn}-publications.csv`,
-      ['year_ce', 'year_be', 'title', 'venue', 'type', 'research', 'counted', 'reasons'],
-      evals.map((e) => [e.pub.year, e.pub.year && toBE(e.pub.year), e.pub.title, e.pub.venue, e.pub.type, e.research, e.eligible, e.reasons.join(' | ')]),
+      SCOPUS_HEADER,
+      evals.map((e) => scopusRow(e, p)),
     )
 
   return (
