@@ -4,7 +4,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
-import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup } from './ui'
+import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup, GROUP_SHORT } from './ui'
 import { journalLevel } from './tci'
 import { TCI } from './tciIndex'
 
@@ -234,6 +234,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
   const [ref, width] = useWidth(1000)
   const roles = SHOWN_ROLES.filter((role) => levelGroup(role.level) === group)
   const threshold = group === 'ba' ? 1 : 3
+  const lvl = GROUP_SHORT[group]
   const rows = results
     .map((r) => {
       const c = r.roles.ms_program.counts
@@ -292,10 +293,10 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
           <i className="swatch swatch-rule" /> เกณฑ์ ≥ {threshold} เรื่อง
         </span>
         <span>
-          <i className="swatch swatch-fail" /> ไม่ผ่านบางหน้าที่ในปีที่ประเมิน
+          <i className="swatch swatch-fail" /> ไม่ผ่านบางหน้าที่ของ{lvl} ในปีที่ประเมิน
         </span>
         <span>
-          <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน ถ้าไม่มีผลงานเพิ่ม
+          <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน{lvl} ถ้าไม่มีผลงานเพิ่ม
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน (${group === 'ba' ? 'ระดับปริญญาตรี' : 'ระดับบัณฑิตศึกษา'})`}>
@@ -361,12 +362,12 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               {/* On narrow screens the row frame and bubble colour carry the status; the text would overlap the bubble. */}
               {narrow ? null : x.failed > 0 ? (
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน ${x.failed}/${roles.length} หน้าที่`}
+                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน (${lvl}) ${x.failed}/${roles.length} หน้าที่`}
                 </text>
               ) : (
                 x.risk.length > 0 && (
                   <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                    {narrow ? '⚠︎' : '⚠︎ ปีหน้าอาจไม่ผ่าน'}
+                    {narrow ? '⚠︎' : `⚠︎ ปีหน้าอาจไม่ผ่าน (${lvl})`}
                   </text>
                 )
               )}
@@ -392,12 +393,12 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                       </span>
                       {x.failed > 0 && (
                         <span className="tip-fail">
-                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน {x.failed} จาก {roles.length} หน้าที่
+                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน ({lvl}) {x.failed} จาก {roles.length} หน้าที่
                         </span>
                       )}
                       {x.risk.length > 0 && (
                         <span className="tip-risk">
-                          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน: {x.risk.map((role) => role.clause).join(', ')}
+                          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน ({lvl}): {x.risk.map((role) => role.clause).join(', ')}
                         </span>
                       )}
                     </>,

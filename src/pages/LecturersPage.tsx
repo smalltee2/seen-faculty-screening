@@ -17,6 +17,7 @@ import {
   Segmented,
   StatusChip,
   displayName,
+  groupsOf,
   isShownLevel,
   levelGroup,
   roleShort,
@@ -279,6 +280,9 @@ function PersonCard({
     ROLES.filter((x) => x.level === l.id).map((x) => r.roles[x.id].status),
   );
   const tally = (s: Status) => statuses.filter((x) => x === s).length;
+  const failing = ROLES.filter(
+    (x) => isShownLevel(x.level) && r.roles[x.id].status === "not_met",
+  );
   const href = `#/person/${encodeURIComponent(p.nameEn)}`;
   // Red = fails a duty now (takes precedence), yellow = passes now but may fail next year (same as the overview chart).
   const frame =
@@ -305,13 +309,22 @@ function PersonCard({
           ))}
         </div>
       )}
+      {failing.length > 0 && (
+        <div
+          className="risk-note fail-note"
+          title={failing.map((x) => `${x.clause} ${x.labelTh}`).join("\n")}
+        >
+          ✗ ปี {toBE(settings.year)} ไม่ผ่าน ({groupsOf(failing.map((x) => x.level))}){" "}
+          {failing.length} หน้าที่
+        </div>
+      )}
       {risk.length > 0 && (
         <div
           className="risk-note"
           title={risk.map((x) => `${x.clause} ${x.labelTh}`).join("\n")}
         >
-          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน{" "}
-          {risk.length} หน้าที่
+          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน (
+          {groupsOf(risk.map((x) => x.level))}) {risk.length} หน้าที่
         </div>
       )}
       <div className="person-counts">
@@ -411,9 +424,10 @@ function MatrixTable({
               const risk = nextYearRisk(r, settings).filter((x) =>
                 isShownLevel(x.level),
               );
-              const fails = roles.some(
+              const failing = roles.filter(
                 (role) => r.roles[role.id].status === "not_met",
               );
+              const fails = failing.length > 0;
               return (
                 <tr
                   key={r.person.nameEn}
@@ -423,6 +437,17 @@ function MatrixTable({
                     <a href={`#/person/${encodeURIComponent(r.person.nameEn)}`}>
                       {displayName(r.person)}
                     </a>
+                    {fails && (
+                      <div
+                        className="risk-inline fail-inline"
+                        title={failing
+                          .map((x) => `${x.clause} ${x.labelTh}`)
+                          .join("\n")}
+                      >
+                        ✗ ไม่ผ่าน ({groupsOf(failing.map((x) => x.level))}){" "}
+                        {failing.length} หน้าที่
+                      </div>
+                    )}
                     {risk.length > 0 && (
                       <div
                         className="risk-inline"
@@ -430,8 +455,8 @@ function MatrixTable({
                           .map((x) => `${x.clause} ${x.labelTh}`)
                           .join("\n")}
                       >
-                        ⚠︎ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน {risk.length}{" "}
-                        หน้าที่
+                        ⚠︎ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน (
+                        {groupsOf(risk.map((x) => x.level))}) {risk.length} หน้าที่
                       </div>
                     )}
                     {notify &&
