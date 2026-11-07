@@ -99,6 +99,10 @@ export function windowYears(year: number): [number, number] {
 
 const minTri = (...xs: Tri[]): Tri => (xs.includes('no') ? 'no' : xs.includes('maybe') ? 'maybe' : 'yes')
 
+/** Academic rank written out in full for display (Tum, 2026-11-07); name titles such as "รศ.ดร." stay short. */
+export const RANK_FULL: Record<string, string> = { 'ศ.': 'ศาสตราจารย์', 'รศ.': 'รองศาสตราจารย์', 'ผศ.': 'ผู้ช่วยศาสตราจารย์', 'อ.': 'อาจารย์', อาจารย์: 'อาจารย์' }
+export const rankFull = (rank: string | null | undefined) => (rank ? (RANK_FULL[rank] ?? rank) : '')
+
 export function rankAtLeast(rank: Rank | null, min: Rank): boolean {
   return rank !== null && RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf(min)
 }
@@ -106,21 +110,21 @@ export function rankAtLeast(rank: Rank | null, min: Rank): boolean {
 /** Degree and rank requirement, e.g. "ปริญญาเอก หรือ ปริญญาโท + รศ. ขึ้นไป". */
 export function qualifies(p: Faculty, qual: Qual): { ok: Tri; reason: string } {
   // Clause 10: ผศ. ขึ้นไป qualifies on rank alone, so a blank degree does not block it.
-  if (qual === 'master_or_asst' && rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง ${p.rank}` }
+  if (qual === 'master_or_asst' && rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง${rankFull(p.rank)}` }
   if (!p.degree) return { ok: 'maybe', reason: 'ไม่มีข้อมูลวุฒิการศึกษาใน faculty.csv' }
   if (p.degree === 'ปริญญาเอก') return { ok: 'yes', reason: 'วุฒิปริญญาเอก' }
   // Clause 10: ปริญญาโท หรือ ผศ. ขึ้นไป. Every degree in faculty.csv is โท or เอก, so โท satisfies it;
   // a lecturer without a master's would need ผศ. or above.
   if (qual === 'master_or_asst') {
     if (p.degree === 'ปริญญาโท') return { ok: 'yes', reason: 'วุฒิปริญญาโท' }
-    if (rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง ${p.rank}` }
-    return { ok: 'no', reason: 'ต้องมีวุฒิปริญญาโท หรือตำแหน่ง ผศ. ขึ้นไป' }
+    if (rankAtLeast(p.rank, 'ผศ.')) return { ok: 'yes', reason: `ตำแหน่ง${rankFull(p.rank)}` }
+    return { ok: 'no', reason: 'ต้องมีวุฒิปริญญาโท หรือตำแหน่งผู้ช่วยศาสตราจารย์ขึ้นไป' }
   }
   if (qual === 'master') return { ok: 'yes', reason: 'วุฒิปริญญาโท' }
   const min: Rank = qual === 'doc_or_full' ? 'ศ.' : 'รศ.'
   if (!p.rank) return { ok: 'maybe', reason: 'วุฒิปริญญาโท แต่ไม่มีข้อมูลตำแหน่งวิชาการ' }
-  if (rankAtLeast(p.rank, min)) return { ok: 'yes', reason: `วุฒิปริญญาโท + ตำแหน่ง ${p.rank}` }
-  return { ok: 'no', reason: `วุฒิปริญญาโท ต้องมีตำแหน่ง ${min}${min === 'รศ.' ? ' ขึ้นไป' : ''} (ปัจจุบัน ${p.rank})` }
+  if (rankAtLeast(p.rank, min)) return { ok: 'yes', reason: `วุฒิปริญญาโท + ตำแหน่ง${rankFull(p.rank)}` }
+  return { ok: 'no', reason: `วุฒิปริญญาโท ต้องมีตำแหน่ง${rankFull(min)}${min === 'รศ.' ? 'ขึ้นไป' : ''} (ปัจจุบัน ${rankFull(p.rank)})` }
 }
 
 export interface PubEval {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { evaluatePub, toBE, type PersonResult, type Settings } from '../rules'
+import { evaluatePub, toBE, type PersonResult, type Settings, rankFull } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, yearLabel } from '../ui'
@@ -45,7 +45,7 @@ export function PersonPage({ result, settings, personal = false }: { result: Per
         {displayName(p)}
       </h1>
       <dl className="profile">
-        <div><dt>ตำแหน่งวิชาการ</dt><dd>{p.rank ?? '—'}</dd></div>
+        <div><dt>ตำแหน่งวิชาการ</dt><dd>{rankFull(p.rank) || '—'}</dd></div>
         <div><dt>วุฒิสูงสุด</dt><dd>{p.degree ? (p.degreeField ? `${p.degree} (${p.degreeField})` : p.degree) : '—'}</dd></div>
         {/* Empty fields are hidden; they appear once filled in faculty.csv. */}
         {p.degreeYear !== null && <div><dt>ปีที่สำเร็จการศึกษา</dt><dd>พ.ศ. {toBE(p.degreeYear)} (ค.ศ.{p.degreeYear})</dd></div>}
