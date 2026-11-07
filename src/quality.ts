@@ -19,8 +19,9 @@ export function buildQuartileIndex(rows: [string, number, number][]): QuartileIn
 }
 
 /** Quartile of the journal in the work's publication year. Years without a complete CiteScore
- *  take the nearest earlier complete year (a 2026 paper uses CiteScore 2025), and works older
- *  than the journal's first CiteScore take that first year. null = no CiteScore for any ISSN. */
+ *  take the nearest earlier complete year (a 2026 paper uses CiteScore 2025). Works older than
+ *  the journal's first CiteScore year get none (Tum, 2026-11-08: follow Scopus coverage, do not
+ *  borrow a later year). null = no CiteScore for that year or any ISSN. */
 export function quartileOf(pub: Pick<Pub, 'issn' | 'year'>, idx: QuartileIndex): number | null {
   const years = (pub.issn ?? '')
     .split(';')
@@ -29,7 +30,7 @@ export function quartileOf(pub: Pick<Pub, 'issn' | 'year'>, idx: QuartileIndex):
   if (!years) return null
   if (pub.year === null) return years[years.length - 1].q
   const before = years.filter((y) => y.year <= pub.year!)
-  return (before.length ? before[before.length - 1] : years[0]).q
+  return before.length ? before[before.length - 1].q : null
 }
 
 export type QualityKey = 'q1' | 'q2' | 'q3' | 'q4' | 'qNone' | 'tier1' | 'tier2' | 'journalNone' | 'proceeding' | 'poster'

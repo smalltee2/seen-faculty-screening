@@ -11,7 +11,7 @@ const idx = buildQuartileIndex([
 describe('quartileOf (CiteScore, Scopus)', () => {
   it('uses the publication year', () => expect(quartileOf({ issn: '00139351', year: 2023 }, idx)).toBe(2))
   it('falls back to the nearest earlier complete year', () => expect(quartileOf({ issn: '0013-9351', year: 2026 }, idx)).toBe(1))
-  it('uses the first year for older works', () => expect(quartileOf({ issn: '0013-9351', year: 2015 }, idx)).toBe(2))
+  it('gives none to works before the first CiteScore year (Scopus coverage)', () => expect(quartileOf({ issn: '0013-9351', year: 2015 }, idx)).toBeNull())
   it('tries each ISSN of the work', () => expect(quartileOf({ issn: '9999-9999;1234-5678', year: 2022 }, idx)).toBe(4))
   it('returns null without CiteScore', () => expect(quartileOf({ issn: '9999-9999', year: 2022 }, idx)).toBeNull())
 })
