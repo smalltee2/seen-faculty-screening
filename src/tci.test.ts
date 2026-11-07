@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTciIndex, journalLevel, journalTag, matchTci, normIssn, normName, venueName } from './tci'
+import { buildTciIndex, journalLevel, journalTag, matchTci, normIssn, normName, tierInYear, venueName } from './tci'
 import type { Pub, TciJournal } from './types'
 
 const tci: TciJournal[] = [
@@ -53,5 +53,21 @@ describe('TCI / Scopus journal level', () => {
     expect(journalTag({ level: 'intl' })).toBe('Scopus')
     expect(journalTag({ level: 'natl', tier: '2', by: 'issn' })).toBe('TCI 2')
     expect(journalTag({ level: 'none' })).toBe('ไม่พบในฐานข้อมูล')
+  })
+})
+
+describe('tierInYear (TCI กลุ่ม at publication, 2026-11-08)', () => {
+  const j = { nameEng: 'J', nameLocal: '', abbrev: '', issn: '2222-2222', eissn: '', tier: '1', status: 'active', periods: [[2020, 2024, '2'], [2025, 2029, '1']] as [number, number, string][] }
+  const idx = buildTciIndex([j])
+  it('uses the กลุ่ม of the publication year', () => {
+    expect(journalLevel(pub({ venue: 'Z', issn: '2222-2222', year: 2022 }), idx)).toEqual({ level: 'natl', tier: '2', by: 'issn' })
+    expect(journalLevel(pub({ venue: 'Z', issn: '2222-2222', year: 2026 }), idx)).toEqual({ level: 'natl', tier: '1', by: 'issn' })
+  })
+  it('gives no กลุ่ม outside every period', () => {
+    expect(journalLevel(pub({ venue: 'Z', issn: '2222-2222', year: 2018 }), idx)).toEqual({ level: 'none', by: 'issn' })
+  })
+  it("falls back to today's กลุ่ม without periods or year", () => {
+    expect(tierInYear({ ...j, periods: [] }, 2018)).toBe('1')
+    expect(tierInYear(j, null)).toBe('1')
   })
 })

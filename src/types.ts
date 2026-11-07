@@ -147,9 +147,11 @@ export interface TciJournal {
   abbrev: string
   issn: string
   eissn: string
-  /** '1' | '2' | '3' as published by TCI. */
+  /** '1' | '2' | '3' as published by TCI today; '' when the journal holds no กลุ่ม now but did before. */
   tier: string
   status: string
+  /** Certification periods [start year, end year, กลุ่ม], oldest first (data/tci_tier_history.csv). */
+  periods?: [number, number, string][]
 }
 
 /** `unknown` = the classifier could not decide; always needs review. */

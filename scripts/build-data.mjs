@@ -188,12 +188,31 @@ if (errors.length) {
 
 // TCI journal list (data/tci_journals.csv, from scripts/fetch-sources.mjs --only=tci).
 // Only journals that currently hold a กลุ่ม are kept; the site treats กลุ่ม 1–2 as ระดับชาติ.
+// Certification periods per journal (data/tci_tier_history.csv): [start year, end year, กลุ่ม]. The
+// site reads the กลุ่ม of the year a work was published from these (Tum's decision, 2026-11-08:
+// follow TCI's own coverage, as the Scopus quartiles follow CiteScore years). A journal that
+// holds no กลุ่ม today but did in the past is kept for that reason, with tier ''.
+const thFile = join(ROOT, 'data/tci_tier_history.csv')
+const periodsById = new Map()
+if (existsSync(thFile)) {
+  for (const h of toRecords(parseCsv(read(thFile)), ['journal_id', 'tier', 'start_date', 'end_date'], 'tci_tier_history.csv')) {
+    if (!['1', '2', '3'].includes(h.tier)) continue
+    const y0 = Number(h.start_date.slice(0, 4))
+    const y1 = Number(h.end_date.slice(0, 4))
+    // TCI's own data has the odd reversed period (e.g. 2026-01-01 to 2025-12-31): skip it, keep building.
+    if (!Number.isInteger(y0) || !Number.isInteger(y1) || y1 < y0) { warn(`tci_tier_history.csv line ${h._line}: bad dates ${h.start_date}–${h.end_date}; row skipped`); continue }
+    if (!periodsById.has(h.journal_id)) periodsById.set(h.journal_id, [])
+    periodsById.get(h.journal_id).push([y0, y1, h.tier])
+  }
+  for (const v of periodsById.values()) v.sort((a, b) => a[0] - b[0])
+}
 const tciFile = join(ROOT, 'data/tci_journals.csv')
 const tci = existsSync(tciFile)
   ? toRecords(parseCsv(read(tciFile)), ['id', 'name_eng', 'name_local', 'issn', 'eissn', 'tci_tier', 'status'], 'tci_journals.csv')
-      .filter((j) => ['1', '2', '3'].includes(j.tci_tier))
-      .map((j) => ({ nameEng: j.name_eng, nameLocal: j.name_local, abbrev: j.abbrev_name ?? '', issn: j.issn, eissn: j.eissn, tier: j.tci_tier, status: j.status }))
+      .filter((j) => ['1', '2', '3'].includes(j.tci_tier) || periodsById.has(j.id))
+      .map((j) => ({ nameEng: j.name_eng, nameLocal: j.name_local, abbrev: j.abbrev_name ?? '', issn: j.issn, eissn: j.eissn, tier: ['1', '2', '3'].includes(j.tci_tier) ? j.tci_tier : '', status: j.status, periods: periodsById.get(j.id) ?? [] }))
   : []
+if (tci.length && !periodsById.size) warn('data/tci_tier_history.csv missing or empty: TCI กลุ่ม cannot follow the publication year; the current กลุ่ม is used')
 if (!tci.length) warn('data/tci_journals.csv missing or empty: national journals cannot be matched to TCI')
 
 // Journals known to be indexed in Scopus (data/scopus_journals.csv), by ISSN.

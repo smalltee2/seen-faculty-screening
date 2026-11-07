@@ -74,13 +74,22 @@ export function matchTci(pub: Pick<Pub, 'venue' | 'issn'>, idx: TciIndex): { j: 
 }
 
 /** Level of a journal article; null for other output types. */
+/** กลุ่ม of a TCI journal in a given year (Tum, 2026-11-08: the กลุ่ม at publication, from TCI's
+ *  certification periods). A year outside every period means the journal held no กลุ่ม then.
+ *  Without periods (older bundles, test fixtures) or without a year, today's กลุ่ม is used. */
+export function tierInYear(j: TciJournal, year: number | null): string {
+  if (!j.periods?.length || year === null) return j.tier
+  return j.periods.find(([y0, y1]) => year >= y0 && year <= y1)?.[2] ?? ''
+}
+
 export function journalLevel(pub: Pub, idx: TciIndex): JournalLevel | null {
   if (pub.type !== 'journal') return null
   if (pub.sources.includes('scopus') || inScopusJournal(pub, idx)) return { level: 'intl' }
   const m = matchTci(pub, idx)
   if (!m) return { level: 'none' }
-  if (m.j.tier === '1' || m.j.tier === '2') return { level: 'natl', tier: m.j.tier, by: m.by }
-  return { level: 'none', tier: '3', by: m.by }
+  const tier = tierInYear(m.j, pub.year)
+  if (tier === '1' || tier === '2') return { level: 'natl', tier, by: m.by }
+  return tier === '3' ? { level: 'none', tier: '3', by: m.by } : { level: 'none', by: m.by }
 }
 
 /** Short tag for tables: "Scopus", "TCI 1", "TCI 2", "TCI 3", "—". */
@@ -88,5 +97,6 @@ export function journalTag(l: JournalLevel | null): string {
   if (!l) return ''
   if (l.level === 'intl') return 'Scopus'
   if (l.level === 'natl') return `TCI ${l.tier}`
-  return l.tier ? `TCI ${l.tier}` : 'ไม่พบในฐานข้อมูล'
+  if (l.tier) return `TCI ${l.tier}`
+  return l.by ? 'TCI ไม่มีกลุ่มในปีที่ตีพิมพ์' : 'ไม่พบในฐานข้อมูล'
 }
