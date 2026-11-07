@@ -131,7 +131,7 @@ export function AdminGateForm({ data, title, onUnlocked, needLevel = 1, note }: 
       icon="lock"
       eyebrow="เฉพาะผู้ที่มีรหัสผู้ดูแล"
       title={title}
-      intro={note ?? 'ระดับ 1 ดูข้อมูลอาจารย์ · ระดับ 2 ดูข้อมูลอาจารย์ เพิ่มผลงาน และตัดสินงานประชุม'}
+      intro={note ?? ''}
       aside={
         <p className="gate-aside-note">
           อาจารย์ที่ต้องการดูข้อมูลของตนเอง ไปที่แถบ <a href="#/me">ตรวจสอบคุณสมบัติของฉัน</a>
@@ -194,7 +194,7 @@ export function GateShell(props: { icon: keyof typeof ICONS; eyebrow: string; ti
           </span>
           <span className="gate-eyebrow">{props.eyebrow}</span>
           <h1 className="gate-title">{props.title}</h1>
-          <p className="gate-intro">{props.intro}</p>
+          {props.intro && <p className="gate-intro">{props.intro}</p>}
           {props.steps && (
             <ol className="gate-steps">
               {props.steps.map((x) => (

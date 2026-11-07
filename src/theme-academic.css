@@ -524,3 +524,6 @@ html { scroll-padding-top: 92px; }
 .controls .control-end { flex-direction: row !important; align-items: center !important; gap: 10px; flex-wrap: wrap; }
 .level-badge { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid var(--line); background: var(--bg-secondary); color: var(--muted); }
 .level-badge-2 { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+/* Overview title same size as the admin page titles (Tum, 2026-11-07) */
+.report-head h1 { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-height: 1.4; }
+.report-head h1::after { margin-top: 8px; }
