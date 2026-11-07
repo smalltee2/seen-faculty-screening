@@ -314,9 +314,13 @@ works under their own name, and stores them in the `submissions` sheet as `pendi
 while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
 **CSV export of a lecturer's works** (2026-11-07): "ดาวน์โหลด CSV" above "ผลงานที่นับ …" writes the table's rows
 in the university's Scopus-style import layout (src/exportScopus.ts; template ตัวอย่าง_ไฟล์นำเข้า_Scopus.csv):
-the 24 Scopus columns plus "Research ". Volume, issue, pages and article number are parsed from the venue
-string; EID, document type and Scopus link come from scopus.tsv when the work is there; publication date,
-month and open access stay empty because no source gives them.
+the 24 Scopus columns plus "Research ". Issue, pages, article number and the publication date come from
+Crossref by DOI (`data/crossref.tsv`, written by `fetchCrossref` in scripts/fetch-sources.mjs: new DOIs are
+looked up in the daily and hourly runs, `--only=crossref --refresh-crossref` re-asks all), then from the
+Scopus row (`cover_date`, `volume`, `issue`, `page_range`, `article_number` columns of scopus.tsv, filled for
+rows fetched after 2026-11-07), then parsed from the venue string. The date is written d/M/yyyy (M/yyyy when
+Crossref gives no day) and Month as the English month name. Open access stays empty; pages stay empty for
+article-number journals and issue for journals without issues, because no source gives them.
 **Withdrawing an approved work** (2026-11-07): on a lecturer's page (ผลงานที่นับ …) a level-2 admin sees "ถอน" on
 every approved self-added work (src/WithdrawButton.tsx). It is the backend's `decide` with status `rejected` and
 the note "ถอนโดยผู้ดูแลระดับ 2 …", so the work stops counting at once (bundled copies from `data/self.tsv` are

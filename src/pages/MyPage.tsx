@@ -7,8 +7,9 @@ import type { PersonResult, Settings } from '../rules'
 import { PersonPage } from './PersonPage'
 import { EmailLogin, api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, type Submission, type WorkType } from '../submissions'
+import type { CrossrefEntry } from '../types'
 
-export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void }) {
+export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[] }) {
   const { user, checking, notice, logout } = useEmailUser(loginCode)
 
   if (checking) return <p className="note">กำลังตรวจสอบการเข้าสู่ระบบ…</p>
@@ -27,7 +28,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
       </div>
       {result ? (
         <>
-          <PersonPage result={result} settings={settings} personal />
+          <PersonPage result={result} settings={settings} personal crossref={crossref} />
           <AddWork mine={mine} onChanged={onSubmissionsChanged} />
         </>
       ) : user.isAdmin ? (

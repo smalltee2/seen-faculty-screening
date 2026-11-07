@@ -38,6 +38,10 @@ const CONFIG = {
   tciHistoryOut: join(ROOT, 'data/tci_tier_history.csv'),
   tciInfoUrl: 'https://tci-thailand.org/backend/journal/get_journal_info',
   scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
+  // Bibliographic details per DOI from Crossref (issue, pages, article number, publication date)
+  // for the Scopus-style CSV export; cached, only new DOIs are looked up (Tum, 2026-11-07).
+  crossrefOut: join(ROOT, 'data/crossref.tsv'),
+  crossrefMailto: 'teerachai.am@up.ac.th',
   tciUrl: 'https://tci-thailand.org/backend/journal/list_all_journal',
   firstYear: new Date().getFullYear() - 11, // ten years for the chart plus one
   userAgent: 'seen-faculty-screening (https://github.com/smalltee2/seen-faculty-screening)',
@@ -142,7 +146,8 @@ async function fetchOpenAlex(faculty) {
   log(`OpenAlex: ${out.length} rows for ${ok}/${tried} lecturers -> data/openalex.tsv`)
 }
 
-const SC_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'sc_type', 'source_type', 'eid', 'scopus_author_id', 'issn']
+// cover_date … article_number (2026-11-07) feed the Scopus-style CSV export; rows fetched earlier leave them empty.
+const SC_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'sc_type', 'source_type', 'eid', 'scopus_author_id', 'issn', 'cover_date', 'volume', 'issue', 'page_range', 'article_number']
 
 async function scopusGet(url, key) {
   const headers = { 'X-ELS-APIKey': key, Accept: 'application/json' }
@@ -207,6 +212,11 @@ async function fetchScopus(faculty, key) {
             eid: e.eid ?? '',
             scopus_author_id: aid,
             issn: [e['prism:issn'], e['prism:eIssn']].filter(Boolean).join(';'),
+            cover_date: e['prism:coverDate'] ?? '',
+            volume: e['prism:volume'] ?? '',
+            issue: e['prism:issueIdentifier'] ?? '',
+            page_range: e['prism:pageRange'] ?? '',
+            article_number: e['article-number'] ?? '',
           })
         }
         const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
@@ -621,7 +631,57 @@ const faculty = (() => {
 })()
 const sources = existsSync(CONFIG.sources) ? JSON.parse(readFileSync(CONFIG.sources, 'utf8')) : {}
 
-// --only=openalex|scopus|manual|decisions|tci runs one source (or several, comma-separated) (the iMac job runs --only=scopus).
+const CR_HEADER = ['doi', 'journal', 'volume', 'issue', 'page_start', 'page_end', 'article_number', 'published', 'published_online', 'fetched']
+
+/** "2026-5-14" from Crossref date-parts; '' when absent. Year-month only when the day is missing. */
+const crDate = (d) => {
+  const p = d?.['date-parts']?.[0]
+  return Array.isArray(p) && p[0] ? p.map((x, i) => (i === 0 ? String(x) : String(x).padStart(2, '0'))).join('-') : ''
+}
+
+/** Crossref record of every DOI in the publication files (issue, pages, article number, dates),
+ *  for the Scopus-style CSV export. DOIs already in data/crossref.tsv are not asked again
+ *  (--refresh-crossref re-asks them all); a failed lookup keeps the row empty for next time. */
+async function fetchCrossref(refresh) {
+  const dois = new Set()
+  for (const f of [CONFIG.openalexOut, CONFIG.scopusOut, CONFIG.manualOut, CONFIG.selfOut]) for (const r of readTsv(f).rows) if (bareDoi(r.doi ?? '')) dois.add(bareDoi(r.doi).toLowerCase())
+  const previous = readTsv(CONFIG.crossrefOut).rows
+  const byDoi = new Map(previous.map((r) => [r.doi.toLowerCase(), r]))
+  const todo = [...dois].filter((d) => refresh || !byDoi.get(d)?.fetched)
+  let ok = 0
+  let failed = 0
+  for (const doi of todo) {
+    try {
+      const js = await getJson(`https://api.crossref.org/works/${encodeURIComponent(doi)}?mailto=${CONFIG.crossrefMailto}`, 2)
+      const m = js.message ?? {}
+      const pages = String(m.page ?? '').split(/\s*[-–]\s*/)
+      byDoi.set(doi, {
+        doi,
+        journal: clean(Array.isArray(m['container-title']) ? m['container-title'][0] : m['container-title']),
+        volume: clean(m.volume),
+        issue: clean(m.issue),
+        page_start: clean(pages[0]),
+        page_end: clean(pages[1] ?? pages[0]),
+        article_number: clean(m['article-number']),
+        // Issue (print) date first, else the earliest the record gives; online date kept separately.
+        published: crDate(m['published-print']) || crDate(m.issued) || crDate(m['published-online']),
+        published_online: crDate(m['published-online']),
+        fetched: new Date().toISOString().slice(0, 10),
+      })
+      ok++
+    } catch (e) {
+      failed++
+      if (!byDoi.has(doi)) byDoi.set(doi, { doi, journal: '', volume: '', issue: '', page_start: '', page_end: '', article_number: '', published: '', published_online: '', fetched: '' })
+      if (failed <= 5) warn(`Crossref: ${doi}: ${e.message}`)
+    }
+    await sleep(120)
+  }
+  const out = [...byDoi.values()].filter((r) => dois.has(r.doi.toLowerCase())).sort((a, b) => a.doi.localeCompare(b.doi))
+  writeTsv(CONFIG.crossrefOut, CR_HEADER, out)
+  log(`Crossref: ${ok} fetched, ${failed} failed, ${out.length} DOIs in data/crossref.tsv`)
+}
+
+// --only=openalex|scopus|manual|decisions|tci|crossref runs one source (or several, comma-separated) (the iMac job runs --only=scopus).
 // --only accepts a comma-separated list, e.g. --only=manual,decisions (the hourly forms run).
 const only = (process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? '').split(',').map((x) => x.trim()).filter(Boolean)
 const run = (name) => !only.length || only.includes(name)
@@ -638,6 +698,8 @@ if (run('scopus')) {
 }
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
+// Crossref runs after every file that can bring a new DOI (daily full run and the hourly forms run).
+if (run('manual') || run('self') || run('crossref')) await fetchCrossref(process.argv.includes('--refresh-crossref'))
 if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
 // Button decisions run after the (retired) decision form, so a button press is the latest word.
 if (run('decisions')) await fetchConfDecisions(sources.loginApiUrl ?? '')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SCOPUS_HEADER, authorList, formatIssn, parseVenue, scopusRow } from './exportScopus'
+import { SCOPUS_HEADER, authorList, biblioOf, crossrefIndex, formatDate, formatIssn, parseVenue, scopusRow } from './exportScopus'
 import type { PubEval } from './rules'
 import type { Faculty, Pub } from './types'
 
@@ -54,5 +54,28 @@ describe('scopusRow', () => {
     const row = scopusRow({ ...ev, research: 'maybe', pub: { ...pub, eid: undefined, scopusType: undefined, type: 'proceeding', sources: ['scholar'] } }, person)
     const o = Object.fromEntries(SCOPUS_HEADER.map((h, i) => [h, row[i]]))
     expect(o).toMatchObject({ Link: 'https://doi.org/10.3390/su182111212', 'Document Type': 'Conference paper', Source: 'Google Scholar', EID: '', 'Research ': 'no' })
+  })
+})
+
+describe('biblioOf and formatDate', () => {
+  it('formats dates like the template and names the month', () => {
+    expect(formatDate('2021-04-20')).toEqual({ date: '20/4/2021', month: 'April' })
+    expect(formatDate('2026-05')).toEqual({ date: '5/2026', month: 'May' })
+    expect(formatDate('2026')).toEqual({ date: '', month: '' })
+    expect(formatDate('')).toEqual({ date: '', month: '' })
+  })
+  const base = { venue: 'Sustainability 18 (21), 11212, 2026', year: 2026, doi: '10.1/A' } as Pub
+  it('prefers Crossref issue, pages and date over the venue string', () => {
+    const idx = crossrefIndex([{ doi: '10.1/a', journal: 'Sustainability', volume: '18', issue: '21', pageStart: '1', pageEnd: '20', articleNumber: '11212', published: '2026-10-15', publishedOnline: '2026-10-10' }])
+    expect(biblioOf(base, idx)).toMatchObject({ source: 'Sustainability', volume: '18', issue: '21', artNo: '11212', pageStart: '1', pageEnd: '20', pageCount: '20', date: '2026-10-15' })
+  })
+  it('treats a Crossref page equal to the article number as an article number, not a page range', () => {
+    const idx = crossrefIndex([{ doi: '10.1/a', journal: '', volume: '18', issue: '', pageStart: '11212', pageEnd: '11212', articleNumber: '', published: '', publishedOnline: '2026-10-10' }])
+    expect(biblioOf(base, idx)).toMatchObject({ artNo: '11212', pageStart: '', pageEnd: '', pageCount: '', issue: '21', date: '2026-10-10' })
+  })
+  it('falls back to the Scopus row, then the venue string', () => {
+    const sc = { ...base, biblio: { date: '2026-11-01', volume: '18', issue: '21', pages: '293-306', articleNumber: '' } } as Pub
+    expect(biblioOf(sc, new Map())).toMatchObject({ pageStart: '293', pageEnd: '306', pageCount: '14', artNo: '', date: '2026-11-01' })
+    expect(biblioOf(base, new Map())).toMatchObject({ artNo: '11212', date: '' })
   })
 })

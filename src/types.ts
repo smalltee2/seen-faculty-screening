@@ -41,6 +41,8 @@ export interface RawPub {
   submitted?: string
   /** Scopus EID (scopus.tsv rows only), for the Scopus-style export. */
   eid?: string
+  /** Scopus cover date, volume, issue, page range and article number (scopus.tsv rows fetched after 2026-11-07). */
+  biblio?: { date: string; volume: string; issue: string; pages: string; articleNumber: string }
   /** Read live from the form's sheet in the browser; not yet in data/manual.tsv. */
   live?: boolean
 }
@@ -79,6 +81,21 @@ export interface DataBundle {
   conferences?: ConferenceEntry[]
   /** data/rules.json → conferenceScreening: 'on' applies the register to the counts; 'off' only shows it. */
   conferenceScreening?: 'on' | 'off'
+  /** Crossref record per DOI (data/crossref.tsv), used by the Scopus-style CSV export. */
+  crossref?: CrossrefEntry[]
+}
+
+export interface CrossrefEntry {
+  doi: string
+  journal: string
+  volume: string
+  issue: string
+  pageStart: string
+  pageEnd: string
+  articleNumber: string
+  /** Print/issue date "YYYY-MM-DD" or "YYYY-MM" (or "YYYY"); '' when Crossref has none. */
+  published: string
+  publishedOnline: string
 }
 
 /** One row of data/conferences.csv. `key` is `venue:<normalised name>` or `work:<normalised title>`. */
@@ -138,6 +155,8 @@ export interface Pub extends RawPub {
   allAuthors?: string
   /** Scopus document type (Article, Conference paper, …) when a Scopus row was merged in. */
   scopusType?: string
+  /** Scopus bibliographic details from the merged Scopus row, when fetched. */
+  biblio?: RawPub['biblio']
   override: Override | null
   /** Conference screening result; only set for proceedings. */
   conference?: import('./conferences').ConferenceMatch

@@ -112,7 +112,7 @@ for (const f of faculty) {
 const SOURCES = [
   { file: CONFIG.publications, name: 'scholar', label: 'publications.tsv', required: true },
   { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
-  { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type, issn: p.issn ?? '', eid: p.eid ?? '' }) },
+  { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type, issn: p.issn ?? '', eid: p.eid ?? '', ...(p.cover_date || p.volume || p.page_range || p.article_number ? { biblio: { date: p.cover_date ?? '', volume: p.volume ?? '', issue: p.issue ?? '', pages: p.page_range ?? '', articleNumber: p.article_number ?? '' } } : {}) }) },
   { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted, issn: p.issn ?? '' }) },
   // Works lecturers added themselves and a level-2 admin approved (scripts/fetch-sources.mjs fetchSelf).
   { file: join(ROOT, 'data/self.tsv'), name: 'manual', label: 'self.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted, issn: p.issn ?? '' }) },
@@ -184,9 +184,17 @@ const scopusJournals = existsSync(sjFile)
       .map((j) => ({ issn: j.issn, name: j.name }))
   : []
 
+// Crossref bibliographic details per DOI (data/crossref.tsv, scripts/fetch-sources.mjs), for the CSV export.
+const crFile = join(ROOT, 'data/crossref.tsv')
+const crossref = existsSync(crFile)
+  ? toRecords(parseTsv(read(crFile)), ['doi'], 'crossref.tsv')
+      .filter((r) => r.fetched)
+      .map((r) => ({ doi: r.doi, journal: r.journal ?? '', volume: r.volume ?? '', issue: r.issue ?? '', pageStart: r.page_start ?? '', pageEnd: r.page_end ?? '', articleNumber: r.article_number ?? '', published: r.published ?? '', publishedOnline: r.published_online ?? '' }))
+  : []
+
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}) -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records -> src/generated/data.json`)

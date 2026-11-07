@@ -3,7 +3,7 @@
 // Scopus export columns plus "Research ". Fields the sources do not give (publication day and
 // month, open access, page count without pages) stay empty rather than guessed.
 import type { PubEval } from './rules'
-import type { Faculty, Pub } from './types'
+import type { CrossrefEntry, Faculty, Pub } from './types'
 
 /** Exact header of the template, trailing space in "Research " included. */
 export const SCOPUS_HEADER = [
@@ -80,10 +80,50 @@ export const authorList = (authors: string) => authors.split(/\s*[;,]\s*/).filte
 
 const DOC_TYPE: Record<string, string> = { journal: 'Article', proceeding: 'Conference paper', poster: 'Conference paper' }
 const SOURCE_NAME = { scopus: 'Scopus', openalex: 'OpenAlex', scholar: 'Google Scholar', manual: 'Manual' } as const
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-export function scopusRow(e: PubEval, person: Faculty): (string | number)[] {
-  const p: Pub = e.pub
+/** "2026-05-14" → { date: "14/5/2026", month: "May" }; "2026-05" → { date: "5/2026", month: "May" }; "2026" → { date: "", month: "" }. */
+export function formatDate(iso: string): { date: string; month: string } {
+  const m = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(iso.trim())
+  if (!m) return { date: '', month: '' }
+  const mo = Number(m[2])
+  if (mo < 1 || mo > 12) return { date: '', month: '' }
+  return { date: m[3] ? `${Number(m[3])}/${mo}/${m[1]}` : `${mo}/${m[1]}`, month: MONTHS[mo - 1] }
+}
+
+export type CrossrefIndex = Map<string, CrossrefEntry>
+export const crossrefIndex = (items: CrossrefEntry[] | undefined): CrossrefIndex => new Map((items ?? []).map((c) => [c.doi.toLowerCase(), c]))
+
+/** Venue parts for a work: Crossref (by DOI) first, then the merged Scopus row, then the venue string. */
+export function biblioOf(p: Pub, crossref: CrossrefIndex): VenueParts & { date: string } {
   const v = parseVenue(p.venue, p.year)
+  const cr = p.doi ? crossref.get(p.doi.toLowerCase()) : undefined
+  const sc = p.biblio
+  const scPages = sc?.pages ? pages(sc.pages) : null
+  const artNo = cr?.articleNumber || sc?.articleNumber || (cr?.pageStart || scPages?.pageStart ? '' : v.artNo)
+  const pageStart = cr?.pageStart || scPages?.pageStart || v.pageStart
+  const pageEnd = cr?.pageEnd || scPages?.pageEnd || v.pageEnd
+  const n = Number(pageEnd) - Number(pageStart) + 1
+  // Crossref sometimes files an article number as the page ("11212"): then it is not a page range.
+  const samePage = pageStart && pageStart === pageEnd && !cr?.articleNumber && !sc?.articleNumber && !v.pageEnd
+  return {
+    source: v.source || cr?.journal || '',
+    volume: cr?.volume || sc?.volume || v.volume,
+    issue: cr?.issue || sc?.issue || v.issue,
+    artNo: samePage ? pageStart : artNo,
+    pageStart: samePage ? '' : pageStart,
+    pageEnd: samePage ? '' : pageEnd,
+    pageCount: !samePage && pageStart && pageEnd && Number.isFinite(n) && n > 0 ? String(n) : '',
+    // A full date wins over a year-month (an issue date Crossref gives without a day): the print
+    // date when complete, else the complete online date, else whatever is there.
+    date: [cr?.published, cr?.publishedOnline].find((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? '')) || cr?.published || cr?.publishedOnline || sc?.date || '',
+  }
+}
+
+export function scopusRow(e: PubEval, person: Faculty, crossref: CrossrefIndex = new Map()): (string | number)[] {
+  const p: Pub = e.pub
+  const v = biblioOf(p, crossref)
+  const when = formatDate(v.date)
   const authors = authorList(p.allAuthors || p.authors)
   const link = p.eid ? `https://www.scopus.com/inward/record.uri?eid=${p.eid}${p.doi ? `&doi=${p.doi}` : ''}` : p.doi ? `https://doi.org/${p.doi}` : ''
   const source = p.sources.includes('scopus') ? 'Scopus' : SOURCE_NAME[p.sources[0] ?? 'scholar']
@@ -109,8 +149,8 @@ export function scopusRow(e: PubEval, person: Faculty): (string | number)[] {
     source,
     p.eid ?? '',
     formatIssn(p.issn),
-    '',
-    '',
+    when.date,
+    when.month,
     e.research === 'yes' ? 'yes' : 'no',
   ]
 }

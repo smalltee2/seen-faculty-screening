@@ -276,9 +276,10 @@ export function App() {
               result={results.find((r) => r.person.nameEn === route.key)}
               settings={settings}
               withdraw={admin.level === 2 ? { approvalKey: admin.approvalKey, submissions, onChanged: refreshSubmissions } : undefined}
+              crossref={data.crossref}
             />
           )}
-          {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />}
+          {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} crossref={data.crossref} />}
         </main>
 
         <footer className="footer">

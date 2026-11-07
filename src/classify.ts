@@ -281,6 +281,7 @@ function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: Conf
       eid: members.map((m) => m.eid).find(Boolean) ?? row.eid,
       allAuthors: members.reduce((a, m) => ((m.authors ?? '').length > a.length ? m.authors : a), row.authors ?? ''),
       scopusType: members.find((m) => m.source === 'scopus')?.extType,
+      biblio: members.map((m) => m.biblio).find(Boolean),
       override: o,
     }
     if (o?.type) Object.assign(pub, { type: o.type, typeReason: `แก้ไขด้วยมือ (override)${o.note ? `: ${o.note}` : ''}`, typeUncertain: false })
