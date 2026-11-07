@@ -572,3 +572,5 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .notify-preview .small { word-break: break-word; }
 .notify-actions { display: flex; gap: 6px; }
 .notify-compact { margin-top: 6px; }
+.notify-status { font-size: 0.82rem; font-weight: 600; color: var(--met); }
+.notify-status small { font-weight: 400; color: var(--muted); }

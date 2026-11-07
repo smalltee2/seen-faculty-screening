@@ -55,7 +55,14 @@ export function NotifyButton({ r, settings, kind, approvalKey, notices, onSent, 
       <button type="button" className={`btn btn-small notify-btn notify-${kind}`} disabled={step === 'busy'} onClick={() => setStep('confirm')} title={label}>
         {step === 'busy' ? 'กำลังส่ง…' : step === 'sent' ? 'ส่งแล้ว ✓' : compact ? 'แจ้งเตือน' : label}
       </button>
-      {last && <span className="muted small">แจ้งเตือนแล้ว {new Date(last.at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</span>}
+      {last ? (
+        <span className="notify-status" title={`ส่งโดย ${last.by}`}>
+          ✓ แจ้งเตือนแล้ว {new Date(last.at).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' })} น.
+          <small> · {last.by}</small>
+        </span>
+      ) : (
+        <span className="muted small">ยังไม่เคยแจ้งเตือน</span>
+      )}
       {error && (
         <span className="gate-error small" role="alert">
           {error}
