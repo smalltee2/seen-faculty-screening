@@ -45,8 +45,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           ปีการประเมิน พ.ศ. {Y} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
         </p>
         <p>
-          อาจารย์ที่มีคุณสมบัติเป็นผู้รับผิดชอบหลักสูตรได้ ระดับปริญญาตรี <b className="mono">{ba.met.length}</b> คน (ต้องมีอย่างน้อย 5 คน) ระดับปริญญาโท{' '}
-          <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอก <b className="mono">{phd.met.length}</b> คน (ต้องมีอย่างน้อย 3 คน)
+          อาจารย์ทั้งคณะที่มีคุณสมบัติเป็นผู้รับผิดชอบหลักสูตรได้ ระดับปริญญาตรี จำนวน <b className="mono">{ba.met.length}</b> คน ระดับปริญญาโทจำนวน{' '}
+          <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอกจำนวน <b className="mono">{phd.met.length}</b> คน
         </p>
       </div>
 
