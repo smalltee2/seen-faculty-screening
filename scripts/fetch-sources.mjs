@@ -585,7 +585,10 @@ async function fetchScopusQuartiles(key, refresh) {
   const issns = sj.slice(1).filter((r) => r[sj[0].indexOf('in_scopus')] === 'yes').map((r) => r[sj[0].indexOf('issn')])
   const prev = !refresh && existsSync(CONFIG.scopusQuartilesOut) ? parseCsv(readFileSync(CONFIG.scopusQuartilesOut, 'utf8')).slice(1) : []
   const rows = prev.map((r) => Object.fromEntries(SQ_HEADER.map((h, i) => [h, r[i] ?? ''])))
-  const done = new Set(rows.map((r) => r.issn))
+  // Journals that had no CiteScore last time are asked again every run (Tum, 2026-11-08), so a
+  // journal that Scopus rates later gets its quartiles without a manual refresh.
+  const none = new Set(rows.filter((r) => r.status === 'none').map((r) => r.issn))
+  const done = new Set(rows.filter((r) => r.status !== 'none').map((r) => r.issn))
   const today = new Date().toISOString().slice(0, 10)
   let ok = 0
   let failed = 0
@@ -604,7 +607,8 @@ async function fetchScopusQuartiles(key, refresh) {
         rows.push({ issn, year: y['@year'] ?? '', status: y['@status'] ?? '', best_percentile: String(best), quartile: quartileOf(best), checked: today })
         n++
       }
-      // No CiteScore: keep a marker row so the ISSN is not asked again every night.
+      // Drop last time's "none" marker; it is written again below only if there is still no CiteScore.
+      if (none.has(issn)) for (let i = rows.length - 1; i >= 0; i--) if (rows[i].issn === issn && rows[i].status === 'none') rows.splice(i, 1)
       if (!n) rows.push({ issn, year: '', status: 'none', best_percentile: '', quartile: '', checked: today })
       ok++
       await sleep(150)
