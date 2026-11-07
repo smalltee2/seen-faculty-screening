@@ -9,7 +9,7 @@ It reads each lecturer's Google Scholar list and keeps journal articles and full
 
 > The screening is automated from Google Scholar data and must be checked against the official publication records before being used in official documents.
 
-Live site: https://smalltee2.github.io/seen-faculty-screening/ · Repository: https://github.com/smalltee2/seen-faculty-screening
+Live site: https://smalltee2.github.io/seen-faculty-screening/sfs.html (the bare folder address forwards there) · Repository: https://github.com/smalltee2/seen-faculty-screening
 
 ## Updating the data
 

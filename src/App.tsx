@@ -151,6 +151,13 @@ export function App() {
     return () => window.removeEventListener('hashchange', on)
   }, [])
 
+  // The overview has no route of its own in the address: …/sfs.html, not …/sfs.html#/ (Tum, 2026-11-08).
+  useEffect(() => {
+    if (route.page === 'overview' && /^#\/?$/.test(window.location.hash)) {
+      history.replaceState(history.state, '', window.location.pathname + window.location.search)
+    }
+  }, [route])
+
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, pubs, settings)), [pubs, settings])
   // Reload by itself when a newer build is published; where a passcode or e-mail may be
   // being typed, only offer it.
