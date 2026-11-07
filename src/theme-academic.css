@@ -556,3 +556,5 @@ td .sub-status { margin-top: 4px; }
 .block-head-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; margin-top: 28px; }
 .block-head-row .block-title { margin: 0; }
 .admin-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+/* Lecturer name on the person page: same size as the admin page titles (Tum, 2026-11-07) */
+h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-height: 1.4; }
