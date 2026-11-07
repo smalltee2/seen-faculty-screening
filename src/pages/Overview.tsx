@@ -131,6 +131,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <section className="panel dash-pubs">
           <div className="dash-pubs-head">
             <h3>จำนวนผลงานต่อปี แยกตาม{yearMode === 'quality' ? 'คุณภาพ' : 'ประเภท'}</h3>
+            <div className="no-print">
             <Segmented
               label="มุมมองจำนวนผลงานต่อปี"
               value={yearMode}
@@ -140,6 +141,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
                 { id: 'quality', label: 'แยกตามคุณภาพ' },
               ]}
             />
+            </div>
           </div>
           <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />
           <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />

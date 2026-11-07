@@ -593,11 +593,12 @@ async function fetchScopusQuartiles(key, refresh) {
     try {
       const d = await scopusGet(`https://api.elsevier.com/content/serial/title/issn/${encodeURIComponent(issn)}?view=CITESCORE`, key)
       const e = d['serial-metadata-response']?.entry?.[0] ?? {}
-      const years = e.citeScoreYearInfoList?.citeScoreYearInfo ?? []
+      // Elsevier returns one year as an object, several as an array.
+      const years = [].concat(e.citeScoreYearInfoList?.citeScoreYearInfo ?? [])
       let n = 0
       for (const y of years) {
-        const infos = (y.citeScoreInformationList ?? []).flatMap((l) => l.citeScoreInfo ?? [])
-        const pcts = infos.flatMap((i) => i.citeScoreSubjectRank ?? []).map((r) => Number(r.percentile)).filter(Number.isFinite)
+        const infos = [].concat(y.citeScoreInformationList ?? []).flatMap((l) => [].concat(l.citeScoreInfo ?? []))
+        const pcts = infos.flatMap((i) => [].concat(i.citeScoreSubjectRank ?? [])).map((r) => Number(r.percentile)).filter(Number.isFinite)
         if (!pcts.length) continue
         const best = Math.max(...pcts)
         rows.push({ issn, year: y['@year'] ?? '', status: y['@status'] ?? '', best_percentile: String(best), quartile: quartileOf(best), checked: today })

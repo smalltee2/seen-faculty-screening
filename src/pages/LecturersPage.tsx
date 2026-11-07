@@ -130,7 +130,7 @@ export function LecturersPage({
 
   const exportCsv = () =>
     downloadCsv(
-      `seen-lecturers-${settings.year}.csv`,
+      `seen-lecturers-${settings.year}${programme ? `-${programme.id}` : ''}.csv`,
       [
         "name_th",
         "name_en",
