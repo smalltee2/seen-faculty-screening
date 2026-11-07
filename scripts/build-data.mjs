@@ -191,10 +191,25 @@ const crossref = existsSync(crFile)
       .filter((r) => r.fetched)
       .map((r) => ({ doi: r.doi, journal: r.journal ?? '', volume: r.volume ?? '', issue: r.issue ?? '', pageStart: r.page_start ?? '', pageEnd: r.page_end ?? '', articleNumber: r.article_number ?? '', published: r.published ?? '', publishedOnline: r.published_online ?? '' }))
   : []
+// Hand-checked bibliographic details (data/biblio_overrides.csv, with source_url) for DOIs that
+// Crossref does not know or gets wrong; a filled field there wins over Crossref, an empty one does not.
+const boFile = join(ROOT, 'data/biblio_overrides.csv')
+const biblioOverrides = existsSync(boFile) ? toRecords(parseCsv(read(boFile)), ['doi', 'source_url'], 'biblio_overrides.csv') : []
+for (const o of biblioOverrides) {
+  if (!o.source_url) fail(`biblio_overrides.csv: ${o.doi} has no source_url`)
+  const doi = o.doi.trim().toLowerCase()
+  const fields = { journal: o.journal, volume: o.volume, issue: o.issue, pageStart: o.page_start, pageEnd: o.page_end, articleNumber: o.article_number, published: o.published }
+  let entry = crossref.find((c) => c.doi.toLowerCase() === doi)
+  if (!entry) {
+    entry = { doi, journal: '', volume: '', issue: '', pageStart: '', pageEnd: '', articleNumber: '', published: '', publishedOnline: '' }
+    crossref.push(entry)
+  }
+  for (const [k, v] of Object.entries(fields)) if (v) entry[k] = v.trim()
+}
 
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
   JSON.stringify({ builtAt: new Date().toISOString(), sources: existsSync(join(ROOT, 'data/sources.json')) ? JSON.parse(read(join(ROOT, 'data/sources.json'))) : {}, faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, crossref }, null, 1),
 )
-log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records -> src/generated/data.json`)
+log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides) -> src/generated/data.json`)

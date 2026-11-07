@@ -318,7 +318,8 @@ the 24 Scopus columns plus "Research ". Issue, pages, article number and the pub
 Crossref by DOI (`data/crossref.tsv`, written by `fetchCrossref` in scripts/fetch-sources.mjs: new DOIs are
 looked up in the daily and hourly runs, `--only=crossref --refresh-crossref` re-asks all), then from the
 Scopus row (`cover_date`, `volume`, `issue`, `page_range`, `article_number` columns of scopus.tsv, filled for
-rows fetched after 2026-11-07), then parsed from the venue string. The date is written d/M/yyyy (M/yyyy when
+rows fetched after 2026-11-07), then parsed from the venue string. `data/biblio_overrides.csv` (doi, fields, `source_url` required) fills or corrects
+Crossref by hand, e.g. an NRCT DOI Crossref does not know. The date is written d/M/yyyy (M/yyyy when
 Crossref gives no day) and Month as the English month name. Open access stays empty. A work with no pages is written as
 pages 1–14 and a journal without issues as issue 1 (`DEFAULTS` in src/exportScopus.ts; Tum's decision, 2026-11-07,
 because the university's import rejects empty pages and issue).
