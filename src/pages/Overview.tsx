@@ -79,9 +79,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <div className="metrics">
         <Metric badge="รวม" color="var(--card-total)" label="อาจารย์ทั้งหมด" value={results.length} sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
-        <Metric badge="ป.ตรี" color="var(--lvl-ba)" label="ผู้รับผิดชอบหลักสูตร ป.ตรี (ข้อ 10.1.2)" value={<>{ba.met.length}<small> คน</small></>} sub={<StatusChip status={ba.status} />} tone={ba.status} />
-        <Metric badge="ป.โท" color="var(--lvl-ms)" label="ผู้รับผิดชอบหลักสูตร ป.โท (ข้อ 9.3.2)" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
-        <Metric badge="ป.เอก" color="var(--lvl-phd)" label="ผู้รับผิดชอบหลักสูตร ป.เอก (ข้อ 9.4.2)" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
+        <Metric badge="ป.ตรี" color="var(--lvl-ba)" label="ผู้รับผิดชอบหลักสูตร ป.ตรี" value={<>{ba.met.length}<small> คน</small></>} sub={<StatusChip status={ba.status} />} tone={ba.status} />
+        <Metric badge="ป.โท" color="var(--lvl-ms)" label="ผู้รับผิดชอบหลักสูตร ป.โท" value={<>{ms.met.length}<small> คน</small></>} sub={<StatusChip status={ms.status} />} tone={ms.status} />
+        <Metric badge="ป.เอก" color="var(--lvl-phd)" label="ผู้รับผิดชอบหลักสูตร ป.เอก" value={<>{phd.met.length}<small> คน</small></>} sub={<StatusChip status={phd.status} />} tone={phd.status} />
         <Metric badge="5 ปี" color="var(--card-pubs)" label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} />
       </div>
 
