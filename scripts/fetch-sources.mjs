@@ -369,6 +369,46 @@ async function fetchDecisions(url, admins = []) {
   log(`Decisions sheet: ${applied} decision(s) applied to data/conferences.csv${skipped.length ? `; skipped ${skipped.length} row(s) (no key, invalid decision, or sender not in DECISION_ADMINS): ${skipped.slice(0, 5).join(', ')}` : ''}`)
 }
 
+/** Conference decisions from the register buttons (login backend, action confList; 2026-11-07,
+ *  replaces the decision form). The backend already checked who pressed (level-2 approval key or a
+ *  listed admin); the latest press per key wins, "clear" empties the decision. */
+async function fetchConfDecisions(loginApiUrl) {
+  if (!loginApiUrl) return
+  let items
+  try {
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'confList' }), redirect: 'follow' })
+    const js = await res.json()
+    if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
+    items = js.items
+  } catch (e) {
+    warn(`Conference decisions: could not read the list (${e.message}); data/conferences.csv left unchanged`)
+    return
+  }
+  if (!items.length) {
+    log('Conference decisions (buttons): none yet')
+    return
+  }
+  const registerPath = join(ROOT, 'data/conferences.csv')
+  const register = readRegister(registerPath)
+  const latest = new Map()
+  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) if (/^(venue|work):/.test(it.key) && ['count', 'no_count', 'clear'].includes(it.decision)) latest.set(it.key, it)
+  let applied = 0
+  for (const it of latest.values()) {
+    let e = register.find((x) => x.key === it.key)
+    if (!e) {
+      if (it.decision === 'clear') continue
+      e = Object.fromEntries(CONF_COLS.map((c) => [c, '']))
+      Object.assign(e, { key: it.key, display_name: clean(it.name) || it.key, conference_name: clean(it.name), association_role: 'unknown', related_field: 'unknown', confidence: 'low', checked_at: it.at, checked_by: 'admin (no automatic check)' })
+      register.push(e)
+    }
+    if (it.decision === 'clear') Object.assign(e, { decision: '', decided_by: '', decided_at: '', decision_note: '' })
+    else Object.assign(e, { decision: it.decision, decided_by: clean(it.by), decided_at: it.at, decision_note: clean(it.note) })
+    applied++
+  }
+  writeRegister(registerPath, register)
+  log(`Conference decisions (buttons): ${applied} applied to data/conferences.csv`)
+}
+
 async function fetchManual(faculty, url) {
   if (!url) {
     log('Google Sheet: no manualSheetCsvUrl in data/sources.json; skipped')
@@ -594,6 +634,8 @@ if (run('scopus')) {
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
 if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
+// Button decisions run after the (retired) decision form, so a button press is the latest word.
+if (run('decisions')) await fetchConfDecisions(sources.loginApiUrl ?? '')
 if (run('tci')) {
   try {
     await fetchTci()

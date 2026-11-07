@@ -551,3 +551,4 @@ html { scroll-padding-top: 92px; }
 @media (max-width: 720px) { .work-form { grid-template-columns: 1fr; } }
 .sub-conf { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 td .sub-status { margin-top: 4px; }
+.conf-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }

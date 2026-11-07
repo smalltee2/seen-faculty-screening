@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
 import { evaluatePerson, toBE, type Settings } from './rules'
-import type { DataBundle, RawPub } from './types'
+import type { ConferenceEntry, DataBundle, RawPub } from './types'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
@@ -13,13 +13,14 @@ import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
 import { approvedRows, fetchSubmissions, type Submission } from './submissions'
+import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
 const data = raw as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
-const makePubs = (extra: RawPub[]) => preparePubs([...bundledRows, ...extra], data.overrides, data.conferences ?? [])
+const makePubs = (extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundledRows, ...extra], data.overrides, conferences)
 const CURRENT_YEAR = new Date().getFullYear()
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 // สป.อว. page for the undergraduate announcement (link given by Tum, 2026-11-06).
@@ -100,7 +101,14 @@ export function App() {
   useEffect(refreshSubmissions, [])
   const lecturerNames = useMemo(() => new Set(data.faculty.map((f) => f.nameEn)), [])
   const selfRows = useMemo(() => approvedRows(submissions, lecturerNames, bundledRows), [submissions, lecturerNames])
-  const pubs = useMemo(() => makePubs([...liveRows, ...selfRows]), [liveRows, selfRows])
+  // Conference decisions from the register buttons (src/confDecisions.ts), applied live.
+  const [confItems, setConfItems] = useState<ConfDecisionItem[]>([])
+  const refreshConf = () => {
+    void fetchConfDecisions().then(setConfItems)
+  }
+  useEffect(refreshConf, [])
+  const conferences = useMemo(() => applyConfDecisions(data.conferences ?? [], confItems), [confItems])
+  const pubs = useMemo(() => makePubs([...liveRows, ...selfRows], conferences), [liveRows, selfRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
@@ -250,7 +258,7 @@ export function App() {
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
-            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} />
+            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} />
           )}
           {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
           {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />}

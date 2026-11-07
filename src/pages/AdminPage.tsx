@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import type { DataBundle, Pub, PubSource } from '../types'
+import type { ConferenceEntry, DataBundle, Pub, PubSource } from '../types'
 import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
-import { copyText } from '../download'
 import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
@@ -15,7 +14,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string }) {
+export function AdminPage({ data, pubs, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -58,17 +57,10 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
           )}
           <h4 className="steps-sub">ตัดสินงานประชุม (proceedings)</h4>
           <ol className="steps" start={5}>
-            <li>ในทะเบียนงานประชุมด้านล่าง กดปุ่ม "คัดลอก key" ในแถวของงานประชุมที่ต้องการ</li>
-            <li>เปิดแบบฟอร์มตัดสินงานประชุม วางรหัสที่คัดลอก แล้วเลือก "นับ" หรือ "ไม่นับ"</li>
-            <li>ระบบดึงคำตอบทุกชั่วโมง ถ้าส่งหลายครั้ง ระบบใช้คำตอบล่าสุด</li>
+            <li>ในทะเบียนงานประชุมด้านล่าง เปิดลิงก์ "หลักฐาน" เพื่อตรวจผู้จัดและสาขาของงานประชุม</li>
+            <li>กดปุ่ม "นับ" หรือ "ไม่นับ" ในแถวของงานประชุมนั้น ผลมีทันที</li>
+            <li>ถ้าต้องการกลับไปใช้ผลตรวจอัตโนมัติ กด "ใช้ผลอัตโนมัติ"</li>
           </ol>
-          {decisionFormUrl ? (
-            <a className="btn btn-primary" href={decisionFormUrl} target="_blank" rel="noreferrer">
-              เปิดแบบฟอร์มตัดสินงานประชุม ↗
-            </a>
-          ) : (
-            <p className="note">ยังไม่ได้ตั้งค่าแบบฟอร์มตัดสินงานประชุม (decisionFormUrl ใน data/sources.json)</p>
-          )}
         </section>
 
         <section className="panel">
@@ -90,10 +82,10 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
 
-      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={data.conferences ?? []} />
+      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
 
       {/* Pending proceedings/posters lecturers added also enter the register, so the conference can be judged before approval */}
-      <ConferenceRegister pubs={pubs} pendingPubs={conferenceSubmissions(submissions, data.conferences ?? []).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} />
+      <ConferenceRegister pubs={pubs} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
 
       <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
       {manual.length === 0 ? (
@@ -174,7 +166,7 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 }
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs, pendingPubs = [] }: { pubs: Pub[]; pendingPubs?: Pub[] }) {
+function ConferenceRegister({ pubs, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => void }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[]; pending: number }>()
   const { minYear } = registerWindow(pubs)
   const add = (p: Pub, isPending: boolean) => {
@@ -252,7 +244,6 @@ function ConferenceRegister({ pubs, pendingPubs = [] }: { pubs: Pub[]; pendingPu
                     <td>
                       <div className="pub-title">{e?.conferenceName || ps[0].venue}</div>
                       <div className="muted small">{match.key.startsWith('work:') ? ps[0].title : ps[0].venue}</div>
-                      <CopyKey value={match.key} />
                     </td>
                     <td className="small">
                       {e ? (
@@ -269,8 +260,9 @@ function ConferenceRegister({ pubs, pendingPubs = [] }: { pubs: Pub[]; pendingPu
                     <td>
                       <div className={`jl cf cf-${match.verdict}`}>{CONFERENCE_TAG[match.verdict]}</div>
                       <div className="muted small">{match.reason}</div>
+                      <ConfButtons ckey={match.key} name={e?.conferenceName || ps[0].venue} decided={!!e?.decision} approvalKey={approvalKey} onChanged={onChanged} />
                     </td>
-                    <td className="small muted">{match.by === 'admin' ? `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}` : e ? `AI (${e.checkedAt.slice(0, 10)}) ความมั่นใจ ระดับ ${e.confidence}` : '—'}</td>
+                    <td className="small muted">{match.by === 'admin' ? (e?.decidedBy?.startsWith('ผู้ดูแล') ? e.decidedBy : `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}`) : e ? `AI (${e.checkedAt.slice(0, 10)}) ความมั่นใจ ระดับ ${e.confidence}` : '—'}</td>
                     <td className="small">
                       {ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}
                       {np > 0 && <div className="sub-status sub-pending">รออนุมัติ {np} (อาจารย์เพิ่มเอง)</div>}
@@ -309,27 +301,11 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
   )
 }
 
-function CopyKey({ value }: { value: string }) {
-  const [done, setDone] = useState(false)
-  return (
-    <button
-      type="button"
-      className="btn btn-small no-print"
-      title={value}
-      onClick={async () => {
-        setDone(await copyText(value))
-        window.setTimeout(() => setDone(false), 1500)
-      }}
-    >
-      {done ? 'คัดลอกแล้ว' : 'คัดลอก key'}
-    </button>
-  )
-}
 
 /** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
  *  The level-2 sign-in carries an approval key the backend checks; an admin signed in by e-mail
  *  (listed in the admins sheet) can also decide. */
-function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: NonNullable<DataBundle['conferences']> }) {
+function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => void }) {
   const { user, checking } = useEmailUser()
   const [show, setShow] = useState<'pending' | 'all'>('pending')
   const [busy, setBusy] = useState('')
@@ -431,7 +407,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
                       return (
                         <div className="sub-conf">
                           <span className={`jl cf cf-${c.verdict}`}>งานประชุม: {CONFERENCE_TAG[c.verdict]}</span>
-                          <CopyKey value={c.key} />
+                          <ConfButtons ckey={c.key} name={s.venue} decided={!!c.entry?.decision} approvalKey={approvalKey} onChanged={onConfChanged} />
                         </div>
                       )
                     })()}
@@ -464,5 +440,43 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
         </div>
       )}
     </>
+  )
+}
+
+/** "นับ / ไม่นับ / ใช้ผลอัตโนมัติ" for one conference (replaces the decision form, 2026-11-07).
+ *  Allowed with the level-2 approval key, or for an admin signed in by e-mail. */
+function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => void }) {
+  const { user } = useEmailUser()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  if (!approvalKey && !user?.isAdmin) return null
+  const send = async (decision: 'count' | 'no_count' | 'clear') => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await api({ action: 'confDecide', adminKey: approvalKey ?? '', session: sessionStore.get(), key: ckey, decision, name })
+      if (r.ok) onChanged()
+      else setError(errorText(r.error))
+    } catch {
+      setError(errorText(''))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="conf-buttons no-print">
+      <button type="button" className="btn btn-small btn-primary" disabled={busy} onClick={() => void send('count')}>
+        นับ
+      </button>
+      <button type="button" className="btn btn-small" disabled={busy} onClick={() => void send('no_count')}>
+        ไม่นับ
+      </button>
+      {decided && (
+        <button type="button" className="btn btn-small" disabled={busy} onClick={() => void send('clear')}>
+          ใช้ผลอัตโนมัติ
+        </button>
+      )}
+      {error && <span className="gate-error small">{error}</span>}
+    </div>
   )
 }

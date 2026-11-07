@@ -312,6 +312,11 @@ works under their own name, and stores them in the `submissions` sheet as `pendi
 (email, name, active). Approved works count at once in the browser (src/submissions.ts) and are copied to
 `data/self.tsv` by the hourly data job (`fetchSelf` in scripts/fetch-sources.mjs). A lecturer can withdraw a work
 while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
+**Conference decisions are buttons** (2026-11-07; replaces the decision Google Form): each register row (and the
+conference cell of the approval table) has นับ / ไม่นับ / ใช้ผลอัตโนมัติ for a level-2 admin (approval key) or an e-mail admin.
+The backend logs every press in the private `conf_decisions` sheet (action `confDecide`; public `confList`); the site
+applies the latest press per conference at once (src/confDecisions.ts) and the hourly job writes it into
+data/conferences.csv (`fetchConfDecisions`). The old form and DECISION_ADMINS are no longer needed; past form decisions stay.
 Pending proceedings/posters also enter the conference register (labelled "รออนุมัติ … (อาจารย์เพิ่มเอง)"), and the
 approval table shows each one's conference check with its key, so the conference can be judged first (decision form)
 before approving. The iMac's AI screening (scripts/screen-conferences.ts) also queues these conferences.

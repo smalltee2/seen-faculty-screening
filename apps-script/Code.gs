@@ -12,6 +12,7 @@
  *   log:      time | action | email | ok | note
  *   submissions: works a lecturer adds on "ตรวจสอบคุณสมบัติของฉัน" (status pending → approved/rejected)
  *   admins:   email | name | active   ← level-2 admins who may approve works (Tum fills)
+ *   conf_decisions: time | key | decision | by | note | name  ← conference decisions from the register buttons
  *
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
@@ -37,6 +38,7 @@ function setup() {
     log: ['time', 'action', 'email', 'ok', 'note'],
     submissions: SUB_HEAD,
     admins: ['email', 'name', 'active'],
+    conf_decisions: ['time', 'key', 'decision', 'by', 'note', 'name'],
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -77,6 +79,10 @@ function doPost(e) {
         return json(decideWork(body));
       case 'withdraw':
         return json(withdrawWork(body));
+      case 'confDecide':
+        return json(confDecide(body));
+      case 'confList':
+        return json(confList());
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -297,17 +303,20 @@ function listWorks() {
 
 /** A level-2 admin approves or rejects a work: either with the approval key from the level-2
  *  passcode, or signed in by e-mail and listed in the admins sheet. */
-function decideWork(body) {
-  var email = '';
+function adminWho(body) {
   var key = String(body.adminKey || '');
-  if (key && APPROVAL_KEY_HASH && sha256(key) === APPROVAL_KEY_HASH) {
-    email = 'ผู้ดูแลระดับ 2';
-  } else {
-    var s = findSession(body.session);
-    if (!s) return { ok: false, error: key ? 'bad_key' : 'no_session' };
-    email = normEmail(s.email);
-    if (!findAdmin(email)) return { ok: false, error: 'not_admin' };
-  }
+  if (key && APPROVAL_KEY_HASH && sha256(key) === APPROVAL_KEY_HASH) return { who: 'ผู้ดูแลระดับ 2' };
+  var s = findSession(body.session);
+  if (!s) return { error: key ? 'bad_key' : 'no_session' };
+  var email = normEmail(s.email);
+  if (!findAdmin(email)) return { error: 'not_admin' };
+  return { who: email };
+}
+
+function decideWork(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var email = auth.who;
   var status = { approved: 1, rejected: 1, pending: 1 }[body.status] ? body.status : '';
   if (!status) return { ok: false, error: 'bad_request' };
   var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
@@ -333,4 +342,29 @@ function withdrawWork(body) {
   sheet('submissions').getRange(r._row, SUB_HEAD.indexOf('status') + 1).setValue('withdrawn');
   log('withdraw', email, true, body.id);
   return { ok: true };
+}
+
+/** A level-2 admin decides a conference from the register: count, no_count, or clear (= use the
+ *  automatic result). Every press is kept; the latest per key wins (site and hourly job). */
+function confDecide(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var key = cell(body.key, 300);
+  var decision = { count: 1, no_count: 1, clear: 1 }[body.decision] ? body.decision : '';
+  if (!/^(venue|work):/.test(key) || !decision) return { ok: false, error: 'bad_request' };
+  var sh = sheet('conf_decisions');
+  if (!sh) return { ok: false, error: 'not_configured' };
+  sh.appendRow([new Date(), key, decision, auth.who, cell(body.note, 300), cell(body.name, 300)]);
+  log('confDecide', auth.who, true, key + ' ' + decision);
+  return { ok: true };
+}
+
+/** Public list of conference decisions (oldest first). */
+function confList() {
+  var sh = sheet('conf_decisions');
+  if (!sh) return { ok: true, items: [] };
+  var items = rows('conf_decisions').map(function (r) {
+    return { at: r.time ? new Date(r.time).toISOString() : '', key: String(r.key), decision: String(r.decision), by: String(r.by), note: String(r.note || ''), name: String(r.name || '') };
+  });
+  return { ok: true, items: items };
 }
