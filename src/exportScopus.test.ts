@@ -55,6 +55,14 @@ describe('scopusRow', () => {
     const o = Object.fromEntries(SCOPUS_HEADER.map((h, i) => [h, row[i]]))
     expect(o).toMatchObject({ Link: 'https://doi.org/10.3390/su182111212', 'Document Type': 'Conference paper', Source: 'Google Scholar', EID: '', 'Research ': 'no' })
   })
+  it('writes the agreed defaults for missing pages and issue', () => {
+    const row = scopusRow({ ...ev, pub: { ...pub, venue: 'Journal of Hydrology 681, 136603, 2026' } }, person)
+    const o = Object.fromEntries(SCOPUS_HEADER.map((h, i) => [h, row[i]]))
+    expect(o).toMatchObject({ Volume: '681', Issue: '1', 'Art. No.': '136603', 'Page start': '1', 'Page end': '14', 'Page count': '14' })
+    const real = scopusRow({ ...ev, pub: { ...pub, venue: 'Hungarian Geographical Bulletin 75 (3), 293-306, 2026' } }, person)
+    const r = Object.fromEntries(SCOPUS_HEADER.map((h, i) => [h, real[i]]))
+    expect(r).toMatchObject({ Issue: '3', 'Page start': '293', 'Page end': '306', 'Page count': '14' })
+  })
 })
 
 describe('biblioOf and formatDate', () => {

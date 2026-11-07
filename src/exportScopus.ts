@@ -120,9 +120,20 @@ export function biblioOf(p: Pub, crossref: CrossrefIndex): VenueParts & { date: 
   }
 }
 
+/** Values the import system requires but no source gives (Tum's decision, 2026-11-07):
+ *  a work without pages is written as pages 1–14, a journal without issues as issue 1. */
+export const DEFAULTS = { issue: '1', pageStart: '1', pageEnd: '14' }
+
 export function scopusRow(e: PubEval, person: Faculty, crossref: CrossrefIndex = new Map()): (string | number)[] {
   const p: Pub = e.pub
-  const v = biblioOf(p, crossref)
+  const b = biblioOf(p, crossref)
+  const v = {
+    ...b,
+    issue: b.issue || DEFAULTS.issue,
+    pageStart: b.pageStart || DEFAULTS.pageStart,
+    pageEnd: b.pageStart ? b.pageEnd : DEFAULTS.pageEnd,
+    pageCount: b.pageStart ? b.pageCount : String(Number(DEFAULTS.pageEnd) - Number(DEFAULTS.pageStart) + 1),
+  }
   const when = formatDate(v.date)
   const authors = authorList(p.allAuthors || p.authors)
   const link = p.eid ? `https://www.scopus.com/inward/record.uri?eid=${p.eid}${p.doi ? `&doi=${p.doi}` : ''}` : p.doi ? `https://doi.org/${p.doi}` : ''

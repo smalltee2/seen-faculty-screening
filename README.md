@@ -319,8 +319,9 @@ Crossref by DOI (`data/crossref.tsv`, written by `fetchCrossref` in scripts/fetc
 looked up in the daily and hourly runs, `--only=crossref --refresh-crossref` re-asks all), then from the
 Scopus row (`cover_date`, `volume`, `issue`, `page_range`, `article_number` columns of scopus.tsv, filled for
 rows fetched after 2026-11-07), then parsed from the venue string. The date is written d/M/yyyy (M/yyyy when
-Crossref gives no day) and Month as the English month name. Open access stays empty; pages stay empty for
-article-number journals and issue for journals without issues, because no source gives them.
+Crossref gives no day) and Month as the English month name. Open access stays empty. A work with no pages is written as
+pages 1–14 and a journal without issues as issue 1 (`DEFAULTS` in src/exportScopus.ts; Tum's decision, 2026-11-07,
+because the university's import rejects empty pages and issue).
 **Withdrawing an approved work** (2026-11-07): on a lecturer's page (ผลงานที่นับ …) a level-2 admin sees "ถอน" on
 every approved self-added work (src/WithdrawButton.tsx). It is the backend's `decide` with status `rejected` and
 the note "ถอนโดยผู้ดูแลระดับ 2 …", so the work stops counting at once (bundled copies from `data/self.tsv` are
