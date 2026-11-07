@@ -10,6 +10,8 @@
  *   tokens:   email | hash | expires | used | remember | created  ← one-time login codes
  *   sessions: email | hash | expires | created                     ← logged-in devices
  *   log:      time | action | email | ok | note
+ *   submissions: works a lecturer adds on "ตรวจสอบคุณสมบัติของฉัน" (status pending → approved/rejected)
+ *   admins:   email | name | active   ← level-2 admins who may approve works (Tum fills)
  *
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
@@ -19,6 +21,9 @@ var CODE_MINUTES = 15;
 var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 5;
+var MAX_SUBMISSIONS_PER_DAY = 30;
+var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
+var SUB_TYPES = { journal: 1, proceeding: 1, poster: 1 };
 
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -27,6 +32,8 @@ function setup() {
     tokens: ['email', 'hash', 'expires', 'used', 'remember', 'created'],
     sessions: ['email', 'hash', 'expires', 'created'],
     log: ['time', 'action', 'email', 'ok', 'note'],
+    submissions: SUB_HEAD,
+    admins: ['email', 'name', 'active'],
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -59,6 +66,14 @@ function doPost(e) {
         return json(me(body));
       case 'logout':
         return json(logout(body));
+      case 'submit':
+        return json(submitWork(body));
+      case 'list':
+        return json(listWorks());
+      case 'decide':
+        return json(decideWork(body));
+      case 'withdraw':
+        return json(withdrawWork(body));
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -123,7 +138,8 @@ function requestLink(body) {
   var email = normEmail(body.email);
   if (!/^[^@\s]+@up\.ac\.th$/.test(email)) return { ok: false, error: 'not_up_email' };
   var user = findUser(email);
-  if (!user) {
+  var admin = findAdmin(email);
+  if (!user && !admin) {
     log('request', email, false, 'unknown e-mail');
     return { ok: true };
   }
@@ -139,7 +155,7 @@ function requestLink(body) {
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
   sheet('tokens').appendRow([email, sha256(code), expires, '', body.remember ? 'yes' : 'no', new Date()]);
   var link = SITE + 'me/#login=' + code;
-  var name = user.name_th || user.name_en;
+  var name = user ? user.name_th || user.name_en : admin.name || email;
   MailApp.sendEmail({
     to: email,
     subject: 'ลิงก์เข้าสู่ระบบ ข้อมูลคุณสมบัติของฉัน (SEEN)',
@@ -171,23 +187,26 @@ function verifyCode(body) {
   sheet('tokens').getRange(t._row, 4).setValue(new Date());
   var email = normEmail(t.email);
   var user = findUser(email);
-  if (!user) return { ok: false, error: 'invalid_or_expired' };
+  var admin = findAdmin(email);
+  if (!user && !admin) return { ok: false, error: 'invalid_or_expired' };
   var remember = String(t.remember) === 'yes';
   var session = randomToken();
   var expires = new Date(now + (remember ? REMEMBER_DAYS * 24 : SESSION_HOURS) * 3600 * 1000);
   sheet('sessions').appendRow([email, sha256(session), expires, new Date()]);
   purgeExpired();
   log('verify', email, true, remember ? 'remember' : '');
-  return { ok: true, session: session, email: email, nameEn: user.name_en, folder: user.folder, expires: expires.toISOString() };
+  return { ok: true, session: session, email: email, nameEn: user ? user.name_en : '', folder: user ? user.folder : '', isAdmin: !!admin, expires: expires.toISOString() };
 }
 
 /** Returning visit with a stored session. */
 function me(body) {
   var s = findSession(body.session);
   if (!s) return { ok: false, error: 'no_session' };
-  var user = findUser(normEmail(s.email));
-  if (!user) return { ok: false, error: 'no_session' };
-  return { ok: true, email: normEmail(s.email), nameEn: user.name_en, folder: user.folder, expires: new Date(s.expires).toISOString() };
+  var email = normEmail(s.email);
+  var user = findUser(email);
+  var admin = findAdmin(email);
+  if (!user && !admin) return { ok: false, error: 'no_session' };
+  return { ok: true, email: email, nameEn: user ? user.name_en : '', folder: user ? user.folder : '', isAdmin: !!admin, expires: new Date(s.expires).toISOString() };
 }
 
 function logout(body) {
@@ -216,4 +235,92 @@ function purgeExpired() {
       if (exp < now - 24 * 3600 * 1000) sh.deleteRow(r + 1);
     }
   });
+}
+
+function findAdmin(email) {
+  var sh = sheet('admins');
+  if (!sh) return null;
+  var a = rows('admins').filter(function (r) {
+    return normEmail(r.email) === email && String(r.active).toLowerCase() !== 'no' && String(r.active) !== 'FALSE';
+  });
+  return a.length ? a[0] : null;
+}
+
+/** Text stored in the sheet: trimmed, capped, and never read as a formula. */
+function cell(v, max) {
+  var t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 500);
+  return /^[=+\-@]/.test(t) ? "'" + t : t;
+}
+
+/** A signed-in lecturer adds one of their own works; it waits for a level-2 admin. */
+function submitWork(body) {
+  var s = findSession(body.session);
+  if (!s) return { ok: false, error: 'no_session' };
+  var email = normEmail(s.email);
+  var user = findUser(email);
+  if (!user) return { ok: false, error: 'not_lecturer' };
+  var w = body.work || {};
+  var year = Number(w.year);
+  var thisYear = new Date().getFullYear();
+  if (!(year >= 1990 && year <= thisYear + 1) || !String(w.title || '').trim() || !SUB_TYPES[w.type] || !String(w.venue || '').trim()) {
+    return { ok: false, error: 'bad_work' };
+  }
+  var dayAgo = Date.now() - 24 * 3600 * 1000;
+  var recent = rows('submissions').filter(function (r) {
+    return normEmail(r.email) === email && new Date(r.created).getTime() > dayAgo;
+  }).length;
+  if (recent >= MAX_SUBMISSIONS_PER_DAY) return { ok: false, error: 'rate_limit' };
+  var id = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+  sheet('submissions').appendRow([
+    id, email, user.name_en, year, cell(w.title, 600), cell(w.authors, 800), w.type, cell(w.venue, 300), cell(w.volume, 120),
+    cell(w.doi, 300), w.research ? 'yes' : 'no', new Date(), 'pending', '', '', '',
+  ]);
+  log('submit', email, true, id);
+  return { ok: true, id: id };
+}
+
+/** Public list (no e-mail addresses): the site shows pending ones and counts approved ones. */
+function listWorks() {
+  var items = rows('submissions').map(function (r) {
+    return {
+      id: String(r.id), nameEn: r.name_en, year: Number(r.year), title: String(r.title), authors: String(r.authors), type: r.type,
+      venue: String(r.venue), volume: String(r.volume), doi: String(r.doi), research: r.research === 'yes',
+      created: r.created ? new Date(r.created).toISOString() : '', status: r.status || 'pending',
+      decidedAt: r.decided_at ? new Date(r.decided_at).toISOString() : '', note: String(r.decision_note || ''),
+    };
+  });
+  return { ok: true, items: items };
+}
+
+/** A level-2 admin (signed in by e-mail, listed in the admins sheet) approves or rejects a work. */
+function decideWork(body) {
+  var s = findSession(body.session);
+  if (!s) return { ok: false, error: 'no_session' };
+  var email = normEmail(s.email);
+  if (!findAdmin(email)) return { ok: false, error: 'not_admin' };
+  var status = { approved: 1, rejected: 1, pending: 1 }[body.status] ? body.status : '';
+  if (!status) return { ok: false, error: 'bad_request' };
+  var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
+  if (!r) return { ok: false, error: 'not_found' };
+  var col = function (name) { return SUB_HEAD.indexOf(name) + 1; };
+  var sh = sheet('submissions');
+  sh.getRange(r._row, col('status')).setValue(status);
+  sh.getRange(r._row, col('decided_by')).setValue(status === 'pending' ? '' : email);
+  sh.getRange(r._row, col('decided_at')).setValue(status === 'pending' ? '' : new Date());
+  sh.getRange(r._row, col('decision_note')).setValue(cell(body.note, 300));
+  log('decide', email, true, body.id + ' ' + status);
+  return { ok: true };
+}
+
+/** A lecturer withdraws one of their own works while it is still pending. */
+function withdrawWork(body) {
+  var s = findSession(body.session);
+  if (!s) return { ok: false, error: 'no_session' };
+  var email = normEmail(s.email);
+  var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
+  if (!r || normEmail(r.email) !== email) return { ok: false, error: 'not_found' };
+  if (r.status !== 'pending') return { ok: false, error: 'not_pending' };
+  sheet('submissions').getRange(r._row, SUB_HEAD.indexOf('status') + 1).setValue('withdrawn');
+  log('withdraw', email, true, body.id);
+  return { ok: true };
 }

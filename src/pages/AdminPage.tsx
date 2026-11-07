@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { DataBundle, Pub, PubSource } from '../types'
-import { TYPE_LABEL, displayName, yearLabel } from '../ui'
+import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { copyText } from '../download'
+import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
+import { STATUS_TH, TYPE_TH, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -13,7 +15,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void }) {
+export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -87,6 +89,8 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
 
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
+
+      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} />
 
       <ConferenceRegister pubs={pubs} />
 
@@ -312,5 +316,131 @@ function CopyKey({ value }: { value: string }) {
     >
       {done ? 'คัดลอกแล้ว' : 'คัดลอก key'}
     </button>
+  )
+}
+
+/** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
+ *  Deciding needs the admin's e-mail sign-in; the backend checks the admins sheet. */
+function ApproveWorks({ submissions, faculty, onChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void }) {
+  const { user, checking } = useEmailUser()
+  const [show, setShow] = useState<'pending' | 'all'>('pending')
+  const [busy, setBusy] = useState('')
+  const [error, setError] = useState('')
+  const name = (key: string) => {
+    const f = faculty.find((x) => x.nameEn === key)
+    return f ? displayName(f) : key
+  }
+  const live = submissions.filter((s) => s.status !== 'withdrawn')
+  const pending = live.filter((s) => s.status === 'pending')
+  const rows = (show === 'pending' ? pending : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
+  const canDecide = !!user?.isAdmin
+
+  const decide = async (id: string, status: SubmissionStatus) => {
+    setBusy(id)
+    setError('')
+    try {
+      const r = await api({ action: 'decide', session: sessionStore.get(), id, status })
+      if (r.ok) onChanged()
+      else setError(errorText(r.error))
+    } catch {
+      setError(errorText(''))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <>
+      <h2 className="block-title">
+        ผลงานที่อาจารย์เพิ่มเอง <small className="title-hint">รออนุมัติ {pending.length} รายการ · ยังไม่นับจนกว่าจะอนุมัติ</small>
+      </h2>
+      <div className="register-tools no-print">
+        <Segmented
+          label="แสดงผลงานที่อาจารย์เพิ่มเอง"
+          value={show}
+          onChange={setShow}
+          options={[
+            { id: 'pending', label: `รออนุมัติ (${pending.length})` },
+            { id: 'all', label: `ทั้งหมด (${live.length})` },
+          ]}
+        />
+        {checking ? (
+          <span className="muted small">กำลังตรวจสอบการเข้าสู่ระบบ…</span>
+        ) : canDecide ? (
+          <span className="muted small">อนุมัติในนาม {user?.email}</span>
+        ) : user ? (
+          <span className="gate-error small">{errorText('not_admin')}</span>
+        ) : (
+          <span className="small">
+            การอนุมัติต้องเข้าสู่ระบบด้วยอีเมลผู้ดูแล <a className="btn btn-small" href="#/me">เข้าสู่ระบบด้วยอีเมล</a>
+          </span>
+        )}
+      </div>
+      {error && (
+        <p className="gate-error" role="alert">
+          {error}
+        </p>
+      )}
+      {rows.length === 0 ? (
+        <p className="note">{show === 'pending' ? 'ไม่มีผลงานรออนุมัติ' : 'ยังไม่มีผลงานที่อาจารย์เพิ่มเอง'}</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>อาจารย์</th>
+                <th>ปี</th>
+                <th>ผลงาน</th>
+                <th>ประเภท</th>
+                <th>สถานะ</th>
+                <th>การอนุมัติ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((s) => (
+                <tr key={s.id}>
+                  <td className="nowrap small">{name(s.nameEn)}</td>
+                  <td className="nowrap">{s.year}</td>
+                  <td>
+                    <div className="pub-title">{s.title}</div>
+                    <div className="muted small">{[s.authors, [s.venue, s.volume].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</div>
+                    {s.doi && (
+                      <a className="small" href={/^https?:/i.test(s.doi) ? s.doi : `https://doi.org/${s.doi}`} target="_blank" rel="noreferrer">
+                        {s.doi} ↗
+                      </a>
+                    )}
+                  </td>
+                  <td className="small">
+                    {TYPE_TH[s.type]}
+                    <div className="muted">{s.research ? 'งานวิจัย' : 'ไม่ใช่งานวิจัย'}</div>
+                  </td>
+                  <td>
+                    <span className={`sub-status sub-${s.status}`}>{STATUS_TH[s.status]}</span>
+                    <div className="muted small">ส่งเมื่อ {s.created ? new Date(s.created).toLocaleDateString('th-TH') : '—'}</div>
+                  </td>
+                  <td className="nowrap">
+                    {canDecide &&
+                      (s.status === 'pending' ? (
+                        <>
+                          <button type="button" className="btn btn-small btn-primary" disabled={busy === s.id} onClick={() => void decide(s.id, 'approved')}>
+                            อนุมัติ
+                          </button>{' '}
+                          <button type="button" className="btn btn-small" disabled={busy === s.id} onClick={() => void decide(s.id, 'rejected')}>
+                            ไม่อนุมัติ
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" className="btn btn-small" disabled={busy === s.id} onClick={() => void decide(s.id, 'pending')}>
+                          ย้อนเป็นรออนุมัติ
+                        </button>
+                      ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   )
 }

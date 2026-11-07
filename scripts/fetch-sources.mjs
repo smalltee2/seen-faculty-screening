@@ -28,6 +28,7 @@ const CONFIG = {
   openalexOut: join(ROOT, 'data/openalex.tsv'),
   scopusOut: join(ROOT, 'data/scopus.tsv'),
   manualOut: join(ROOT, 'data/manual.tsv'),
+  selfOut: join(ROOT, 'data/self.tsv'),
   tciOut: join(ROOT, 'data/tci_journals.csv'),
   // One file per calendar year with the list as last seen in that year, so a journal's
   // กลุ่ม at the time an article appeared can be looked up later (stored, not displayed yet).
@@ -430,6 +431,46 @@ async function fetchManual(faculty, url) {
   log(`Google Sheet: ${out.length} rows (${out.filter((r) => r.issn).length} with ISSN from DOI) -> data/manual.tsv`)
 }
 
+/** Works lecturers added themselves on "ตรวจสอบคุณสมบัติของฉัน" and a level-2 admin approved
+ *  (Apps Script backend, action "list"). Written to data/self.tsv in the manual.tsv format, with
+ *  submitted = self:<id> so the browser does not count them twice. On any error the file is kept. */
+async function fetchSelf(faculty, loginApiUrl) {
+  if (!loginApiUrl) {
+    log('Self-added works: no loginApiUrl in data/sources.json; skipped')
+    return
+  }
+  let items
+  try {
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow' })
+    const js = await res.json()
+    if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
+    items = js.items
+  } catch (e) {
+    warn(`Self-added works: could not read the list (${e.message}); data/self.tsv left unchanged`)
+    return
+  }
+  const names = new Set(faculty.map((f) => f.name_en))
+  const out = items
+    .filter((s) => s.status === 'approved' && names.has(s.nameEn) && ['journal', 'proceeding', 'poster'].includes(s.type) && Number.isInteger(s.year) && s.title)
+    .map((s) => ({
+      key: s.nameEn,
+      year: s.year,
+      title: clean(s.title),
+      authors: clean(s.authors),
+      venue: `${[clean(s.venue), clean(s.volume)].filter(Boolean).join(' ')}, ${s.year}`,
+      cites: 0,
+      doi: bareDoi(s.doi ?? ''),
+      type: s.type,
+      is_research: s.research ? 'yes' : 'no',
+      submitted: `self:${s.id}`,
+      issn: '',
+    }))
+  const previous = existsSync(CONFIG.selfOut) ? readTsv(CONFIG.selfOut).rows : []
+  for (const r of out) r.issn = await issnByDoi(r.doi, previous)
+  writeTsv(CONFIG.selfOut, MANUAL_HEADER, out)
+  log(`Self-added works: ${out.length} approved of ${items.length} -> data/self.tsv`)
+}
+
 /** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
  *  Scopus once whether the journal is indexed (ISSN(x) returns documents). Cached in
  *  data/scopus_journals.csv so a new article in a Scopus journal counts as international
@@ -551,6 +592,7 @@ if (run('scopus')) {
   } else log('Scopus: updated by the iMac job (no SCOPUS_INSTTOKEN in GitHub Actions); skipped here')
 }
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
+if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
 if (run('decisions')) await fetchDecisions(sources.decisionSheetCsvUrl ?? '', (process.env.DECISION_ADMINS ?? '').split(',').map((x) => x.trim()).filter(Boolean))
 if (run('tci')) {
   try {

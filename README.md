@@ -304,6 +304,15 @@ repository is public, so this is not access control against someone who reads th
 forwards to `#/me/login=<code>`; the tab exchanges the code for a session (12 hours, or 30 days with
 "จำเครื่องนี้") and shows the result of the `name_en` the backend returns.
 
+**Lecturers add their own works** (2026-11-07): after signing in on ตรวจสอบคุณสมบัติของฉัน a lecturer fills
+"เพิ่มผลงานของฉัน" (src/pages/MyPage.tsx). The backend (action `submit`) checks the session, so a lecturer can only add
+works under their own name, and stores them in the `submissions` sheet as `pending`. Pending works are shown
+("รออนุมัติ") but not counted. A level-2 admin approves or rejects them on เพิ่มผลงานด้วยตนเอง (table
+"ผลงานที่อาจารย์เพิ่มเอง"); deciding needs the admin's e-mail sign-in and an active row in the `admins` sheet
+(email, name, active). Approved works count at once in the browser (src/submissions.ts) and are copied to
+`data/self.tsv` by the hourly data job (`fetchSelf` in scripts/fetch-sources.mjs). A lecturer can withdraw a work
+while it is pending. To add another approver, add their @up.ac.th address to the `admins` sheet.
+
 **Backend** (`apps-script/Code.gs`): a Google Apps Script bound to the private sheet "SEEN Login (private)" in
 the admin's Google account, deployed as a web app (execute as me, anyone). Sheets: `users` (email, name_en,
 name_th, folder, active — the admin fills it from `npm run personal-codes -- --users`, e-mails guessed from the

@@ -12,6 +12,7 @@ import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adm
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
+import { approvedRows, fetchSubmissions, type Submission } from './submissions'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
 const data = raw as DataBundle
@@ -91,7 +92,15 @@ export function App() {
       on = false
     }
   }, [])
-  const pubs = useMemo(() => makePubs(liveRows), [liveRows])
+  // Works lecturers added themselves (src/submissions.ts): approved ones count, pending ones are only shown.
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const refreshSubmissions = () => {
+    void fetchSubmissions().then(setSubmissions)
+  }
+  useEffect(refreshSubmissions, [])
+  const lecturerNames = useMemo(() => new Set(data.faculty.map((f) => f.nameEn)), [])
+  const selfRows = useMemo(() => approvedRows(submissions, lecturerNames, bundledRows), [submissions, lecturerNames])
+  const pubs = useMemo(() => makePubs([...liveRows, ...selfRows]), [liveRows, selfRows])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
@@ -241,10 +250,10 @@ export function App() {
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
-            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} />
+            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />
           )}
           {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
-          {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} />}
+          {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />}
         </main>
 
         <footer className="footer">
