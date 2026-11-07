@@ -8,5 +8,11 @@
   },
   "decisionSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSt60OXRSsMo8m-xt4C2nVtiSweQuZGiuc6yjoc0r0Y5kjlA2DJSVAncLLCphNlsCg1WY3kNhmwb0bx/pub?gid=1770725136&single=true&output=csv",
   "decisionFormUrl": "https://docs.google.com/forms/d/e/1FAIpQLSenZXP-hhC1c9N4YF_cJ-bfEVOYDn01bQmJzrS0NqL2UpVaZA/viewform",
-  "loginApiUrl": "https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec"
+  "loginApiUrl": "https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec",
+  "viewerGate": {
+    "iterations": 210000,
+    "salt": "6oSOaVQb0nXc80RsEEv0bA==",
+    "iv": "iCDjPM6fSrks2jky",
+    "data": "SmoUNO4G09Hx3C1hULQc3d88rzhS+v473obs"
+  }
 }
