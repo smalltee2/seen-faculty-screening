@@ -3,7 +3,7 @@
 //           the conference register and the decision form (stored as adminGate);
 //   level 1 (--level=1) unlocks only ข้อมูลอาจารย์ (stored as viewerGate).
 //   npm run set-passcode -- --level=1          # set or change the level-1 passcode
-// The two passcodes must differ.
+// The two passcodes must differ. Each level-2 run also creates a new approval key (see below).
 // The admin form link is encrypted with the passcode (PBKDF2-SHA256 -> AES-GCM) and
 // stored in data/sources.json as adminGate; the plain googleFormUrl is removed, so the
 // published site does not contain the link. The passcode itself is never stored.
@@ -82,8 +82,15 @@ if (!formUrl) {
 const decisionFormUrl = process.argv.find((a) => a.startsWith('--decision-form-url='))?.slice('--decision-form-url='.length) ?? sources.decisionFormUrl ?? ''
 
 const pass = await askPass('level-2 admin')
+// Approval key (2026-11-07): random, stored only inside the encrypted level-2 data, so whoever
+// opens level 2 can approve lecturers' works. The backend keeps only its SHA-256 (approvalKeyHash,
+// safe to publish), copied into apps-script/Code.gs (APPROVAL_KEY_HASH). A new passcode = a new key.
+const approvalKey = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex')
+const approvalKeyHash = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(approvalKey))).toString('hex')
 delete sources.googleFormUrl
 delete sources.decisionFormUrl
-sources.adminGate = await encrypt(pass, { formUrl, decisionFormUrl, level: 2 })
+sources.adminGate = await encrypt(pass, { formUrl, decisionFormUrl, level: 2, approvalKey })
+sources.approvalKeyHash = approvalKeyHash
 writeFileSync(SOURCES, JSON.stringify(sources, null, 2) + '\n')
-console.log('Admin passcode set. The form link is now stored encrypted in data/sources.json. Commit and push to publish.')
+console.log('Admin passcode set. The form links and a new approval key are stored encrypted in data/sources.json.')
+console.log('The backend must learn the new key: set APPROVAL_KEY_HASH in apps-script/Code.gs to approvalKeyHash from data/sources.json and deploy a new version (or ask Claude). Then commit and push.')

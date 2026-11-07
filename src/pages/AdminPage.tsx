@@ -15,7 +15,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void }) {
+export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; decisionFormUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -90,7 +90,7 @@ export function AdminPage({ data, pubs, faculty, formUrl, decisionFormUrl, onLoc
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
 
-      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} />
+      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} />
 
       <ConferenceRegister pubs={pubs} />
 
@@ -320,8 +320,9 @@ function CopyKey({ value }: { value: string }) {
 }
 
 /** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
- *  Deciding needs the admin's e-mail sign-in; the backend checks the admins sheet. */
-function ApproveWorks({ submissions, faculty, onChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void }) {
+ *  The level-2 sign-in carries an approval key the backend checks; an admin signed in by e-mail
+ *  (listed in the admins sheet) can also decide. */
+function ApproveWorks({ submissions, faculty, onChanged, approvalKey }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string }) {
   const { user, checking } = useEmailUser()
   const [show, setShow] = useState<'pending' | 'all'>('pending')
   const [busy, setBusy] = useState('')
@@ -333,13 +334,13 @@ function ApproveWorks({ submissions, faculty, onChanged }: { submissions: Submis
   const live = submissions.filter((s) => s.status !== 'withdrawn')
   const pending = live.filter((s) => s.status === 'pending')
   const rows = (show === 'pending' ? pending : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
-  const canDecide = !!user?.isAdmin
+  const canDecide = !!approvalKey || !!user?.isAdmin
 
   const decide = async (id: string, status: SubmissionStatus) => {
     setBusy(id)
     setError('')
     try {
-      const r = await api({ action: 'decide', session: sessionStore.get(), id, status })
+      const r = await api({ action: 'decide', session: sessionStore.get(), adminKey: approvalKey ?? '', id, status })
       if (r.ok) onChanged()
       else setError(errorText(r.error))
     } catch {
@@ -364,7 +365,9 @@ function ApproveWorks({ submissions, faculty, onChanged }: { submissions: Submis
             { id: 'all', label: `ทั้งหมด (${live.length})` },
           ]}
         />
-        {checking ? (
+        {approvalKey ? (
+          <span className="muted small">อนุมัติในนามผู้ดูแลระดับ 2</span>
+        ) : checking ? (
           <span className="muted small">กำลังตรวจสอบการเข้าสู่ระบบ…</span>
         ) : canDecide ? (
           <span className="muted small">อนุมัติในนาม {user?.email}</span>
@@ -372,7 +375,7 @@ function ApproveWorks({ submissions, faculty, onChanged }: { submissions: Submis
           <span className="gate-error small">{errorText('not_admin')}</span>
         ) : (
           <span className="small">
-            การอนุมัติต้องเข้าสู่ระบบด้วยอีเมลผู้ดูแล <a className="btn btn-small" href="#/me">เข้าสู่ระบบด้วยอีเมล</a>
+            รหัสผู้ดูแลชุดนี้ยังไม่มีกุญแจอนุมัติ ใส่รหัสระดับ 2 ใหม่ หรือ <a className="btn btn-small" href="#/me">เข้าสู่ระบบด้วยอีเมลผู้ดูแล</a>
           </span>
         )}
       </div>

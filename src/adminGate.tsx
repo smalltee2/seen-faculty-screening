@@ -7,7 +7,7 @@ import type { DataBundle } from './types'
 
 /** level 1 = ข้อมูลอาจารย์ only; level 2 = everything incl. เพิ่มผลงาน and conference decisions (2026-11-07). */
 export type AdminLevel = 1 | 2
-export type AdminLinks = { formUrl: string; decisionFormUrl: string; level: AdminLevel }
+export type AdminLinks = { formUrl: string; decisionFormUrl: string; level: AdminLevel; /** level 2 only: lets the backend accept approvals of lecturers' works */ approvalKey?: string }
 /** What is saved in the browser: the links plus the salt of the gate that opened them, so a
  *  sign-in made with an old passcode is dropped once that passcode is changed. */
 type Saved = AdminLinks & { gate?: string }
@@ -24,7 +24,7 @@ export function readSavedAdmin(): Saved | null {
     // Older versions saved the bare form link.
     if (!v.startsWith('{')) return { formUrl: v, decisionFormUrl: '', level: 2 }
     const o = JSON.parse(v) as Partial<Saved>
-    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '', level: o.level === 1 ? 1 : 2, gate: o.gate }
+    return { formUrl: o.formUrl ?? '', decisionFormUrl: o.decisionFormUrl ?? '', level: o.level === 1 ? 1 : 2, gate: o.gate, approvalKey: o.approvalKey }
   } catch {
     return null
   }
@@ -63,6 +63,7 @@ export async function unlockAny(gates: { admin?: Gate; viewer?: Gate }, pass: st
   if (gates.viewer) {
     await unlock(gates.viewer, pass)
     return { formUrl: '', decisionFormUrl: '', level: 1 }
+    // (level 1 never carries an approval key)
   }
   throw new Error('wrong')
 }
@@ -79,8 +80,8 @@ async function unlock(gate: Gate, pass: string): Promise<Omit<AdminLinks, 'level
     ['decrypt'],
   )
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(gate.iv) }, key, fromB64(gate.data))
-  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl?: string; decisionFormUrl?: string }
-  return { formUrl: v.formUrl ?? '', decisionFormUrl: v.decisionFormUrl ?? '' }
+  const v = JSON.parse(new TextDecoder().decode(plain)) as { formUrl?: string; decisionFormUrl?: string; approvalKey?: string }
+  return { formUrl: v.formUrl ?? '', decisionFormUrl: v.decisionFormUrl ?? '', ...(v.approvalKey ? { approvalKey: v.approvalKey } : {}) }
 }
 
 /** Initial admin state: open when the site has no gate configured, else whatever was saved. */
@@ -95,7 +96,7 @@ export function initialAdmin(data: DataBundle): AdminLinks | null {
     forgetAdmin()
     return null
   }
-  return { formUrl: saved.formUrl, decisionFormUrl: saved.decisionFormUrl, level: saved.level }
+  return { formUrl: saved.formUrl, decisionFormUrl: saved.decisionFormUrl, level: saved.level, approvalKey: saved.level === 2 ? saved.approvalKey : undefined }
 }
 
 /** The passcode card shown in place of an admin-only tab. */

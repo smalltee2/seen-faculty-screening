@@ -23,6 +23,10 @@ describe('unlockAny', async () => {
   it('level-1 passcode opens lecturer data only, no form links', async () => {
     expect(await unlockAny({ admin, viewer }, 'test-level-one')).toEqual({ formUrl: '', decisionFormUrl: '', level: 1 })
   })
+  it('level-2 data with an approval key returns the key', async () => {
+    const withKey = await gate('test-level-two', { formUrl: 'F', decisionFormUrl: 'D', level: 2, approvalKey: 'k123' })
+    expect(await unlockAny({ admin: withKey, viewer }, 'test-level-two')).toEqual({ formUrl: 'F', decisionFormUrl: 'D', level: 2, approvalKey: 'k123' })
+  })
   it('a wrong passcode is rejected', async () => {
     await expect(unlockAny({ admin, viewer }, 'nope-nope')).rejects.toThrow()
   })

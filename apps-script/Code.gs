@@ -24,6 +24,9 @@ var MAX_REQUESTS_PER_HOUR = 5;
 var MAX_SUBMISSIONS_PER_DAY = 30;
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
 var SUB_TYPES = { journal: 1, proceeding: 1, poster: 1 };
+// SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
+// approvalKeyHash; scripts/set-admin-passcode.mjs). Safe to publish. Update after each level-2 passcode change.
+var APPROVAL_KEY_HASH = '';
 
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -292,12 +295,19 @@ function listWorks() {
   return { ok: true, items: items };
 }
 
-/** A level-2 admin (signed in by e-mail, listed in the admins sheet) approves or rejects a work. */
+/** A level-2 admin approves or rejects a work: either with the approval key from the level-2
+ *  passcode, or signed in by e-mail and listed in the admins sheet. */
 function decideWork(body) {
-  var s = findSession(body.session);
-  if (!s) return { ok: false, error: 'no_session' };
-  var email = normEmail(s.email);
-  if (!findAdmin(email)) return { ok: false, error: 'not_admin' };
+  var email = '';
+  var key = String(body.adminKey || '');
+  if (key && APPROVAL_KEY_HASH && sha256(key) === APPROVAL_KEY_HASH) {
+    email = 'ผู้ดูแลระดับ 2';
+  } else {
+    var s = findSession(body.session);
+    if (!s) return { ok: false, error: key ? 'bad_key' : 'no_session' };
+    email = normEmail(s.email);
+    if (!findAdmin(email)) return { ok: false, error: 'not_admin' };
+  }
   var status = { approved: 1, rejected: 1, pending: 1 }[body.status] ? body.status : '';
   if (!status) return { ok: false, error: 'bad_request' };
   var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];

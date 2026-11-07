@@ -63,6 +63,8 @@ export interface DataBundle {
     adminGate?: { iterations: number; salt: string; iv: string; data: string }
     /** Level-1 passcode (ข้อมูลอาจารย์ only), scripts/set-admin-passcode.mjs --level=1. */
     viewerGate?: { iterations: number; salt: string; iv: string; data: string }
+    /** SHA-256 of the approval key inside adminGate (safe to publish; the backend keeps the same value). */
+    approvalKeyHash?: string
   }
   faculty: Faculty[]
   publications: RawPub[]

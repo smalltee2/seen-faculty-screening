@@ -250,7 +250,7 @@ export function App() {
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
-            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />
+            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} decisionFormUrl={admin.decisionFormUrl || data.sources.decisionFormUrl || ''} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} />
           )}
           {route.page === 'person' && admin !== null && <PersonPage result={results.find((r) => r.person.nameEn === route.key)} settings={settings} />}
           {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={submissions} onSubmissionsChanged={refreshSubmissions} />}
