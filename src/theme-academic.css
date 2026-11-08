@@ -676,3 +676,15 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .chart .c-tier2 { fill: var(--c-tier2); } .swatch.c-tier2 { background: var(--c-tier2); }
 .dash-pubs-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
 .dash-pubs-head h3 { margin: 0; min-width: 0; }
+
+/* Admin: Google Scholar import (2026-11-08) */
+.scholar-import { margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; }
+.scholar-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 12px; }
+.scholar-steps select { max-width: 100%; }
+.scholar-paste, .scholar-snippet { width: 100%; box-sizing: border-box; font-family: var(--font-mono, monospace); font-size: 0.82rem; margin-top: 6px; }
+.scholar-new { max-height: 22rem; overflow: auto; }
+.scholar-preview { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.scholar-preview > p { margin: 0; }
+.warn-text { color: var(--not); margin: 0; }
+.ok-text { color: var(--met, var(--accent)); margin: 0; }
+.btn-small { padding: 3px 10px; font-size: 0.82rem; }

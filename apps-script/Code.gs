@@ -31,6 +31,9 @@ var NOTICE_COOLDOWN_HOURS = 12;
 var NOTICE_HEAD = ['time', 'name_en', 'kind', 'by', 'subject', 'ack_hash', 'ack_at']; // one reminder per lecturer per kind within this window
 var MAX_NOTICES_PER_DAY = 60; // across all e-mails, so the mail quota cannot be drained
 var MAX_SUBMISSIONS_PER_DAY = 30;
+// Google Scholar rows imported by a level-2 admin from the admin page (2026-11-08). One batch per import.
+var SCH_HEAD = ['time', 'name_en', 'year', 'title', 'authors', 'venue', 'cites', 'by', 'batch'];
+var MAX_SCHOLAR_ROWS = 1500; // per import (a Scholar profile shows at most ~1,000 rows)
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
 // SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
 // approvalKeyHash; scripts/set-admin-passcode.mjs). Safe to publish. Update after each level-2 passcode change.
@@ -47,6 +50,7 @@ function setup() {
     admins: ['email', 'name', 'active'],
     conf_decisions: ['time', 'key', 'decision', 'by', 'note', 'name'],
     notices: NOTICE_HEAD,
+    scholar_imports: SCH_HEAD,
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -134,6 +138,12 @@ function doPost(e) {
         return json(notifyLecturer(body));
       case 'noticeList':
         return json(noticeList());
+      case 'scholarImport':
+        return json(scholarImport(body));
+      case 'scholarList':
+        return json(scholarList());
+      case 'scholarRemove':
+        return json(scholarRemove(body));
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -492,4 +502,89 @@ function noticeList() {
     return { at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), kind: String(r.kind), by: by, ackAt: r.ack_at ? new Date(r.ack_at).toISOString() : '' };
   });
   return { ok: true, items: items };
+}
+
+/** Google Scholar import (2026-11-08). Scholar has no API and blocks automated access, so a level-2
+ *  admin copies a lecturer's list in their own browser (scripts/scholar_export_snippet.js) and pastes
+ *  it on the admin page; the site sends only the rows not yet in the system. Rows already imported
+ *  for that lecturer (same normalised title) are skipped here as well. */
+function scholarSheet() {
+  var sh = sheet('scholar_imports');
+  if (!sh) {
+    sh = SpreadsheetApp.getActiveSpreadsheet().insertSheet('scholar_imports');
+    sh.appendRow(SCH_HEAD);
+  }
+  return sh;
+}
+
+function normTitle(t) {
+  return String(t || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '');
+}
+
+function scholarImport(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var nameEn = String(body.nameEn || '').trim();
+  var known = rows('users').some(function (u) { return String(u.name_en) === nameEn; });
+  if (!nameEn || !known) return { ok: false, error: 'bad_request' };
+  var input = Array.isArray(body.rows) ? body.rows.slice(0, MAX_SCHOLAR_ROWS) : [];
+  var thisYear = new Date().getFullYear();
+  var sh = scholarSheet();
+  var seen = {};
+  rows('scholar_imports').forEach(function (r) {
+    if (String(r.name_en) === nameEn) seen[normTitle(r.title)] = true;
+  });
+  var batch = 'b' + Utilities.getUuid().replace(/-/g, '').slice(0, 9);
+  var now = new Date();
+  var out = [];
+  var skipped = 0;
+  input.forEach(function (w) {
+    var title = cell(w && w.title, 600);
+    var k = normTitle(title);
+    var y = String(w && w.year != null ? w.year : '').trim();
+    var year = y === '' ? '' : Number(y);
+    if (!k || seen[k] || (year !== '' && !(year >= 1900 && year <= thisYear + 1))) {
+      skipped++;
+      return;
+    }
+    seen[k] = true;
+    out.push([now, nameEn, year, title, cell(w.authors, 800), cell(w.venue, 300), Math.max(0, Math.floor(Number(w.cites) || 0)), cell(auth.who, 200), batch]);
+  });
+  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, SCH_HEAD.length).setValues(out);
+  log('scholarImport', auth.who, true, nameEn + ' +' + out.length + ' (' + batch + ')');
+  return { ok: true, added: out.length, skipped: skipped, batch: batch };
+}
+
+/** Public list (no e-mail addresses), read by the site and the hourly data job. */
+function scholarList() {
+  if (!sheet('scholar_imports')) return { ok: true, items: [] };
+  var items = rows('scholar_imports').map(function (r) {
+    var by = String(r.by);
+    if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
+    return {
+      at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), year: r.year === '' ? null : Number(r.year),
+      title: String(r.title), authors: String(r.authors), venue: String(r.venue), cites: Number(r.cites) || 0, by: by, batch: String(r.batch),
+    };
+  });
+  return { ok: true, items: items };
+}
+
+/** Undo one import: delete every row of that batch. */
+function scholarRemove(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var batch = String(body.batch || '');
+  if (!/^b[0-9a-f]{9}$/.test(batch)) return { ok: false, error: 'bad_request' };
+  var sh = sheet('scholar_imports');
+  if (!sh) return { ok: false, error: 'not_found' };
+  // One read and one write: deleting rows one by one is too slow for a batch of hundreds.
+  var values = sh.getDataRange().getValues();
+  var col = values[0].map(String).indexOf('batch');
+  var keep = values.slice(1).filter(function (r) { return String(r[col]) !== batch; });
+  var n = values.length - 1 - keep.length;
+  if (!n) return { ok: false, error: 'not_found' };
+  sh.getRange(2, 1, values.length - 1, values[0].length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, values[0].length).setValues(keep);
+  log('scholarRemove', auth.who, true, batch + ' -' + n);
+  return { ok: true, removed: n };
 }

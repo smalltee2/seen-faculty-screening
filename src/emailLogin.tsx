@@ -8,7 +8,7 @@ import { DESKTOP, GateShell } from './adminGate'
 const SESSION_KEY = 'seen-personal-session'
 const API = (import.meta.env.VITE_LOGIN_API as string | undefined) ?? ''
 
-export type ApiOk = { ok: true; session?: string; email?: string; nameEn?: string; folder?: string; expires?: string; isAdmin?: boolean; id?: string; items?: unknown[] }
+export type ApiOk = { ok: true; session?: string; email?: string; nameEn?: string; folder?: string; expires?: string; isAdmin?: boolean; id?: string; items?: unknown[]; added?: number; skipped?: number; removed?: number; batch?: string }
 export type ApiErr = { ok: false; error: string }
 
 /** POST to the Apps Script web app as text/plain (no CORS preflight); it redirects once. */

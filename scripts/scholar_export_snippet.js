@@ -10,10 +10,12 @@
 //
 // Columns: key, year, title, authors, venue, cites (tab-separated).
 // Runs only in your own browser on a page you opened; nothing is sent anywhere.
-(async () => {
+// The admin page ("นำเข้าจาก Google Scholar") copies this file with PRESET_KEY filled in, so no prompt appears.
+const PRESET_KEY = ''
+;(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const profileName = document.querySelector('#gsc_prf_in')?.textContent.trim() ?? ''
-  const key = prompt('name_en ของอาจารย์ (ต้องตรงกับ data/faculty.csv):', profileName)
+  const key = PRESET_KEY || prompt('name_en ของอาจารย์ (ต้องตรงกับ data/faculty.csv):', profileName)
   if (!key) {
     console.warn('Cancelled: no name_en given.')
     return

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ConferenceEntry, DataBundle, Pub, PubSource } from '../types'
 import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
@@ -6,6 +6,7 @@ import { CONFERENCE_TAG } from '../conferences'
 import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
+import { newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem } from '../scholarImport'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
   scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
@@ -14,7 +15,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void }) {
+export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void }) {
   const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
@@ -50,12 +51,14 @@ export function AdminPage({ data, pubs, faculty, formUrl, onLock, submissions = 
           </dl>
           <p className="note">
             อัปเดตล่าสุด {new Date(data.builtAt).toLocaleString('th-TH')} · รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้
-            จึงต้องนำเข้าด้วยมือเป็นครั้งคราว
+            จึงให้ผู้ดูแลระดับ 2 นำเข้าเป็นครั้งคราวที่ "นำเข้าจาก Google Scholar" ด้านล่าง
           </p>
         </section>
 
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
+
+      <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
 
       <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
 
@@ -463,5 +466,179 @@ function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: st
       )}
       {error && <span className="gate-error small">{error}</span>}
     </div>
+  )
+}
+
+/** "นำเข้าจาก Google Scholar" (Tum, 2026-11-08): a level-2 admin copies a lecturer's Scholar list in
+ *  their own browser with the export snippet, pastes it here, checks which rows are new and imports
+ *  them (Apps Script scholarImport). Nothing here contacts Scholar. Each import can be undone. */
+function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { faculty: Faculty[]; pubs: Pub[]; raw: { key: string; title: string }[]; items: ScholarImportItem[] | null; approvalKey?: string; onChanged: () => void }) {
+  const [nameEn, setNameEn] = useState('')
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [copied, setCopied] = useState<'' | 'ok' | 'manual'>('')
+  const [armed, setArmed] = useState('')
+  const person = faculty.find((f) => f.nameEn === nameEn)
+  const sorted = [...faculty].sort((a, b) => (a.nameTh || a.nameEn).localeCompare(b.nameTh || b.nameEn, 'th'))
+  const lastAt = new Map<string, string>()
+  for (const it of items ?? []) if (it.at > (lastAt.get(it.nameEn) ?? '')) lastAt.set(it.nameEn, it.at)
+  const parsed = useMemo(() => parseScholarTsv(text), [text])
+  const other = parsed.rows.filter((r) => r.key !== nameEn)
+  const known = useMemo(() => [...pubs.map((p) => ({ key: p.key, title: p.title })), ...raw], [pubs, raw])
+  const fresh = useMemo(() => (nameEn ? newScholarRows(parsed.rows.filter((r) => r.key === nameEn), nameEn, known) : []), [parsed, nameEn, known])
+  const batches = useMemo(() => {
+    const m = new Map<string, { batch: string; nameEn: string; at: string; by: string; n: number }>()
+    for (const it of items ?? []) {
+      const b = m.get(it.batch) ?? { batch: it.batch, nameEn: it.nameEn, at: it.at, by: it.by, n: 0 }
+      b.n++
+      m.set(it.batch, b)
+    }
+    return [...m.values()].sort((a, b) => b.at.localeCompare(a.at))
+  }, [items])
+  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
+  const nameOf = (key: string) => {
+    const f = faculty.find((x) => x.nameEn === key)
+    return f ? displayName(f) : key
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(snippetFor(nameEn))
+      setCopied('ok')
+    } catch {
+      setCopied('manual')
+    }
+  }
+  const doImport = async () => {
+    if (!approvalKey || !fresh.length) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const r = await api({ action: 'scholarImport', adminKey: approvalKey, nameEn, rows: fresh.map(({ key: _k, ...w }) => w) })
+      if (r.ok) {
+        setMsg({ ok: true, text: `นำเข้าแล้ว ${Number(r.added) || 0} รายการ${Number(r.skipped) ? ` · ข้าม ${Number(r.skipped)} รายการที่มีอยู่แล้ว` : ''}` })
+        setText('')
+        onChanged()
+      } else setMsg({ ok: false, text: errorText(r.error) })
+    } catch {
+      setMsg({ ok: false, text: errorText('') })
+    } finally {
+      setBusy(false)
+    }
+  }
+  const undo = async (batch: string) => {
+    if (armed !== batch) return setArmed(batch)
+    setArmed('')
+    setBusy(true)
+    try {
+      const r = await api({ action: 'scholarRemove', adminKey: approvalKey, batch })
+      setMsg(r.ok ? { ok: true, text: `ยกเลิกการนำเข้าแล้ว ${Number(r.removed) || 0} รายการ` } : { ok: false, text: errorText(r.error) })
+      if (r.ok) onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="panel scholar-import">
+      <h2 className="block-title">นำเข้าจาก Google Scholar <small className="title-hint">(นำเข้าเป็นครั้งคราว โดยผู้ดูแลระดับ 2)</small></h2>
+      <ol className="scholar-steps">
+        <li>
+          <label htmlFor="scholar-person">เลือกอาจารย์</label>{' '}
+          <select id="scholar-person" value={nameEn} onChange={(e) => { setNameEn(e.target.value); setText(''); setMsg(null); setCopied('') }}>
+            <option value="">— เลือก —</option>
+            {sorted.map((f) => (
+              <option key={f.nameEn} value={f.nameEn} disabled={!f.scholarId}>
+                {displayName(f)}
+                {!f.scholarId ? ' (ไม่มีโปรไฟล์ Scholar)' : lastAt.has(f.nameEn) ? ` · นำเข้าล่าสุด ${new Date(lastAt.get(f.nameEn)!).toLocaleDateString('th-TH', { dateStyle: 'medium' })}` : ''}
+              </option>
+            ))}
+          </select>
+        </li>
+        <li>
+          {person?.scholarId ? (
+            <>
+              <a className="btn" href={scholarUrl(person.scholarId)} target="_blank" rel="noreferrer">เปิดหน้า Scholar ของอาจารย์ ↗</a>{' '}
+              <button type="button" className="btn" onClick={() => void copy()}>คัดลอกสคริปต์</button>{' '}
+              {copied === 'ok' && <span className="note">คัดลอกแล้ว</span>}
+            </>
+          ) : (
+            <span className="note">เปิดหน้า Scholar และคัดลอกสคริปต์ (เลือกอาจารย์ก่อน)</span>
+          )}
+          <p className="note">
+            ที่หน้า Scholar กด Cmd+Option+J (Windows: Ctrl+Shift+J) เพื่อเปิด Console วางสคริปต์แล้วกด Enter (Chrome ครั้งแรกให้พิมพ์ allow pasting ก่อน) สคริปต์จะโหลดรายการทั้งหมดและคัดลอกให้อัตโนมัติ
+          </p>
+          {copied === 'manual' && <textarea className="scholar-snippet" readOnly rows={4} value={snippetFor(nameEn)} onFocus={(e) => e.currentTarget.select()} aria-label="สคริปต์สำหรับคัดลอก" />}
+        </li>
+        <li>
+          <label htmlFor="scholar-paste">วางรายการที่คัดลอกมา</label>
+          <textarea id="scholar-paste" className="scholar-paste" rows={5} value={text} disabled={!nameEn} onChange={(e) => { setText(e.target.value); setMsg(null) }} placeholder="วางที่นี่ (Cmd+V)" />
+        </li>
+      </ol>
+
+      {text.trim() && nameEn && (
+        <div className="scholar-preview">
+          <p>
+            อ่านได้ <b>{parsed.rows.length}</b> รายการ · มีในระบบแล้ว <b>{parsed.rows.length - other.length - fresh.length}</b> · ใหม่ <b>{fresh.length}</b>
+            {parsed.bad > 0 && <span className="muted"> · อ่านไม่ได้ {parsed.bad} บรรทัด</span>}
+          </p>
+          {other.length > 0 && <p className="warn-text">มี {other.length} รายการเป็นของ {[...new Set(other.map((r) => r.key))].join(', ')} ไม่ใช่อาจารย์ที่เลือก จะไม่นำเข้า</p>}
+          {fresh.length > 0 && (
+            <div className="table-wrap scholar-new">
+              <table className="data compact">
+                <thead>
+                  <tr><th>ปี</th><th>ชื่อเรื่อง</th><th>แหล่งตีพิมพ์</th></tr>
+                </thead>
+                <tbody>
+                  {fresh.map((r) => (
+                    <tr key={r.title}><td className="mono">{r.year ? toBE(r.year) : '—'}</td><td>{r.title}</td><td>{r.venue}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {approvalKey ? (
+            <button type="button" className="btn btn-primary" disabled={busy || !fresh.length} onClick={() => void doImport()}>
+              {busy ? 'กำลังนำเข้า…' : `นำเข้า ${fresh.length} รายการ`}
+            </button>
+          ) : (
+            <p className="note">ต้องเข้าสู่ระบบด้วยรหัสผู้ดูแลระดับ 2 จึงจะนำเข้าได้</p>
+          )}
+        </div>
+      )}
+      {msg && <p className={msg.ok ? 'ok-text' : 'warn-text'} role="status">{msg.text}</p>}
+
+      {batches.length > 0 && (
+        <details className="scholar-history">
+          <summary>ประวัติการนำเข้า · {batches.length} ครั้ง</summary>
+          <div className="table-wrap">
+            <table className="data compact">
+              <thead>
+                <tr><th>เวลา</th><th>อาจารย์</th><th className="num">รายการ</th><th>โดย</th><th /></tr>
+              </thead>
+              <tbody>
+                {batches.map((b) => (
+                  <tr key={b.batch}>
+                    <td>{when(b.at)}</td>
+                    <td>{nameOf(b.nameEn)}</td>
+                    <td className="num mono">{b.n}</td>
+                    <td>{b.by}</td>
+                    <td>
+                      {approvalKey && (
+                        <button type="button" className="btn btn-small" disabled={busy} onClick={() => void undo(b.batch)}>
+                          {armed === b.batch ? 'กดอีกครั้งเพื่อยืนยัน' : 'ยกเลิกการนำเข้า'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+      {items === null && <p className="note">อ่านรายการนำเข้าจากระบบไม่ได้ในขณะนี้</p>}
+    </section>
   )
 }

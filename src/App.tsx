@@ -13,6 +13,7 @@ import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
 import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
+import { dropRemovedScholar, fetchScholarImports, scholarImportRows, type ScholarImportItem } from './scholarImport'
 import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
 import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
@@ -118,6 +119,13 @@ export function App() {
   useEffect(refreshSubmissions, [])
   const lecturerNames = useMemo(() => new Set(data.faculty.map((f) => f.nameEn)), [])
   const selfRows = useMemo(() => approvedRows(submissions, lecturerNames, bundledRows), [submissions, lecturerNames])
+  // Google Scholar rows a level-2 admin imported (src/scholarImport.ts); null = list not read.
+  const [scholarItems, setScholarItems] = useState<ScholarImportItem[] | null>(null)
+  const refreshScholar = () => {
+    void fetchScholarImports().then(setScholarItems)
+  }
+  useEffect(refreshScholar, [])
+  const scholarRows = useMemo(() => scholarImportRows(scholarItems ?? [], lecturerNames, bundledRows), [scholarItems, lecturerNames])
   // Conference decisions from the register buttons (src/confDecisions.ts), applied live.
   const [confItems, setConfItems] = useState<ConfDecisionItem[]>([])
   const refreshConf = () => {
@@ -132,8 +140,9 @@ export function App() {
   }
   useEffect(refreshNotices, [])
   // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
-  const keptBundled = useMemo(() => dropUnapproved(bundledRows, submissions), [submissions])
-  const pubs = useMemo(() => makePubs(keptBundled, [...liveRows, ...selfRows], conferences), [keptBundled, liveRows, selfRows, conferences])
+  // Bundled Scholar imports undone since the build are dropped too.
+  const keptBundled = useMemo(() => dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), [submissions, scholarItems])
+  const pubs = useMemo(() => makePubs(keptBundled, [...liveRows, ...selfRows, ...scholarRows], conferences), [keptBundled, liveRows, selfRows, scholarRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
@@ -313,7 +322,7 @@ export function App() {
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
-            <AdminPage data={data} pubs={pubs} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} />
+            <AdminPage data={data} pubs={pubs} scholarItems={scholarItems} onScholarChanged={refreshScholar} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} />
           )}
           {route.page === 'person' && admin !== null && (
             <PersonPage

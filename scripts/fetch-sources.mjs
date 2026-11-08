@@ -535,6 +535,30 @@ async function fetchSelf(faculty, loginApiUrl) {
   log(`Self-added works: ${out.length} approved of ${items.length} -> data/self.tsv`)
 }
 
+/** Google Scholar rows imported by a level-2 admin on the admin page (Apps Script scholarList),
+ *  written to data/scholar_imports.tsv so they survive in the build. The file is rewritten from the
+ *  list each run, so an undone import disappears; if the list cannot be read, the file is kept. */
+const SCHI_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'batch']
+async function fetchScholarImports(faculty, loginApiUrl) {
+  if (!loginApiUrl) return log('Scholar imports: no loginApiUrl in data/sources.json; skipped')
+  let items
+  try {
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'scholarList' }), redirect: 'follow' })
+    const js = await res.json()
+    if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
+    items = js.items
+  } catch (e) {
+    warn(`Scholar imports: could not read the list (${e.message}); data/scholar_imports.tsv left unchanged`)
+    return
+  }
+  const names = new Set(faculty.map((f) => f.name_en))
+  const out = items
+    .filter((s) => names.has(s.nameEn) && s.title && /^b[0-9a-f]{9}$/.test(s.batch ?? ''))
+    .map((s) => ({ key: s.nameEn, year: Number.isInteger(s.year) ? s.year : '', title: clean(s.title), authors: clean(s.authors), venue: clean(s.venue), cites: Number(s.cites) || 0, batch: s.batch }))
+  writeTsv(join(ROOT, 'data/scholar_imports.tsv'), SCHI_HEADER, out)
+  log(`Scholar imports: ${out.length} rows -> data/scholar_imports.tsv`)
+}
+
 /** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
  *  Scopus once whether the journal is indexed (ISSN(x) returns documents). Cached in
  *  data/scopus_journals.csv so a new article in a Scopus journal counts as international
@@ -778,6 +802,7 @@ if (run('scopus')) {
 if (only.includes('quartiles')) await fetchScopusQuartiles(process.env.SCOPUS_API_KEY ?? '', process.argv.includes('--refresh-quartiles'))
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
+if (run('manual') || run('self') || run('scholar')) await fetchScholarImports(faculty, sources.loginApiUrl ?? '')
 // Crossref runs after every file that can bring a new DOI (daily full run and the hourly forms run).
 if (run('manual') || run('self') || run('crossref')) await fetchCrossref(process.argv.includes('--refresh-crossref'))
 // The retired decision form's sheet (it holds respondents' e-mails) is read only from a secret, never from sources.json.
