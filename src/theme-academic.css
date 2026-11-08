@@ -688,7 +688,7 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .warn-text { color: var(--not); margin: 0; }
 .ok-text { color: var(--met, var(--accent)); margin: 0; }
 .btn-small { padding: 3px 10px; font-size: 0.82rem; }
-.scholar-update { margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; }
+.scholar-update { margin-top: 22px; margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; }
 .scholar-update-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .scholar-update-head .block-title { margin: 0; }
 .scholar-job { margin: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-secondary, transparent); }
