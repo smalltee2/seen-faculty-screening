@@ -698,3 +698,5 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .scholar-fallback[open] > summary { margin-bottom: 10px; }
 /* Lecturer form: duplicate warning (2026-11-08) */
 .dup-warning { margin: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rev-mark, var(--line)); background: var(--rev-bg, transparent); line-height: 1.6; }
+/* Outputs segment has no badge: a larger title fills its place (Tum, 2026-11-09) */
+.stat-nobadge .stat-label { font-size: 1.12rem; line-height: 1.4; }

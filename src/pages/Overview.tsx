@@ -242,7 +242,7 @@ function TypeSummary({ pubs, settings, mode }: { pubs: PersonResult['pubs']; set
 /** One segment of the overview banner (Tum, 2026-11-08: a single banner instead of five cards). */
 function Stat({ badge, color, label, value, unit, sub }: { badge?: string; color: string; label: string; value: number; unit: string; sub?: ReactNode }) {
   return (
-    <div className="stat" style={{ '--card': color } as CSSProperties}>
+    <div className={`stat${badge ? '' : ' stat-nobadge'}`} style={{ '--card': color } as CSSProperties}>
       {badge && <span className="stat-badge">{badge}</span>}
       <span className="stat-label">{label}</span>
       <b className="stat-value">
