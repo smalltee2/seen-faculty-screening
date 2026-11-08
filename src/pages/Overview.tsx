@@ -153,9 +153,14 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 }
 
 /** "ผลงานในช่วง 5 ปีของอาจารย์แต่ละคน": per-lecturer chart, shown on the admin-only lecturers tab. */
-export function LecturerOutputsBlock({ results, settings }: { results: PersonResult[]; settings: Settings }) {
-  const [view, setView] = useState<OutputsView>('research')
-  const [group, setGroup] = useState<LevelGroup>('ba')
+export function LecturerOutputsBlock({ results, settings, view: viewIn, group: groupIn, onView, onGroup }: { results: PersonResult[]; settings: Settings; view?: OutputsView; group?: LevelGroup; onView?: (v: OutputsView) => void; onGroup?: (g: LevelGroup) => void }) {
+  // Controlled by the lecturers page when it passes view/group (its CSV exports the chart as shown).
+  const [viewOwn, setViewOwn] = useState<OutputsView>('research')
+  const [groupOwn, setGroupOwn] = useState<LevelGroup>('ba')
+  const view = viewIn ?? viewOwn
+  const group = groupIn ?? groupOwn
+  const setView = onView ?? setViewOwn
+  const setGroup = onGroup ?? setGroupOwn
   const g = LEVEL_GROUPS.find((x) => x.id === group)!
   return (
     <section className={`panel level-panel level-${g.id} outputs-block`}>

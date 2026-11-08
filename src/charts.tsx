@@ -256,14 +256,12 @@ const OUTPUT_SEGS: Record<OutputsView, { key: 'research' | 'other' | 'journalInt
 
 export type { OutputsView }
 
-/** One chart per level group: `group` picks the duties (10.1.x or 9.3–9.4) and the threshold line. */
-export function LecturerOutputs({ results, settings, group, view }: { results: PersonResult[]; settings: Settings; group: LevelGroup; view: OutputsView }) {
-  const { show, hide, el } = useTip()
-  const [ref, width] = useWidth(1000)
+/** Rows of the per-lecturer outputs chart, in chart order: counted outputs in the window split
+ *  every way the chart can show them, plus the frame state. Shared with the lecturers page CSV
+ *  so the download is the chart as shown (Tum, 2026-11-09). */
+export function outputRows(results: PersonResult[], settings: Settings, group: LevelGroup, view: OutputsView) {
   const roles = SHOWN_ROLES.filter((role) => levelGroup(role.level) === group)
-  const threshold = group === 'ba' ? 1 : 3
-  const lvl = GROUP_SHORT[group]
-  const rows = results
+  return results
     .map((r) => {
       const c = r.roles.ms_program.counts
       // Counted outputs (eligible = yes) in the 5-year window, the same set the rules use.
@@ -298,6 +296,19 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
         ? b.research - a.research || b.research + b.other - (a.research + a.other) || a.name.localeCompare(b.name, 'th')
         : b.research + b.other - (a.research + a.other) || b.journalIntl + b.journalNatl + b.journalNone - (a.journalIntl + a.journalNatl + a.journalNone) || a.name.localeCompare(b.name, 'th'),
     )
+}
+
+/** Segment labels of each chart view (for the CSV header). */
+export const outputSegments = (view: OutputsView) => OUTPUT_SEGS[view].map((s) => ({ key: s.key, th: s.th }))
+
+/** One chart per level group: `group` picks the duties (10.1.x or 9.3–9.4) and the threshold line. */
+export function LecturerOutputs({ results, settings, group, view }: { results: PersonResult[]; settings: Settings; group: LevelGroup; view: OutputsView }) {
+  const { show, hide, el } = useTip()
+  const [ref, width] = useWidth(1000)
+  const roles = SHOWN_ROLES.filter((role) => levelGroup(role.level) === group)
+  const threshold = group === 'ba' ? 1 : 3
+  const lvl = GROUP_SHORT[group]
+  const rows = outputRows(results, settings, group, view)
   const segDefs = OUTPUT_SEGS[view]
   const max = niceMax(Math.max(4, ...rows.map((x) => x.research + x.other + x.maybe)) * 1.12)
   const W = Math.max(280, width)

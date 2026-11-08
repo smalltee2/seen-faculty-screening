@@ -22,9 +22,12 @@ import {
   levelGroup,
   roleShort,
   lecturersReturn,
+  LEVEL_GROUPS,
+  type LevelGroup,
 } from "../ui";
 import type { LecturerFilter, LecturerScope, LecturerSection, LecturerView } from "../App";
 import { LecturerOutputsBlock } from "./Overview";
+import { outputRows, outputSegments, type OutputsView } from "../charts";
 import { NotifyButton, type NotifyProps } from "../NotifyButton";
 import { noticeKind } from "../notify";
 import { ProgrammePanel } from "../ProgrammePanel";
@@ -91,6 +94,9 @@ export function LecturersPage({
     if (window.location.hash !== hash) history.replaceState(history.state, "", hash);
     lecturersReturn.hash = hash;
   }, [filter, scope, section, state.view, programme]);
+  // The outputs chart's switches live here so the CSV can export the chart as shown (2026-11-09).
+  const [outView, setOutView] = useState<OutputsView>("research");
+  const [outGroup, setOutGroup] = useState<LevelGroup>("ba");
   const update = (s: typeof state) => {
     setState(s);
     try {
@@ -128,8 +134,28 @@ export function LecturersPage({
     )
     .filter(matches);
 
-  const exportCsv = () =>
+  // "ผลงานในช่วง 5 ปี" view: the chart as shown (level, breakdown, chart order).
+  const exportOutputs = () => {
+    const segs = outputSegments(outView);
+    const g = LEVEL_GROUPS.find((x) => x.id === outGroup)!;
+    const rows = outputRows(results, settings, outGroup, outView);
     downloadCsv(
+      `seen-outputs-${settings.year}-${outGroup}-${outView}${programme ? `-${programme.id}` : ""}.csv`,
+      ["name_th", "name_en", ...segs.map((x) => x.th), "รวมที่นับได้", "ไม่แน่ใจ (ยังไม่นับ)", `เกณฑ์ (${g.th})`, "สถานะ"],
+      rows.map((x) => [
+        x.name,
+        x.r.person.nameEn,
+        ...segs.map((sg) => x[sg.key]),
+        x.research + x.other,
+        x.maybe,
+        `≥ ${g.rule}`,
+        x.failed > 0 ? `ไม่ผ่าน ${x.failed} หน้าที่` : x.risk.length > 0 ? `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน` : "ผ่าน",
+      ]),
+    );
+  };
+
+  const exportCsv = () =>
+    section === "outputs" ? exportOutputs() : downloadCsv(
       `seen-lecturers-${settings.year}${programme ? `-${programme.id}` : ''}.csv`,
       [
         "name_th",
@@ -195,7 +221,7 @@ export function LecturersPage({
       </div>
 
       {section === "outputs" && (
-        <LecturerOutputsBlock results={results} settings={settings} />
+        <LecturerOutputsBlock results={results} settings={settings} view={outView} group={outGroup} onView={setOutView} onGroup={setOutGroup} />
       )}
 
       {section === "duties" && (
