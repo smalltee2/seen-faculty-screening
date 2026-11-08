@@ -80,9 +80,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <section className="stat-banner" aria-label="สรุปผลการประเมิน">
         <Stat badge="รวม" color="var(--card-total)" label="อาจารย์ทั้งหมด" value={results.length} unit="คน" sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
-        <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="ผู้รับผิดชอบหลักสูตร ป.ตรี" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
-        <Stat badge="ป.โท" color="var(--lvl-ms)" label="ผู้รับผิดชอบหลักสูตร ป.โท" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
-        <Stat badge="ป.เอก" color="var(--lvl-phd)" label="ผู้รับผิดชอบหลักสูตร ป.เอก" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
+        <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="มีผู้ผ่านหลักสูตร ป.ตรี" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
+        <Stat badge="ป.โท" color="var(--lvl-ms)" label="มีผู้ผ่านหลักสูตร ป.โท" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
+        <Stat badge="ป.เอก" color="var(--lvl-phd)" label="มีผู้ผ่านหลักสูตร ป.เอก" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
         <Stat badge="5 ปี" color="var(--card-pubs)" label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} unit="รายการ" />
       </section>
 
