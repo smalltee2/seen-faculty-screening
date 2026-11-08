@@ -33,7 +33,12 @@ var MAX_NOTICES_PER_DAY = 60; // across all e-mails, so the mail quota cannot be
 var MAX_SUBMISSIONS_PER_DAY = 30;
 // Google Scholar rows imported by a level-2 admin from the admin page (2026-11-08). One batch per import.
 var SCH_HEAD = ['time', 'name_en', 'year', 'title', 'authors', 'venue', 'cites', 'by', 'batch'];
-var MAX_SCHOLAR_ROWS = 1500; // per import (a Scholar profile shows at most ~1,000 rows)
+var MAX_SCHOLAR_ROWS = 1500;
+// "อัปเดตจาก Google Scholar" button (2026-11-08): a level-2 admin queues a job; the iMac job
+// (scripts/scholar-poll.sh) claims it and reports progress with its own token. SHA-256 of that
+// token (kept in the iMac Keychain, service seen-scholar-token). Safe to publish.
+var SCHOLAR_TOKEN_HASH = '14df3e4fcae6acad4c6938f39ab72b1df9b1aad3ebdd4d8969815ea946880368';
+var JOB_HEAD = ['time', 'by', 'status', 'progress', 'message', 'updated']; // per import (a Scholar profile shows at most ~1,000 rows)
 var SUB_HEAD = ['id', 'email', 'name_en', 'year', 'title', 'authors', 'type', 'venue', 'volume', 'doi', 'research', 'created', 'status', 'decided_by', 'decided_at', 'decision_note'];
 // SHA-256 of the approval key stored inside the encrypted level-2 admin data (data/sources.json
 // approvalKeyHash; scripts/set-admin-passcode.mjs). Safe to publish. Update after each level-2 passcode change.
@@ -51,6 +56,7 @@ function setup() {
     conf_decisions: ['time', 'key', 'decision', 'by', 'note', 'name'],
     notices: NOTICE_HEAD,
     scholar_imports: SCH_HEAD,
+    scholar_jobs: JOB_HEAD,
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -144,6 +150,12 @@ function doPost(e) {
         return json(scholarList());
       case 'scholarRemove':
         return json(scholarRemove(body));
+      case 'scholarRequest':
+        return json(scholarRequest(body));
+      case 'scholarJob':
+        return json(scholarJob());
+      case 'scholarJobUpdate':
+        return json(scholarJobUpdate(body));
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -587,4 +599,70 @@ function scholarRemove(body) {
   if (keep.length) sh.getRange(2, 1, keep.length, values[0].length).setValues(keep);
   log('scholarRemove', auth.who, true, batch + ' -' + n);
   return { ok: true, removed: n };
+}
+
+/** Scholar refresh jobs. Only the latest row matters; a new request is refused while one waits or runs
+ *  (unless it has been silent for 3 hours, e.g. the iMac was off). */
+function jobSheet() {
+  var sh = sheet('scholar_jobs');
+  if (!sh) {
+    sh = SpreadsheetApp.getActiveSpreadsheet().insertSheet('scholar_jobs');
+    sh.appendRow(JOB_HEAD);
+  }
+  return sh;
+}
+
+function latestJob() {
+  var all = rows('scholar_jobs');
+  return all.length ? all[all.length - 1] : null;
+}
+
+function jobOut(r) {
+  if (!r) return null;
+  var by = String(r.by);
+  if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
+  return {
+    at: r.time ? new Date(r.time).toISOString() : '', by: by, status: String(r.status), progress: String(r.progress || ''),
+    message: String(r.message || ''), updated: r.updated ? new Date(r.updated).toISOString() : '',
+  };
+}
+
+function scholarRequest(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  jobSheet();
+  var last = latestJob();
+  var silentFor = last ? Date.now() - new Date(last.updated || last.time).getTime() : Infinity;
+  if (last && (last.status === 'requested' || last.status === 'running') && silentFor < 3 * 3600 * 1000) return { ok: false, error: 'busy', job: jobOut(last) };
+  var now = new Date();
+  jobSheet().appendRow([now, cell(auth.who, 200), 'requested', '', '', now]);
+  log('scholarRequest', auth.who, true, '');
+  return { ok: true, job: jobOut(latestJob()) };
+}
+
+function scholarJob() {
+  return { ok: true, job: jobOut(sheet('scholar_jobs') ? latestJob() : null) };
+}
+
+/** The iMac job: step "claim" takes a waiting job; "update" reports progress or the end. */
+function scholarJobUpdate(body) {
+  if (!SCHOLAR_TOKEN_HASH || sha256(String(body.token || '')) !== SCHOLAR_TOKEN_HASH) return { ok: false, error: 'bad_key' };
+  var last = sheet('scholar_jobs') ? latestJob() : null;
+  if (!last) return { ok: true, job: null };
+  var col = function (name) { return JOB_HEAD.indexOf(name) + 1; };
+  var sh = jobSheet();
+  if (body.step === 'claim') {
+    if (last.status !== 'requested') return { ok: true, job: null };
+    sh.getRange(last._row, col('status')).setValue('running');
+    sh.getRange(last._row, col('updated')).setValue(new Date());
+    return { ok: true, job: jobOut(latestJob()) };
+  }
+  if (last.status !== 'running') return { ok: false, error: 'not_running' };
+  var status = oneOf(body.status, ['running', 'done', 'blocked', 'failed']) ? String(body.status) : 'running';
+  sh.getRange(last._row, col('status')).setValue(status);
+  sh.getRange(last._row, col('progress')).setValue(cell(body.progress, 100));
+  sh.getRange(last._row, col('message')).setValue(cell(body.message, 500));
+  sh.getRange(last._row, col('updated')).setValue(new Date());
+  if (status !== 'running') log('scholarJob', 'imac', status === 'done', status + ' ' + cell(body.message, 200));
+  return { ok: true };
 }

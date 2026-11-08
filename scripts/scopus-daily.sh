@@ -12,6 +12,12 @@ log() { print -r -- "$(date '+%Y-%m-%d %H:%M:%S') $*" }
 KEY=$(security find-generic-password -s seen-scopus-api-key -w 2>/dev/null) || {
   log "ERROR: Scopus key not found in Keychain (service seen-scopus-api-key)"; exit 1; }
 cd "$REPO" || { log "ERROR: $REPO missing; run install-scopus-daily.sh"; exit 1; }
+# One job at a time in this clone (shared with scholar-poll.sh); a lock older than 2 h is stale.
+LOCK="$HOME/Library/Application Support/seen-scopus/job.lock"
+if [[ -d "$LOCK" && -n "$(find "$LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]]; then rmdir "$LOCK"; fi
+for i in {1..30}; do mkdir "$LOCK" 2>/dev/null && break; sleep 60; done
+[[ -d "$LOCK" ]] || { log "ERROR: job lock busy for 30 min"; exit 1; }
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 # A run killed mid-way (sleep, shutdown) leaves unstaged data or a half-done rebase;
 # everything here is regenerated, so start from a clean checkout of origin/main (a hard
 # reset also drops a local commit left behind by a failed push, which a rebase would not).

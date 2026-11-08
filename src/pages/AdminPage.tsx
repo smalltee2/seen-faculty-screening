@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ConferenceEntry, DataBundle, Pub, PubSource } from '../types'
 import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
@@ -6,7 +6,7 @@ import { CONFERENCE_TAG } from '../conferences'
 import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
-import { newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem } from '../scholarImport'
+import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
   scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
@@ -58,7 +58,9 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
       </div>
 
-      <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
+      <ScholarUpdate approvalKey={approvalKey}>
+        <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
+      </ScholarUpdate>
 
       <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
 
@@ -541,8 +543,7 @@ function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { 
   }
 
   return (
-    <section className="panel scholar-import">
-      <h2 className="block-title">นำเข้าจาก Google Scholar <small className="title-hint">(นำเข้าเป็นครั้งคราว โดยผู้ดูแลระดับ 2)</small></h2>
+    <div className="scholar-import">
       <ol className="scholar-steps">
         <li>
           <label htmlFor="scholar-person">เลือกอาจารย์</label>{' '}
@@ -639,6 +640,82 @@ function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { 
         </details>
       )}
       {items === null && <p className="note">อ่านรายการนำเข้าจากระบบไม่ได้ในขณะนี้</p>}
+    </div>
+  )
+}
+
+const JOB_TH: Record<ScholarJob['status'], string> = {
+  requested: 'รอเครื่อง iMac รับงาน',
+  running: 'กำลังดึงข้อมูลจาก Google Scholar',
+  done: 'เสร็จแล้ว',
+  blocked: 'หยุด: Google Scholar ขอให้ยืนยันว่าไม่ใช่บอต',
+  failed: 'ไม่สำเร็จ',
+}
+
+/** "อัปเดตจาก Google Scholar" (Tum, 2026-11-08): one button queues a refresh of every lecturer's
+ *  Scholar list; the iMac job (scripts/scholar-poll.sh, every 5 min) runs it and reports here.
+ *  The paste method stays below as the fallback when Scholar blocks the iMac. */
+function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; children: React.ReactNode }) {
+  const [job, setJob] = useState<ScholarJob | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const active = job?.status === 'requested' || job?.status === 'running'
+  useEffect(() => {
+    let stop = false
+    const tick = () => void fetchScholarJob().then((j) => !stop && setJob(j))
+    tick()
+    const t = window.setInterval(tick, active ? 10000 : 60000)
+    return () => {
+      stop = true
+      window.clearInterval(t)
+    }
+  }, [active])
+  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '')
+  const waitingLong = job?.status === 'requested' && Date.now() - new Date(job.at).getTime() > 15 * 60000
+  const start = async () => {
+    if (!approvalKey) return
+    setBusy(true)
+    setErr('')
+    try {
+      const r = await api({ action: 'scholarRequest', adminKey: approvalKey })
+      const j = (r as { job?: ScholarJob }).job
+      if (j) setJob(j)
+      if (!r.ok && r.error !== 'busy') setErr(errorText(r.error))
+    } catch {
+      setErr(errorText(''))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section className="panel scholar-update">
+      <div className="scholar-update-head">
+        <h2 className="block-title">Google Scholar <small className="title-hint">(นำเข้าเป็นครั้งคราว โดยผู้ดูแลระดับ 2)</small></h2>
+        {approvalKey ? (
+          <button type="button" className="btn btn-primary" disabled={busy || active} onClick={() => void start()}>
+            {active ? 'กำลังอัปเดต…' : busy ? 'กำลังส่งคำขอ…' : 'อัปเดตจาก Google Scholar'}
+          </button>
+        ) : (
+          <span className="note">ต้องเข้าสู่ระบบด้วยรหัสผู้ดูแลระดับ 2</span>
+        )}
+      </div>
+      <p className="note">
+        กดปุ่มเดียว ระบบจะดึงรายการผลงานจากโปรไฟล์ Google Scholar ของอาจารย์ทุกคน แล้วเพิ่มผลงานใหม่ให้อัตโนมัติ งานนี้ทำบนเครื่อง iMac ของคณะ (รับงานทุก 5 นาที ใช้เวลาประมาณ 5–10 นาที) เครื่องต้องเปิดอยู่
+      </p>
+      {job && (
+        <p className={`scholar-job scholar-job-${job.status}`} role="status">
+          <b>{JOB_TH[job.status]}</b>
+          {job.status === 'running' && job.progress && ` · ${job.progress} คน${job.message ? ` (${job.message})` : ''}`}
+          {(job.status === 'done' || job.status === 'blocked' || job.status === 'failed') && job.message && ` · ${job.message}`}
+          <span className="muted"> · สั่งเมื่อ {when(job.at)} โดย {job.by}{job.updated && job.status !== 'requested' ? ` · ล่าสุด ${when(job.updated)}` : ''}</span>
+          {waitingLong && <span className="warn-text"> เครื่อง iMac ยังไม่รับงานเกิน 15 นาที อาจปิดอยู่หรือไม่ได้เชื่อมต่ออินเทอร์เน็ต</span>}
+        </p>
+      )}
+      {err && <p className="warn-text">{err}</p>}
+      <details className="scholar-fallback">
+        <summary>วิธีสำรอง: นำเข้าทีละคนด้วยการวางรายการเอง (ใช้เมื่อ Scholar บล็อกเครื่อง iMac)</summary>
+        {children}
+      </details>
     </section>
   )
 }

@@ -90,3 +90,22 @@ export function dropRemovedScholar(bundled: RawPub[], items: ScholarImportItem[]
   const live = new Set(items.map((s) => scholarTag(s.batch)))
   return bundled.filter((p) => !p.submitted?.startsWith('scholar:') || live.has(p.submitted))
 }
+
+/** "อัปเดตจาก Google Scholar" job (Apps Script scholarRequest / scholarJob; run by the iMac job). */
+export interface ScholarJob {
+  at: string
+  by: string
+  status: 'requested' | 'running' | 'done' | 'blocked' | 'failed'
+  progress: string
+  message: string
+  updated: string
+}
+
+export async function fetchScholarJob(): Promise<ScholarJob | null> {
+  try {
+    const r = await api({ action: 'scholarJob' })
+    return r.ok ? ((r as { job?: ScholarJob | null }).job ?? null) : null
+  } catch {
+    return null
+  }
+}
