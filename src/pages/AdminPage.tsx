@@ -645,7 +645,7 @@ function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { 
 }
 
 const JOB_TH: Record<ScholarJob['status'], string> = {
-  requested: 'รอเครื่อง iMac รับงาน',
+  requested: 'รอระบบรับงาน',
   running: 'กำลังดึงข้อมูลจาก Google Scholar',
   done: 'เสร็จแล้ว',
   blocked: 'หยุด: Google Scholar ขอให้ยืนยันว่าไม่ใช่บอต',
@@ -700,7 +700,7 @@ function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; childr
         )}
       </div>
       <p className="note">
-        กดปุ่มเดียว ระบบจะดึงรายการผลงานจากโปรไฟล์ Google Scholar ของอาจารย์ทุกคน แล้วเพิ่มผลงานใหม่ให้อัตโนมัติ งานนี้ทำบนเครื่อง iMac ของคณะ (รับงานทุก 5 นาที ใช้เวลาประมาณ 5–10 นาที) เครื่องต้องเปิดอยู่
+        กดปุ่มเดียว ระบบจะดึงรายการผลงานจากโปรไฟล์ Google Scholar ของอาจารย์ทุกคน แล้วเพิ่มผลงานใหม่ให้อัตโนมัติ (รับงานทุก 5 นาที ใช้เวลาประมาณ 5–10 นาที)
       </p>
       {job && (
         <p className={`scholar-job scholar-job-${job.status}`} role="status">
