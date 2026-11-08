@@ -708,12 +708,12 @@ function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; childr
           {job.status === 'running' && job.progress && ` · ${job.progress} คน${job.message ? ` (${job.message})` : ''}`}
           {(job.status === 'done' || job.status === 'blocked' || job.status === 'failed') && job.message && ` · ${job.message}`}
           <span className="muted"> · สั่งเมื่อ {when(job.at)} โดย {job.by}{job.updated && job.status !== 'requested' ? ` · ล่าสุด ${when(job.updated)}` : ''}</span>
-          {waitingLong && <span className="warn-text"> เครื่อง iMac ยังไม่รับงานเกิน 15 นาที อาจปิดอยู่หรือไม่ได้เชื่อมต่ออินเทอร์เน็ต</span>}
+          {waitingLong && <span className="warn-text"> ระบบยังไม่รับงานเกิน 15 นาที เครื่องที่ทำงานอาจปิดอยู่หรือไม่ได้เชื่อมต่ออินเทอร์เน็ต</span>}
         </p>
       )}
       {err && <p className="warn-text">{err}</p>}
       <details className="scholar-fallback">
-        <summary>วิธีสำรอง: นำเข้าทีละคนด้วยการวางรายการเอง (ใช้เมื่อ Scholar บล็อกเครื่อง iMac)</summary>
+        <summary>วิธีสำรอง: นำเข้าทีละคนด้วยการวางรายการเอง (ใช้เมื่อ Scholar บล็อกระบบ)</summary>
         {children}
       </details>
     </section>
