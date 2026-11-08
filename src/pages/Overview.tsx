@@ -83,7 +83,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
         <Stat badge="ป.โท" color="var(--lvl-ms)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
         <Stat badge="ป.เอก" color="var(--lvl-phd)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
-        <Stat badge="5 ปี" color="var(--card-pubs)" label="ผลงานรวมที่นับได้ในช่วง 5 ปี จำนวน" value={countedPubs} unit="รายการ" />
+        <Stat color="var(--card-pubs)" label="ผลงานรวมที่นับได้ในช่วง 5 ปี จำนวน" value={countedPubs} unit="รายการ" />
       </section>
 
       <div className="dash">
@@ -240,10 +240,10 @@ function TypeSummary({ pubs, settings, mode }: { pubs: PersonResult['pubs']; set
 }
 
 /** One segment of the overview banner (Tum, 2026-11-08: a single banner instead of five cards). */
-function Stat({ badge, color, label, value, unit, sub }: { badge: string; color: string; label: string; value: number; unit: string; sub?: ReactNode }) {
+function Stat({ badge, color, label, value, unit, sub }: { badge?: string; color: string; label: string; value: number; unit: string; sub?: ReactNode }) {
   return (
     <div className="stat" style={{ '--card': color } as CSSProperties}>
-      <span className="stat-badge">{badge}</span>
+      {badge && <span className="stat-badge">{badge}</span>}
       <span className="stat-label">{label}</span>
       <b className="stat-value">
         {value}
