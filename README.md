@@ -43,7 +43,7 @@ Pushing to `main` also rebuilds the site, but without fetching. You can also sta
 | OpenAlex | automatic, daily | Free, no key. Uses `openalex_id` in `faculty.csv`. Gives DOI and journal/conference type. |
 | Scopus | automatic, daily | Needs the `SCOPUS_API_KEY` repository secret. Uses `scopus_id`, or finds the author by name + Phayao. |
 | Admin Google Form | automatic, daily | Reads the response sheet published as CSV (`manualSheetCsvUrl` in `data/sources.json`). |
-| Google Scholar | by hand | No API. Re-export with the console snippet into `publications.tsv` now and then. |
+| Google Scholar | stopped | One-time import on 2026-11-05, kept and still counted. No further exports (decision 2026-11-08): Scholar forbids automated access, so new works come from Scopus, OpenAlex and lecturers' own submissions (#/me, approved by a level-2 admin). |
 
 The same work from several sources is merged by DOI or normalised title. The type from OpenAlex, Scopus or the form decides over Scholar's venue text.
 
