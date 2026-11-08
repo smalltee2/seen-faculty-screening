@@ -83,7 +83,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
         <Stat badge="ป.โท" color="var(--lvl-ms)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
         <Stat badge="ป.เอก" color="var(--lvl-phd)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
-        <Stat badge="5 ปี" color="var(--card-pubs)" label="ผลงานที่นับได้ในช่วง 5 ปี" value={countedPubs} unit="รายการ" />
+        <Stat badge="5 ปี" color="var(--card-pubs)" label="ผลงานรวมที่นับได้ในช่วง 5 ปี จำนวน" value={countedPubs} unit="รายการ" />
       </section>
 
       <div className="dash">
