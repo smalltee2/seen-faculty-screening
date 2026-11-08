@@ -6,8 +6,8 @@ import { useState, type FormEvent } from 'react'
 import type { PersonResult, Settings } from '../rules'
 import { PersonPage } from './PersonPage'
 import { EmailLogin, api, errorText, sessionStore, useEmailUser } from '../emailLogin'
-import { STATUS_TH, TYPE_TH, type Submission, type WorkType } from '../submissions'
-import type { CrossrefEntry } from '../types'
+import { STATUS_TH, TYPE_TH, findDuplicate, type Submission, type WorkType } from '../submissions'
+import type { CrossrefEntry, Pub } from '../types'
 
 export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[] }) {
   const { user, checking, notice, logout } = useEmailUser(loginCode)
@@ -29,7 +29,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
       {result ? (
         <>
           <PersonPage result={result} settings={settings} personal crossref={crossref} />
-          <AddWork mine={mine} onChanged={onSubmissionsChanged} />
+          <AddWork mine={mine} pubs={result.pubs} onChanged={onSubmissionsChanged} />
         </>
       ) : user.isAdmin ? (
         <p className="note">บัญชีนี้เป็นผู้ดูแลที่อนุมัติผลงานได้ ไปที่แถบ สำหรับผู้ดูแลระบบ → เพิ่มผลงานด้วยตนเอง</p>
@@ -43,7 +43,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
 const EMPTY = { year: '', title: '', authors: '', type: '' as WorkType | '', venue: '', volume: '', doi: '', research: '' as '' | 'yes' | 'no' }
 
 /** Form for a lecturer's own work + the list of works they have added. */
-function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => void }) {
+function AddWork({ mine, pubs, onChanged }: { mine: Submission[]; pubs: Pub[]; onChanged: () => void }) {
   const [w, setW] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -54,7 +54,9 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
   const [gone, setGone] = useState<string[]>([])
   const set = (k: keyof typeof EMPTY) => (e: { target: { value: string } }) => setW({ ...w, [k]: e.target.value })
   const thisYear = new Date().getFullYear()
-  const valid = Number(w.year) >= 1990 && Number(w.year) <= thisYear + 1 && w.title.trim() && w.type && w.venue.trim() && w.research
+  // A work already in the system (same title or DOI) is not sent again (Tum, 2026-11-08).
+  const dup = findDuplicate(w, pubs, mine)
+  const valid = !dup && Number(w.year) >= 1990 && Number(w.year) <= thisYear + 1 && w.title.trim() && w.type && w.venue.trim() && w.research
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -113,8 +115,23 @@ function AddWork({ mine, onChanged }: { mine: Submission[]; onChanged: () => voi
         </label>
         <label className="wf wf-wide">
           <span>ชื่อผลงาน *</span>
-          <input type="text" value={w.title} onChange={set('title')} maxLength={600} required />
+          <input type="text" value={w.title} onChange={set('title')} maxLength={600} required aria-describedby={dup ? 'dup-warning' : undefined} />
         </label>
+        {dup && (
+          <p id="dup-warning" className="dup-warning wf-wide" role="alert">
+            <b>
+              {dup.kind === 'pending' ? 'ท่านยื่นผลงานนี้ไว้แล้ว และกำลังรออนุมัติ' : dup.kind === 'approved' ? 'ท่านยื่นผลงานนี้ไว้แล้ว และได้รับอนุมัติแล้ว' : 'ผลงานนี้มีในระบบแล้ว'}
+            </b>
+            {dup.kind === 'system' && <> · แหล่งข้อมูล {dup.sources.join(', ')}</>}
+            <br />
+            <span className="muted">
+              {dup.title}
+              {dup.year ? ` (${dup.year})` : ''}
+            </span>
+            <br />
+            ส่งซ้ำไม่ได้ เพราะชื่อเรื่องหรือ DOI ตรงกับผลงานที่มีอยู่แล้ว
+          </p>
+        )}
         <label className="wf wf-wide">
           <span>ผู้แต่ง</span>
           <input type="text" placeholder="เช่น Teerachai Amnuaylojaroen, Somchai Jaidee…" value={w.authors} onChange={set('authors')} maxLength={800} />

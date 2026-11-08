@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { approvedRows, dropUnapproved, selfSubmission, submittedTag, type Submission } from './submissions'
-import type { RawPub } from './types'
+import { approvedRows, dropUnapproved, findDuplicate, selfSubmission, submittedTag, type Submission } from './submissions'
+import type { PubSource, RawPub } from './types'
 
 const sub = (over: Partial<Submission>): Submission => ({
   id: 'a1', nameEn: 'Teerachai Amnuaylojaroen', year: 2024, title: 'A work', authors: 'T A', type: 'journal', venue: 'J Env', volume: '1(2)',
@@ -58,5 +58,28 @@ describe('conferenceSubmissions', () => {
     expect(out.map((x) => x.sub.id)).toEqual(['c1', 'c2'])
     expect(out[0].pub.conference?.verdict).toBe('pending')
     expect(out[0].pub.conference?.key).toMatch(/^venue:engineering/)
+  })
+})
+
+describe('findDuplicate (2026-11-08: same title or DOI = same work)', () => {
+  const pubs = [
+    { title: 'Projected Crop-Calendar Shifts in Mainland Southeast Asia', year: 2026, doi: '10.3390/resources15110142', sources: ['scopus', 'openalex'] as PubSource[] },
+    { title: 'A long Scholar title that was cut off at the end of the …', year: 2023, doi: undefined, sources: ['scholar'] as PubSource[] },
+  ]
+  const mine = [{ id: 'w1', nameEn: 'A', year: 2025, title: 'My pending Thai journal paper', authors: '', type: 'journal', venue: 'V', volume: '', doi: '', research: true, created: '', status: 'pending', decidedAt: '', note: '' }] as Submission[]
+  it('matches a title ignoring case, spaces and punctuation', () => {
+    expect(findDuplicate({ title: 'projected crop calendar shifts in mainland southeast asia.', doi: '' }, pubs, [])).toMatchObject({ kind: 'system', sources: ['Scopus', 'OpenAlex'], year: 2026 })
+  })
+  it('matches by DOI, also as a doi.org link', () => {
+    expect(findDuplicate({ title: 'Different words', doi: 'https://doi.org/10.3390/RESOURCES15110142' }, pubs, [])?.kind).toBe('system')
+  })
+  it('matches a full title against a Scholar title cut with …', () => {
+    expect(findDuplicate({ title: 'A long Scholar title that was cut off at the end of the sentence here', doi: '' }, pubs, [])?.sources).toEqual(['Google Scholar'])
+  })
+  it('reports the lecturer’s own pending submission first', () => {
+    expect(findDuplicate({ title: 'My pending Thai journal paper', doi: '' }, pubs, mine)?.kind).toBe('pending')
+  })
+  it('lets a new work through', () => {
+    expect(findDuplicate({ title: 'A genuinely new paper', doi: '10.1/xyz' }, pubs, mine)).toBeNull()
   })
 })

@@ -4,7 +4,7 @@
 // level-2 admin) are counted like works from the admin form. The hourly data job also copies
 // approved works into data/self.tsv (scripts/fetch-sources.mjs), so they survive in the build.
 import { api } from './emailLogin'
-import { preparePubs } from './classify'
+import { normalizeTitle, preparePubs } from './classify'
 import type { ConferenceEntry, Pub, RawPub } from './types'
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
@@ -108,4 +108,34 @@ export function conferenceSubmissions(items: Submission[], conferences: Conferen
     .filter((s) => (s.status === 'pending' || s.status === 'approved') && (s.type === 'proceeding' || s.type === 'poster'))
     .map((s) => ({ sub: s, pub: preparePubs([submissionRow(s)], [], conferences)[0] }))
     .filter((x): x is { sub: Submission; pub: Pub } => !!x.pub)
+}
+
+/** A work the lecturer is about to add that is already in the system (Tum, 2026-11-08: two works
+ *  cannot share a title, so a matching title or DOI is the same work and is not sent again). */
+export interface Duplicate {
+  title: string
+  year: number | null
+  /** 'system' = in the lecturer's works from any source; 'pending' / 'approved' = their own submission. */
+  kind: 'system' | 'pending' | 'approved'
+  sources: string[]
+}
+
+const SOURCE_TH: Record<string, string> = { scopus: 'Scopus', openalex: 'OpenAlex', scholar: 'Google Scholar', manual: 'ผลงานที่เพิ่มเองหรือแบบฟอร์มผู้ดูแล' }
+
+export function findDuplicate(work: { title: string; doi: string }, pubs: Pick<Pub, 'title' | 'year' | 'doi' | 'sources'>[], mine: Submission[]): Duplicate | null {
+  const t = normalizeTitle(work.title)
+  const d = bareDoi(work.doi).toLowerCase()
+  if (t.length < 8 && !d) return null
+  // Scholar cuts long titles with "…": a stored cut title matches a full title that starts with it.
+  const same = (title: string, doi?: string) => {
+    if (d && doi && bareDoi(doi).toLowerCase() === d) return true
+    const k = normalizeTitle(title)
+    if (!k || t.length < 8) return false
+    return k === t || (/(…|\.\.\.)\s*$/.test(title) && k.length >= 20 && t.startsWith(k))
+  }
+  const own = mine.find((s) => (s.status === 'pending' || s.status === 'approved') && same(s.title, s.doi))
+  if (own) return { title: own.title, year: own.year, kind: own.status === 'pending' ? 'pending' : 'approved', sources: [] }
+  const p = pubs.find((x) => same(x.title, x.doi))
+  if (p) return { title: p.title, year: p.year, kind: 'system', sources: [...new Set(p.sources.map((s) => SOURCE_TH[s] ?? s))] }
+  return null
 }
