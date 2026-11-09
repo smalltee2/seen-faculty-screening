@@ -14,6 +14,7 @@
  *   admins:   email | name | active   ← level-2 admins who may approve works (Tum fills)
  *   conf_decisions: time | key | decision | by | note | name  ← conference decisions from the register buttons
  *   notices:  time | name_en | kind | by | subject | ack_hash | ack_at  ← reminder e-mails; ack_at = lecturer clicked รับทราบ
+ *   form_cancels: time | name_en | title_norm | title | action | by  ← admin-form works cancelled/restored from the site
  *
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
@@ -34,6 +35,9 @@ var MAX_SUBMISSIONS_PER_DAY = 30;
 // Google Scholar rows imported by a level-2 admin from the admin page (2026-11-08). One batch per import.
 var SCH_HEAD = ['time', 'name_en', 'year', 'title', 'authors', 'venue', 'cites', 'by', 'batch'];
 var MAX_SCHOLAR_ROWS = 1500;
+// Works added through the admin form that a level-2 admin cancelled (or restored) from the site.
+// Every press is kept; the latest per lecturer + title wins (site and hourly job).
+var FORM_CANCEL_HEAD = ['time', 'name_en', 'title_norm', 'title', 'action', 'by'];
 // "อัปเดตจาก Google Scholar" button (2026-11-08): a level-2 admin queues a job; the iMac job
 // (scripts/scholar-poll.sh) claims it and reports progress with its own token. SHA-256 of that
 // token (kept in the iMac Keychain, service seen-scholar-token). Safe to publish.
@@ -57,6 +61,7 @@ function setup() {
     notices: NOTICE_HEAD,
     scholar_imports: SCH_HEAD,
     scholar_jobs: JOB_HEAD,
+    form_cancels: FORM_CANCEL_HEAD,
   };
   Object.keys(want).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
@@ -156,6 +161,10 @@ function doPost(e) {
         return json(scholarJob());
       case 'scholarJobUpdate':
         return json(scholarJobUpdate(body));
+      case 'formCancel':
+        return json(formCancel(body));
+      case 'formCancelList':
+        return json(formCancelList());
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -599,6 +608,37 @@ function scholarRemove(body) {
   if (keep.length) sh.getRange(2, 1, keep.length, values[0].length).setValues(keep);
   log('scholarRemove', auth.who, true, batch + ' -' + n);
   return { ok: true, removed: n };
+}
+
+/** A level-2 admin cancels a work added through the admin form (action "cancel"), or puts it
+ *  back ("restore"). The form's responses sheet is left as it is. */
+function formCancel(body) {
+  var auth = adminWho(body);
+  if (auth.error) return { ok: false, error: auth.error };
+  var nameEn = String(body.nameEn || '').trim();
+  var title = cell(body.title, 600);
+  var k = normTitle(title);
+  var action = oneOf(body.mode, ['cancel', 'restore']) ? String(body.mode) : '';
+  if (!nameEn || !k || !action) return { ok: false, error: 'bad_request' };
+  var sh = sheet('form_cancels');
+  if (!sh) {
+    sh = SpreadsheetApp.getActiveSpreadsheet().insertSheet('form_cancels');
+    sh.appendRow(FORM_CANCEL_HEAD);
+  }
+  sh.appendRow([new Date(), nameEn, k, title, action, auth.who]);
+  log('formCancel', auth.who, true, nameEn + ' ' + action + ' ' + k.slice(0, 60));
+  return { ok: true };
+}
+
+/** Public list of form cancellations (oldest first; no e-mail addresses). */
+function formCancelList() {
+  if (!sheet('form_cancels')) return { ok: true, items: [] };
+  var items = rows('form_cancels').map(function (r) {
+    var by = String(r.by);
+    if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
+    return { at: r.time ? new Date(r.time).toISOString() : '', nameEn: String(r.name_en), titleNorm: String(r.title_norm), title: String(r.title), action: String(r.action), by: by };
+  });
+  return { ok: true, items: items };
 }
 
 /** Scholar refresh jobs. Only the latest row matters; a new request is refused while one waits or runs

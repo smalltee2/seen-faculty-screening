@@ -559,6 +559,28 @@ async function fetchScholarImports(faculty, loginApiUrl) {
   log(`Scholar imports: ${out.length} rows -> data/scholar_imports.tsv`)
 }
 
+/** Admin-form works a level-2 admin cancelled on the site (Apps Script formCancelList; the latest
+ *  press per lecturer + title wins). Only the ones still cancelled are written to
+ *  data/form_cancels.tsv; build-data.mjs drops those rows of manual.tsv. */
+async function fetchFormCancels(loginApiUrl) {
+  if (!loginApiUrl) return log('Form cancels: no loginApiUrl in data/sources.json; skipped')
+  let items
+  try {
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'formCancelList' }), redirect: 'follow' })
+    const js = await res.json()
+    if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
+    items = js.items
+  } catch (e) {
+    warn(`Form cancels: could not read the list (${e.message}); data/form_cancels.tsv left unchanged`)
+    return
+  }
+  const latest = new Map()
+  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) if (it.nameEn && it.titleNorm) latest.set(`${it.nameEn}|${it.titleNorm}`, it)
+  const out = [...latest.values()].filter((it) => it.action === 'cancel').map((it) => ({ name_en: it.nameEn, title_norm: it.titleNorm, title: clean(it.title), at: it.at, by: clean(it.by) }))
+  writeTsv(join(ROOT, 'data/form_cancels.tsv'), ['name_en', 'title_norm', 'title', 'at', 'by'], out)
+  log(`Form cancels: ${out.length} cancelled -> data/form_cancels.tsv`)
+}
+
 /** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
  *  Scopus once whether the journal is indexed (ISSN(x) returns documents). Cached in
  *  data/scopus_journals.csv so a new article in a Scopus journal counts as international
@@ -803,6 +825,7 @@ if (only.includes('quartiles')) await fetchScopusQuartiles(process.env.SCOPUS_AP
 if (run('manual')) await fetchManual(faculty, sources.manualSheetCsvUrl ?? '')
 if (run('manual') || run('self')) await fetchSelf(faculty, sources.loginApiUrl ?? '')
 if (run('manual') || run('self') || run('scholar')) await fetchScholarImports(faculty, sources.loginApiUrl ?? '')
+if (run('manual')) await fetchFormCancels(sources.loginApiUrl ?? '')
 // Crossref runs after every file that can bring a new DOI (daily full run and the hourly forms run).
 if (run('manual') || run('self') || run('crossref')) await fetchCrossref(process.argv.includes('--refresh-crossref'))
 // The retired decision form's sheet (it holds respondents' e-mails) is read only from a secret, never from sources.json.

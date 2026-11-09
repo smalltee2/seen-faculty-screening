@@ -14,6 +14,7 @@ import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
 import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
 import { dropRemovedScholar, fetchScholarImports, scholarImportRows, type ScholarImportItem } from './scholarImport'
+import { cancelledForms, dropCancelledForms, fetchFormCancels, type FormCancelItem } from './formCancel'
 import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
 import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
@@ -139,10 +140,18 @@ export function App() {
     void fetchNotices().then(setNotices)
   }
   useEffect(refreshNotices, [])
+  // Admin-form works a level-2 admin cancelled on the site (src/formCancel.ts); null = list not read.
+  const [formCancels, setFormCancels] = useState<FormCancelItem[] | null>(null)
+  const refreshFormCancels = () => {
+    void fetchFormCancels().then(setFormCancels)
+  }
+  useEffect(refreshFormCancels, [])
+  const cancelled = useMemo(() => cancelledForms(formCancels ?? []), [formCancels])
   // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
   // Bundled Scholar imports undone since the build are dropped too.
-  const keptBundled = useMemo(() => dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), [submissions, scholarItems])
-  const pubs = useMemo(() => makePubs(keptBundled, [...liveRows, ...selfRows, ...scholarRows], conferences), [keptBundled, liveRows, selfRows, scholarRows, conferences])
+  const keptBundled = useMemo(() => dropCancelledForms(dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), cancelled), [submissions, scholarItems, cancelled])
+  const keptLive = useMemo(() => dropCancelledForms(liveRows, cancelled), [liveRows, cancelled])
+  const pubs = useMemo(() => makePubs(keptBundled, [...keptLive, ...selfRows, ...scholarRows], conferences), [keptBundled, keptLive, selfRows, scholarRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
@@ -322,7 +331,7 @@ export function App() {
             />
           )}
           {route.page === 'admin' && admin !== null && admin.level === 2 && (
-            <AdminPage data={data} pubs={pubs} scholarItems={scholarItems} onScholarChanged={refreshScholar} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} />
+            <AdminPage data={data} pubs={pubs} scholarItems={scholarItems} onScholarChanged={refreshScholar} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} formCancelled={[...cancelled.values()]} onFormChanged={refreshFormCancels} />
           )}
           {route.page === 'person' && admin !== null && (
             <PersonPage

@@ -119,9 +119,19 @@ const SOURCES = [
   // Works lecturers added themselves and a level-2 admin approved (scripts/fetch-sources.mjs fetchSelf).
   { file: join(ROOT, 'data/self.tsv'), name: 'manual', label: 'self.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted, issn: p.issn ?? '' }) },
 ]
+// Admin-form works a level-2 admin cancelled on the site (fetch-sources.mjs fetchFormCancels).
+// Same normalisation as src/classify.ts normalizeTitle and the backend's normTitle.
+const normTitle = (t) => String(t ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
+const FORM_CANCELS = join(ROOT, 'data/form_cancels.tsv')
+const formCancelled = new Set(existsSync(FORM_CANCELS) ? toRecords(parseTsv(read(FORM_CANCELS)), ['name_en', 'title_norm'], 'form_cancels.tsv').map((r) => `${r.name_en}|${r.title_norm}`) : [])
+let formDropped = 0
 const publications = SOURCES.flatMap((src) => {
   if (!src.required && !existsSync(src.file)) return []
-  return toRecords(parseTsv(read(src.file)), ['key', 'year', 'title', 'authors', 'venue', 'cites'], src.label).map((p) => {
+  return toRecords(parseTsv(read(src.file)), ['key', 'year', 'title', 'authors', 'venue', 'cites'], src.label).filter((p) => {
+    if (src.label !== 'manual.tsv' || !formCancelled.has(`${p.key}|${normTitle(p.title)}`)) return true
+    formDropped++
+    return false
+  }).map((p) => {
     const year = p.year ? Number(p.year) : null
     if (year !== null && (!Number.isInteger(year) || year < 1900 || year > 2100)) fail(`${src.label} line ${p._line}: year "${p.year}" is not a valid year`)
     return {
@@ -137,6 +147,7 @@ const publications = SOURCES.flatMap((src) => {
     }
   })
 })
+if (formDropped) log(`${formDropped} admin-form row(s) cancelled on the site (data/form_cancels.tsv) left out`)
 
 const unknownKeys = [...new Set(publications.map((p) => p.key).filter((k) => !names.has(k)))]
 if (unknownKeys.length) warn(`publications.tsv keys not in faculty.csv (rows ignored by the site): ${unknownKeys.join('; ')}`)

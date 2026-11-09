@@ -6,6 +6,7 @@ import { CONFERENCE_TAG } from '../conferences'
 import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
+import type { FormCancelItem } from '../formCancel'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -15,8 +16,9 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void }) {
-  const manual = pubs.filter((p) => p.sources.includes('manual')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
+export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void; formCancelled?: FormCancelItem[]; onFormChanged?: () => void }) {
+  // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table above.
+  const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
 
@@ -91,6 +93,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
                 <th>ประเภท</th>
                 <th>งานวิจัย</th>
                 <th>ส่งเมื่อ</th>
+                <th>การจัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -110,6 +113,9 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
                       {p.submitted ?? ''}
                       {p.live && <div className="jl cf-pending">สด · ยังไม่ได้บันทึกในระบบ (จะบันทึกในรอบ 03:00)</div>}
                     </td>
+                    <td className="nowrap">
+                      <FormCancelButton nameEn={p.key} title={p.title} action="cancel" approvalKey={approvalKey} onChanged={onFormChanged} />
+                    </td>
                   </tr>
                 )
               })}
@@ -117,7 +123,82 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
           </table>
         </div>
       )}
+      {formCancelled.length > 0 && (
+        <details className="form-cancelled">
+          <summary>ผลงานจากแบบฟอร์มที่ยกเลิกแล้ว · {formCancelled.length} รายการ (ไม่นับ)</summary>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>อาจารย์</th>
+                  <th>ชื่อผลงาน</th>
+                  <th>ยกเลิกเมื่อ / โดย</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formCancelled.map((c) => {
+                  const f = person(c.nameEn)
+                  return (
+                    <tr key={`${c.nameEn}|${c.titleNorm}`} className="greyed">
+                      <td>{f ? displayName(f) : c.nameEn}</td>
+                      <td><div className="pub-title">{c.title}</div></td>
+                      <td className="small muted">{c.at ? new Date(c.at).toLocaleDateString('th-TH') : '—'} · {c.by}</td>
+                      <td className="nowrap"><FormCancelButton nameEn={c.nameEn} title={c.title} action="restore" approvalKey={approvalKey} onChanged={onFormChanged} /></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
     </>
+  )
+}
+
+/** "ยกเลิกผลงาน" / "คืนผลงาน" for one admin-form work (level-2 admin; src/formCancel.ts). */
+function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { nameEn: string; title: string; action: 'cancel' | 'restore'; approvalKey?: string; onChanged: () => void }) {
+  const { user } = useEmailUser()
+  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const [error, setError] = useState('')
+  if (!approvalKey && !user?.isAdmin) return null
+  const send = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await api({ action: 'formCancel', adminKey: approvalKey ?? '', session: sessionStore.get(), nameEn, title, mode: action })
+      if (r.ok) {
+        setConfirm(false)
+        onChanged()
+      } else setError(errorText(r.error))
+    } catch {
+      setError(errorText(''))
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (action === 'restore')
+    return (
+      <span className="conf-buttons no-print">
+        <button type="button" className="btn btn-small" disabled={busy} onClick={() => void send()}>คืนผลงาน</button>
+        {error && <span className="gate-error small">{error}</span>}
+      </span>
+    )
+  return (
+    <span className="conf-buttons no-print">
+      {confirm ? (
+        <>
+          <span className="small">ยกเลิกผลงานนี้? ระบบจะไม่นับ</span>{' '}
+          <button type="button" className="btn btn-small btn-primary" disabled={busy} onClick={() => void send()}>ยืนยัน</button>{' '}
+          <button type="button" className="btn btn-small" disabled={busy} onClick={() => setConfirm(false)}>ไม่</button>
+        </>
+      ) : (
+        <button type="button" className="btn btn-small" onClick={() => setConfirm(true)}>ยกเลิกผลงาน</button>
+      )}
+      {error && <span className="gate-error small">{error}</span>}
+    </span>
   )
 }
 
@@ -311,7 +392,7 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
  *  (listed in the admins sheet) can also decide. */
 function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => void }) {
   const { user, checking } = useEmailUser()
-  const [show, setShow] = useState<'pending' | 'all'>('pending')
+  const [show, setShow] = useState<'pending' | 'decided' | 'all'>('pending')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const name = (key: string) => {
@@ -320,7 +401,8 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
   }
   const live = submissions.filter((s) => s.status !== 'withdrawn')
   const pending = live.filter((s) => s.status === 'pending')
-  const rows = (show === 'pending' ? pending : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
+  const decided = live.filter((s) => s.status !== 'pending')
+  const rows = (show === 'pending' ? pending : show === 'decided' ? decided : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
   const canDecide = !!approvalKey || !!user?.isAdmin
   // Conference check for proceedings/posters, same register as below (src/conferences.ts).
   const confOf = new Map(conferenceSubmissions(submissions, conferences).map((x) => [x.sub.id, x.pub.conference]))
@@ -351,6 +433,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
           onChange={setShow}
           options={[
             { id: 'pending', label: `รออนุมัติ (${pending.length})` },
+            { id: 'decided', label: `ตัดสินแล้ว (${decided.length})` },
             { id: 'all', label: `ทั้งหมด (${live.length})` },
           ]}
         />
@@ -374,7 +457,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
         </p>
       )}
       {rows.length === 0 ? (
-        <p className="note">{show === 'pending' ? 'ไม่มีผลงานรออนุมัติ' : 'ยังไม่มีผลงานที่อาจารย์เพิ่มเอง'}</p>
+        <p className="note">{show === 'pending' ? 'ไม่มีผลงานรออนุมัติ' : show === 'decided' ? 'ยังไม่มีผลงานที่ตัดสินแล้ว' : 'ยังไม่มีผลงานที่อาจารย์เพิ่มเอง'}</p>
       ) : (
         <div className="table-wrap">
           <table className="data">
@@ -433,7 +516,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
                         </>
                       ) : (
                         <button type="button" className="btn btn-small" disabled={busy === s.id} onClick={() => void decide(s.id, 'pending')}>
-                          ย้อนเป็นรออนุมัติ
+                          ยกเลิกการตัดสิน
                         </button>
                       ))}
                   </td>
