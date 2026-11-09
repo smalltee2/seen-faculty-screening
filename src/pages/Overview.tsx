@@ -1,10 +1,13 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
+import { countedWorks, nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, YEAR_SERIES, type OutputsView, type YearMode } from '../charts'
 import { LEVEL_GROUPS, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
 export function Overview({ results, settings }: { results: PersonResult[]; settings: Settings }) {
-  const countedPubs = new Set(results.flatMap((r) => r.roles.ms_program.used.map((e) => e.pub.titleNorm))).size
+  // One list for the banner, the per-year chart and its table: each work once, counted works only.
+  const works = countedWorks(results, settings)
+  const allPubs = results.flatMap((r) => r.pubs)
+  const countedPubs = works.filter((p) => p.year !== null && p.year >= settings.year - 4 && p.year <= settings.year).length
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
   const [yearMode, setYearMode] = useState<YearMode>('type')
@@ -143,8 +146,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             />
             </div>
           </div>
-          <PubsPerYear pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />
-          <TypeSummary pubs={results.flatMap((r) => r.pubs)} settings={settings} mode={yearMode} />
+          <PubsPerYear pubs={works} allPubs={allPubs} settings={settings} mode={yearMode} />
+          <TypeSummary pubs={works} settings={settings} mode={yearMode} />
+          <p className="muted small">นับเฉพาะผลงานที่นับได้ตามเกณฑ์ งานที่มีอาจารย์ในคณะหลายคนเป็นผู้แต่งร่วมนับเป็น 1 รายการ (ตรงกับจำนวนผลงานรวมด้านบน)</p>
         </section>
       </div>
 
@@ -204,7 +208,7 @@ function TypeSummary({ pubs, settings, mode }: { pubs: PersonResult['pubs']; set
   return (
     <div className="table-wrap type-summary">
       <table className="data compact">
-        <caption className="sr-only">จำนวนผลงานแยกตาม{mode === 'quality' ? 'คุณภาพ' : 'ประเภท'} ช่วง 5 ปีที่ใช้ประเมิน (นับซ้ำตามรายชื่ออาจารย์)</caption>
+        <caption className="sr-only">จำนวนผลงานแยกตาม{mode === 'quality' ? 'คุณภาพ' : 'ประเภท'} ช่วง 5 ปีที่ใช้ประเมิน (ผลงานที่นับได้ งานละ 1 รายการ)</caption>
         <thead>
           <tr>
             <th>{mode === 'quality' ? 'คุณภาพ' : 'ประเภท'}</th>

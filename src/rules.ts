@@ -340,6 +340,17 @@ export interface PersonResult {
   roles: Record<string, RoleResult>
 }
 
+/** Faculty-wide outputs that count, any year: each work once (co-authors share it), kept when
+ *  the work counts for at least one of its lecturers. The overview banner, the per-year chart
+ *  and its table all use this list (Tum, 2026-11-09), so their totals agree. */
+export function countedWorks(results: PersonResult[], s: Settings): Pub[] {
+  const out = new Map<string, Pub>()
+  for (const r of results)
+    for (const pub of r.pubs)
+      if (!out.has(pub.titleNorm) && evaluatePub(pub, r.person, s).eligible === 'yes') out.set(pub.titleNorm, pub)
+  return [...out.values()]
+}
+
 export function evaluatePerson(p: Faculty, pubs: Pub[], s: Settings): PersonResult {
   const own = pubs.filter((x) => x.key === p.nameEn)
   return { person: p, pubs: own, roles: Object.fromEntries(ROLES.map((r) => [r.id, evaluateRole(r, p, own, s)])) }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  countedWorks,
   evaluatePerson,
   nextYearRisk,
   programmeCheck,
@@ -345,5 +346,23 @@ describe('inProgramme (review, 2026-11-07)', () => {
   it('matches the full words Graduate Diploma', () => {
     expect(inProgramme(f('Graduate Diploma in Environmental Management'), 'gd')).toBe(true)
     expect(inProgramme(f('Higher Graduate Diploma in X'), 'gd')).toBe(false)
+  })
+})
+
+describe('countedWorks', () => {
+  it('counts a co-authored work once and drops works that do not count', () => {
+    const a = person({ nameEn: 'A' })
+    const b = person({ nameEn: 'B' })
+    const shared = { year: 2025, titleNorm: 'shared', type: 'journal' as const }
+    const pubs = [
+      pub({ ...shared, key: 'A' }),
+      pub({ ...shared, key: 'B' }),
+      pub({ key: 'A', year: 2024 }),
+      pub({ key: 'B', year: 2024, type: 'exclude' }),
+    ]
+    const res = [a, b].map((p) => evaluatePerson(p, pubs, S))
+    const works = countedWorks(res, S)
+    expect(works.map((w) => w.titleNorm).sort()).toEqual(['shared', works.find((w) => w.year === 2024)!.titleNorm].sort())
+    expect(works).toHaveLength(2)
   })
 })

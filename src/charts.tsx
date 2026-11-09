@@ -85,8 +85,9 @@ export const YEAR_SERIES: Record<YearMode, YearSeries[]> = {
   ],
 }
 
-/** Publications per year by type, all lecturers, with the 5-year window shaded. */
-export function PubsPerYear({ pubs, settings, mode = 'type' }: { pubs: Pub[]; settings: Settings; mode?: YearMode }) {
+/** Counted works per year by type (`pubs` = countedWorks), with the 5-year window shaded.
+ *  `allPubs` (every lecturer's rows) only feeds the tooltip's not-counted figure. */
+export function PubsPerYear({ pubs, allPubs = pubs, settings, mode = 'type' }: { pubs: Pub[]; allPubs?: Pub[]; settings: Settings; mode?: YearMode }) {
   const SERIES = YEAR_SERIES[mode]
   const { show, hide, el } = useTip()
   const [ref, width] = useWidth(640)
@@ -96,7 +97,9 @@ export function PubsPerYear({ pubs, settings, mode = 'type' }: { pubs: Pub[]; se
   const rows = years.map((y) => {
     const ofYear = pubs.filter((p) => p.year === y)
     const n: Record<string, number> = Object.fromEntries(SERIES.map((sr) => [sr.key, ofYear.filter(sr.match).length]))
-    return { y, n, total: SERIES.reduce((a, sr) => a + n[sr.key], 0), excluded: ofYear.filter((p) => p.type === 'exclude' || p.type === 'unknown').length }
+    const counted = new Set(ofYear.map((p) => p.titleNorm))
+    const excluded = new Set(allPubs.filter((p) => p.year === y && !counted.has(p.titleNorm)).map((p) => p.titleNorm)).size
+    return { y, n, total: SERIES.reduce((a, sr) => a + n[sr.key], 0), excluded }
   })
   // 15% headroom so the bar totals never collide with the window label.
   const max = niceMax(Math.max(1, ...rows.map((r) => r.total)) * 1.15)
@@ -207,7 +210,7 @@ export function PubsPerYear({ pubs, settings, mode = 'type' }: { pubs: Pub[]; se
                           {sr.th} {r.n[sr.key]}
                         </span>
                       ))}
-                      <span className="muted">ไม่นับ/ไม่ทราบประเภท {r.excluded}</span>
+                      <span className="muted">ไม่นับ {r.excluded}</span>
                     </>,
                   )
                 }
