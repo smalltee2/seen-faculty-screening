@@ -438,7 +438,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
           ]}
         />
         {approvalKey ? (
-          <span className="muted small">อนุมัติในนามผู้ดูแลระดับ 2</span>
+          null
         ) : checking ? (
           <span className="muted small">กำลังตรวจสอบการเข้าสู่ระบบ…</span>
         ) : canDecide ? (
