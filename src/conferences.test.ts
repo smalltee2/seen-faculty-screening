@@ -37,9 +37,10 @@ describe('conference verdict', () => {
     expect(conferenceVerdict(entry({ relatedField: 'unknown' })).verdict).toBe('pending')
     expect(conferenceVerdict(entry({ confidence: 'medium' })).verdict).toBe('pending')
   })
-  it('high confidence + association organises/co-organises + environment/energy → count', () => {
-    expect(conferenceVerdict(entry()).verdict).toBe('count')
-    expect(conferenceVerdict(entry({ associationRole: 'co_organiser' })).verdict).toBe('count')
+  it('high confidence + association + environment/energy is only a suggestion → pending until an admin confirms', () => {
+    expect(conferenceVerdict(entry()).verdict).toBe('pending')
+    expect(conferenceVerdict(entry()).reason).toContain('รอผู้ดูแลยืนยัน')
+    expect(conferenceVerdict(entry({ associationRole: 'co_organiser' })).verdict).toBe('pending')
   })
   it('no association, or unrelated field → no_count', () => {
     expect(conferenceVerdict(entry({ associationRole: 'none', association: '' })).verdict).toBe('no_count')
@@ -61,9 +62,11 @@ describe('rule: proceedings count only when the conference is endorsed', () => {
   it('screening off → counts as before', () => {
     expect(evaluatePub(pub('X Conf, 1-2, 2024', new Map()), person, S).eligible).toBe('yes')
   })
-  it('screening on → unchecked is not counted, endorsed is', () => {
+  it('screening on → unchecked or AI-only is not counted, admin-confirmed is', () => {
     expect(evaluatePub(pub('X Conf, 1-2, 2024', new Map()), person, { ...S, screenConferences: true }).eligible).toBe('no')
-    const idx = new Map([['venue:x conf', entry({ key: 'venue:x conf' })]])
-    expect(evaluatePub(pub('X Conf, 1-2, 2024', idx), person, { ...S, screenConferences: true }).eligible).toBe('yes')
+    const ai = new Map([['venue:x conf', entry({ key: 'venue:x conf' })]])
+    expect(evaluatePub(pub('X Conf, 1-2, 2024', ai), person, { ...S, screenConferences: true }).eligible).toBe('no')
+    const admin = new Map([['venue:x conf', entry({ key: 'venue:x conf', decision: 'count' })]])
+    expect(evaluatePub(pub('X Conf, 1-2, 2024', admin), person, { ...S, screenConferences: true }).eligible).toBe('yes')
   })
 })

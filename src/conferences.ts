@@ -60,7 +60,8 @@ export function conferenceVerdict(entry: ConferenceEntry | null): Pick<Conferenc
   if (entry.decision === 'no_count') return { verdict: 'no_count', reason: `ผู้ดูแลยืนยัน: ไม่เข้าเกณฑ์${entry.decisionNote ? ` — ${entry.decisionNote}` : ''}`, by: 'admin' }
   const assoc = entry.associationRole === 'organiser' || entry.associationRole === 'co_organiser'
   if (entry.confidence === 'high' && assoc && entry.relatedField === 'yes')
-    return { verdict: 'count', reason: `ตรวจอัตโนมัติ: ${entry.association} ${entry.associationRole === 'organiser' ? 'จัด' : 'ร่วมจัด'} สาขา${entry.field ? ` ${entry.field}` : 'เกี่ยวข้อง'}`, by: 'auto' }
+    // An automatic "count" is only a suggestion: it counts once an admin confirms (Tum, 2026-11-10).
+    return { verdict: 'pending', reason: `ตรวจอัตโนมัติ: ${entry.association} ${entry.associationRole === 'organiser' ? 'จัด' : 'ร่วมจัด'} สาขา${entry.field ? ` ${entry.field}` : 'เกี่ยวข้อง'} — แนะนำให้นับ รอผู้ดูแลยืนยัน`, by: 'auto' }
   if (entry.confidence !== 'low' && entry.associationRole === 'none')
     return { verdict: 'no_count', reason: `ตรวจอัตโนมัติ: ไม่มีสมาคมจัดหรือร่วมจัด${entry.organiser ? ` (จัดโดย ${entry.organiser})` : ''}`, by: 'auto' }
   if (entry.confidence !== 'low' && assoc && entry.relatedField === 'no')
