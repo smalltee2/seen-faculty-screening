@@ -20,7 +20,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
     <>
       <div className="me-bar no-print">
         <span>
-          เข้าสู่ระบบเป็น <b>{user.email || result?.person.nameTh || user.nameEn}</b> · หน้านี้แสดงเฉพาะข้อมูลของท่าน
+          เข้าสู่ระบบเป็น <b>{user.email || result?.person.nameTh || user.nameEn}</b>
         </span>
         <button type="button" className="btn btn-small" onClick={logout}>
           ออกจากระบบ
