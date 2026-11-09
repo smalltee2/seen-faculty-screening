@@ -7,6 +7,7 @@ import { api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
 import type { FormCancelItem } from '../formCancel'
+import leafIcon from '../assets/leaf-spinner.png'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -16,7 +17,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => void; formCancelled?: FormCancelItem[]; onFormChanged?: () => void }) {
+export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => void }) {
   // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table above.
   const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
@@ -237,7 +238,7 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 }
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => void }) {
+function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => unknown }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[]; pending: number }>()
   const { minYear } = registerWindow(pubs)
   const add = (p: Pub, isPending: boolean) => {
@@ -390,7 +391,7 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
 /** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
  *  The level-2 sign-in carries an approval key the backend checks; an admin signed in by e-mail
  *  (listed in the admins sheet) can also decide. */
-function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => void }) {
+function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => unknown }) {
   const { user, checking } = useEmailUser()
   const [show, setShow] = useState<'pending' | 'decided' | 'all'>('pending')
   const [busy, setBusy] = useState('')
@@ -532,7 +533,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
 
 /** "นับ / ไม่นับ / ยกเลิกการตัดสิน" for one conference (replaces the decision form, 2026-11-07).
  *  Allowed with the level-2 approval key, or for an admin signed in by e-mail. */
-function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => void }) {
+function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => unknown }) {
   const { user } = useEmailUser()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -542,7 +543,7 @@ function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: st
     setError('')
     try {
       const r = await api({ action: 'confDecide', adminKey: approvalKey ?? '', session: sessionStore.get(), key: ckey, decision, name })
-      if (r.ok) onChanged()
+      if (r.ok) await onChanged() // spinner stays until the register shows the new result
       else setError(errorText(r.error))
     } catch {
       setError(errorText(''))
@@ -563,8 +564,19 @@ function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: st
           ยกเลิกการตัดสิน
         </button>
       )}
+      {busy && <LeafSpinner />}
       {error && <span className="gate-error small">{error}</span>}
     </div>
+  )
+}
+
+/** Turning three-leaf icon shown while a decision is saved (Tum, 2026-11-10). */
+function LeafSpinner() {
+  return (
+    <span className="leaf-spinner" role="status">
+      <img src={leafIcon} alt="" width={22} height={22} />
+      <span className="sr-only">กำลังบันทึก…</span>
+    </span>
   )
 }
 

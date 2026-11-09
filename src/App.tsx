@@ -129,10 +129,11 @@ export function App() {
   const scholarRows = useMemo(() => scholarImportRows(scholarItems ?? [], lecturerNames, bundledRows), [scholarItems, lecturerNames])
   // Conference decisions from the register buttons (src/confDecisions.ts), applied live.
   const [confItems, setConfItems] = useState<ConfDecisionItem[]>([])
-  const refreshConf = () => {
-    void fetchConfDecisions().then(setConfItems)
-  }
-  useEffect(refreshConf, [])
+  // Returns the reload, so the register's buttons can keep their spinner until the new result shows.
+  const refreshConf = () => fetchConfDecisions().then(setConfItems)
+  useEffect(() => {
+    void refreshConf()
+  }, [])
   const conferences = useMemo(() => applyConfDecisions(data.conferences ?? [], confItems), [confItems])
   // Reminder e-mails sent to lecturers (src/notify.ts): when each was last notified.
   const [notices, setNotices] = useState<Notice[]>([])
