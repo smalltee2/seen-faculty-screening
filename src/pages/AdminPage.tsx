@@ -267,7 +267,7 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
   return (
     <>
       <h2 className="block-title">
-        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> · รอตรวจสอบ {pending}</span>}
+        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> (รอตรวจสอบ {pending})</span>}
       </h2>
       {rows.length > 0 && (
         <div className="register-tools no-print">
