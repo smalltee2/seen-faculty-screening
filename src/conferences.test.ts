@@ -42,9 +42,10 @@ describe('conference verdict', () => {
     expect(conferenceVerdict(entry()).reason).toContain('รอผู้ดูแลยืนยัน')
     expect(conferenceVerdict(entry({ associationRole: 'co_organiser' })).verdict).toBe('pending')
   })
-  it('no association, or unrelated field → no_count', () => {
-    expect(conferenceVerdict(entry({ associationRole: 'none', association: '' })).verdict).toBe('no_count')
-    expect(conferenceVerdict(entry({ relatedField: 'no', field: 'business' })).verdict).toBe('no_count')
+  it('no association, or unrelated field, is only a suggestion → pending until an admin decides', () => {
+    expect(conferenceVerdict(entry({ associationRole: 'none', association: '' })).verdict).toBe('pending')
+    expect(conferenceVerdict(entry({ associationRole: 'none', association: '' })).reason).toContain('แนะนำไม่นับ')
+    expect(conferenceVerdict(entry({ relatedField: 'no', field: 'business' })).verdict).toBe('pending')
   })
   it('admin decision overrides everything', () => {
     expect(conferenceVerdict(entry({ confidence: 'low', decision: 'count' })).verdict).toBe('count')

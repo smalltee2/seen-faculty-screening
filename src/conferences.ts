@@ -58,14 +58,15 @@ export function conferenceVerdict(entry: ConferenceEntry | null): Pick<Conferenc
   if (!entry) return { verdict: 'pending', reason: 'งานประชุมยังไม่ได้ตรวจสอบสมาคม — ไม่นับจนกว่าผู้ดูแลยืนยัน', by: 'none' }
   if (entry.decision === 'count') return { verdict: 'count', reason: `ผู้ดูแลยืนยัน: งานประชุมมีสมาคมรับรอง${entry.association ? ` (${entry.association})` : ''}`, by: 'admin' }
   if (entry.decision === 'no_count') return { verdict: 'no_count', reason: `ผู้ดูแลยืนยัน: ไม่เข้าเกณฑ์${entry.decisionNote ? ` — ${entry.decisionNote}` : ''}`, by: 'admin' }
+  // Automatic results are suggestions only: every conference stays pending until a level-2 admin
+  // decides count or no-count (Tum, 2026-11-10). Pending is not counted.
   const assoc = entry.associationRole === 'organiser' || entry.associationRole === 'co_organiser'
   if (entry.confidence === 'high' && assoc && entry.relatedField === 'yes')
-    // An automatic "count" is only a suggestion: it counts once an admin confirms (Tum, 2026-11-10).
     return { verdict: 'pending', reason: `ตรวจอัตโนมัติ: ${entry.association} ${entry.associationRole === 'organiser' ? 'จัด' : 'ร่วมจัด'} สาขา${entry.field ? ` ${entry.field}` : 'เกี่ยวข้อง'} — แนะนำให้นับ รอผู้ดูแลยืนยัน`, by: 'auto' }
   if (entry.confidence !== 'low' && entry.associationRole === 'none')
-    return { verdict: 'no_count', reason: `ตรวจอัตโนมัติ: ไม่มีสมาคมจัดหรือร่วมจัด${entry.organiser ? ` (จัดโดย ${entry.organiser})` : ''}`, by: 'auto' }
+    return { verdict: 'pending', reason: `ตรวจอัตโนมัติ: ไม่มีสมาคมจัดหรือร่วมจัด${entry.organiser ? ` (จัดโดย ${entry.organiser})` : ''} — แนะนำไม่นับ รอผู้ดูแลยืนยัน`, by: 'auto' }
   if (entry.confidence !== 'low' && assoc && entry.relatedField === 'no')
-    return { verdict: 'no_count', reason: `ตรวจอัตโนมัติ: สาขาไม่ใช่สิ่งแวดล้อม/พลังงาน${entry.field ? ` (${entry.field})` : ''}`, by: 'auto' }
+    return { verdict: 'pending', reason: `ตรวจอัตโนมัติ: สาขาไม่ใช่สิ่งแวดล้อม/พลังงาน${entry.field ? ` (${entry.field})` : ''} — แนะนำไม่นับ รอผู้ดูแลยืนยัน`, by: 'auto' }
   return { verdict: 'pending', reason: 'ตรวจอัตโนมัติยังไม่ชัดเจน — รอผู้ดูแลยืนยัน ไม่นับ', by: 'auto' }
 }
 
