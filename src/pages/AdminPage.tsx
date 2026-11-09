@@ -256,13 +256,20 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
                     <td className="small">
                       {new Set(ps.map((p) => p.titleNorm)).size} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}
                       {np > 0 && <div className="sub-status sub-pending">รออนุมัติ {np} (อาจารย์เพิ่มเอง)</div>}
-                      {/* Lecturers with a work at this conference (Tum, 2026-11-10) */}
-                      <div className="conf-people">
-                        {[...new Set(ps.map((p) => p.key))].map((k) => {
-                          const f = faculty.find((x) => x.nameEn === k)
-                          return <div key={k}>{f ? <a href={`#/person/${encodeURIComponent(f.nameEn)}`}>{displayName(f)}</a> : k}</div>
-                        })}
-                      </div>
+                      {/* Each work at this conference with its lecturers (Tum, 2026-11-10) */}
+                      <ul className="conf-works">
+                        {[...new Map(ps.map((p) => [p.titleNorm, p])).values()].map((w) => (
+                          <li key={w.titleNorm}>
+                            <div className="conf-work-title">{w.title} <span className="muted">({w.year ?? '—'})</span></div>
+                            <div className="conf-people">
+                              {[...new Set(ps.filter((p) => p.titleNorm === w.titleNorm).map((p) => p.key))].map((k) => {
+                                const f = faculty.find((x) => x.nameEn === k)
+                                return <span key={k}>{f ? <a href={`#/person/${encodeURIComponent(f.nameEn)}`}>{displayName(f)}</a> : k}</span>
+                              })}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     </td>
                   </tr>
                 )
