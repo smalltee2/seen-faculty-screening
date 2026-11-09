@@ -428,7 +428,7 @@ select, input[type='search'], input:not([type]) {
 .person-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 .tag { font: 500 0.72rem/1 var(--font-body); padding: 4px 9px; border-radius: var(--radius-pill); border: 1px solid var(--line); background: var(--sub-panel); color: var(--muted); }
 .tag-accent { border-color: var(--ember-glow); background: var(--ember-soft); color: var(--ember); }
-.person-counts { display: flex; gap: 16px; font-size: 0.82rem; color: var(--muted); padding: 8px 10px; background: var(--sub-panel); border-radius: var(--radius-md); }
+.person-counts { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.82rem; color: var(--muted); padding: 8px 10px; background: var(--sub-panel); border-radius: var(--radius-md); }
 .person-counts b { color: var(--fg); font-size: 0.95rem; }
 .role-list { display: flex; flex-direction: column; }
 .role-list-head { font: 700 0.8rem/1.4 var(--font-display); display: flex; gap: 8px; align-items: baseline; padding-bottom: 4px; border-bottom: 1px solid var(--line); }

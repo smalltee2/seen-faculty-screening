@@ -378,13 +378,13 @@ function PersonCard({
       )}
       <div className="person-counts">
         <span>
-          ผลงาน 5 ปี <b className="mono">{c.total}</b>
+          ผลงาน 5 ปี จำนวน <b className="mono">{c.total}</b> ผลงาน
           {c.totalPossible > c.total && (
             <span className="muted"> +{c.totalPossible - c.total}?</span>
           )}
         </span>
         <span>
-          งานวิจัย <b className="mono">{c.research}</b>
+          เป็นงานวิจัย <b className="mono">{c.research}</b> ผลงาน
           {c.researchPossible > c.research && (
             <span className="muted"> +{c.researchPossible - c.research}?</span>
           )}
