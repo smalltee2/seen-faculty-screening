@@ -427,7 +427,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
   return (
     <>
       <h2 className="block-title">
-        ผลงานที่อาจารย์เพิ่มเอง <small className="title-hint">รออนุมัติ {pending.length} รายการ · ยังไม่นับจนกว่าจะอนุมัติ</small>
+        ผลงานที่อาจารย์เพิ่มเอง <small className="title-hint">รออนุมัติ {pending.length} รายการ</small>
       </h2>
       <div className="register-tools no-print">
         <Segmented
