@@ -1,4 +1,4 @@
-// Conference decisions made with the "นับ / ไม่นับ / ใช้ผลอัตโนมัติ" buttons in the register
+// Conference decisions made with the "นับ / ไม่นับ / ยกเลิกการตัดสิน" buttons in the register
 // (2026-11-07; replaces the decision Google Form). The login backend keeps every press in its
 // private conf_decisions sheet; the site reads the public list and applies the latest press per
 // conference over data/conferences.csv, and the hourly job writes the same into that file.

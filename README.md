@@ -340,7 +340,7 @@ in the `notices` sheet; the site shows "แจ้งเตือนแล้ว 
 duties, the 5-year counts and the window, and points to ตรวจสอบคุณสมบัติของฉัน for adding works.
 
 **Conference decisions are buttons** (2026-11-07; replaces the decision Google Form): each register row (and the
-conference cell of the approval table) has นับ / ไม่นับ / ใช้ผลอัตโนมัติ for a level-2 admin (approval key) or an e-mail admin.
+conference cell of the approval table) has นับ / ไม่นับ / ยกเลิกการตัดสิน (back to รอตรวจสอบ; AI results are suggestions only) for a level-2 admin (approval key) or an e-mail admin.
 The backend logs every press in the private `conf_decisions` sheet (action `confDecide`; public `confList`); the site
 applies the latest press per conference at once (src/confDecisions.ts) and the hourly job writes it into
 data/conferences.csv (`fetchConfDecisions`). The old form and DECISION_ADMINS are no longer needed; past form decisions stay.

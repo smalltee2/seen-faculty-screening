@@ -447,7 +447,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
   )
 }
 
-/** "นับ / ไม่นับ / ใช้ผลอัตโนมัติ" for one conference (replaces the decision form, 2026-11-07).
+/** "นับ / ไม่นับ / ยกเลิกการตัดสิน" for one conference (replaces the decision form, 2026-11-07).
  *  Allowed with the level-2 approval key, or for an admin signed in by e-mail. */
 function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => void }) {
   const { user } = useEmailUser()
@@ -477,7 +477,7 @@ function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: st
       </button>
       {decided && (
         <button type="button" className="btn btn-small" disabled={busy} onClick={() => void send('clear')}>
-          ใช้ผลอัตโนมัติ
+          ยกเลิกการตัดสิน
         </button>
       )}
       {error && <span className="gate-error small">{error}</span>}
