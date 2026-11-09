@@ -65,7 +65,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
       <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
 
       {/* Pending proceedings/posters lecturers added also enter the register, so the conference can be judged before approval */}
-      <ConferenceRegister pubs={pubs} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
+      <ConferenceRegister pubs={pubs} faculty={faculty} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
 
       {/* Steps box removed (Tum, 2026-11-07); the admin form button moved here */}
       <div className="block-head-row">
@@ -156,7 +156,7 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 }
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
-function ConferenceRegister({ pubs, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => void }) {
+function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => void }) {
   const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[]; pending: number }>()
   const { minYear } = registerWindow(pubs)
   const add = (p: Pub, isPending: boolean) => {
@@ -254,8 +254,15 @@ function ConferenceRegister({ pubs, pendingPubs = [], approvalKey, onChanged }: 
                     </td>
                     <td className="small muted">{match.by === 'admin' ? (e?.decidedBy?.startsWith('ผู้ดูแล') ? e.decidedBy : `ผู้ดูแล${e?.decidedBy ? ` (${e.decidedBy})` : ''}`) : e ? `AI (${e.checkedAt.slice(0, 10)}) ความมั่นใจ ระดับ ${e.confidence}` : '—'}</td>
                     <td className="small">
-                      {ps.length} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}
+                      {new Set(ps.map((p) => p.titleNorm)).size} รายการ · {[...new Set(ps.map((p) => p.year))].filter(Boolean).sort().join(', ')}
                       {np > 0 && <div className="sub-status sub-pending">รออนุมัติ {np} (อาจารย์เพิ่มเอง)</div>}
+                      {/* Lecturers with a work at this conference (Tum, 2026-11-10) */}
+                      <div className="conf-people">
+                        {[...new Set(ps.map((p) => p.key))].map((k) => {
+                          const f = faculty.find((x) => x.nameEn === k)
+                          return <div key={k}>{f ? <a href={`#/person/${encodeURIComponent(f.nameEn)}`}>{displayName(f)}</a> : k}</div>
+                        })}
+                      </div>
                     </td>
                   </tr>
                 )
