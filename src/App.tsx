@@ -114,10 +114,10 @@ export function App() {
   }, [])
   // Works lecturers added themselves (src/submissions.ts): approved ones count, pending ones are only shown.
   const [submissions, setSubmissions] = useState<Submission[]>([])
-  const refreshSubmissions = () => {
-    void fetchSubmissions().then(setSubmissions)
-  }
-  useEffect(refreshSubmissions, [])
+  const refreshSubmissions = () => fetchSubmissions().then(setSubmissions)
+  useEffect(() => {
+    void refreshSubmissions()
+  }, [])
   const lecturerNames = useMemo(() => new Set(data.faculty.map((f) => f.nameEn)), [])
   const selfRows = useMemo(() => approvedRows(submissions, lecturerNames, bundledRows), [submissions, lecturerNames])
   // Google Scholar rows a level-2 admin imported (src/scholarImport.ts); null = list not read.
@@ -143,10 +143,10 @@ export function App() {
   useEffect(refreshNotices, [])
   // Admin-form works a level-2 admin cancelled on the site (src/formCancel.ts); null = list not read.
   const [formCancels, setFormCancels] = useState<FormCancelItem[] | null>(null)
-  const refreshFormCancels = () => {
-    void fetchFormCancels().then(setFormCancels)
-  }
-  useEffect(refreshFormCancels, [])
+  const refreshFormCancels = () => fetchFormCancels().then(setFormCancels)
+  useEffect(() => {
+    void refreshFormCancels()
+  }, [])
   const cancelled = useMemo(() => cancelledForms(formCancels ?? []), [formCancels])
   // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
   // Bundled Scholar imports undone since the build are dropped too.

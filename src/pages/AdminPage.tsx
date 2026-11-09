@@ -17,7 +17,7 @@ const SOURCE_LABEL: Record<PubSource, string> = {
   manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
 }
 
-export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => void; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => void }) {
+export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => unknown; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
   // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table above.
   const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
@@ -159,7 +159,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
 }
 
 /** "ยกเลิกผลงาน" / "คืนผลงาน" for one admin-form work (level-2 admin; src/formCancel.ts). */
-function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { nameEn: string; title: string; action: 'cancel' | 'restore'; approvalKey?: string; onChanged: () => void }) {
+function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { nameEn: string; title: string; action: 'cancel' | 'restore'; approvalKey?: string; onChanged: () => unknown }) {
   const { user } = useEmailUser()
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -171,8 +171,8 @@ function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { n
     try {
       const r = await api({ action: 'formCancel', adminKey: approvalKey ?? '', session: sessionStore.get(), nameEn, title, mode: action })
       if (r.ok) {
+        await onChanged() // spinner stays until the table shows the change
         setConfirm(false)
-        onChanged()
       } else setError(errorText(r.error))
     } catch {
       setError(errorText(''))
@@ -184,6 +184,7 @@ function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { n
     return (
       <span className="conf-buttons no-print">
         <button type="button" className="btn btn-small" disabled={busy} onClick={() => void send()}>คืนผลงาน</button>
+        {busy && <LeafSpinner />}
         {error && <span className="gate-error small">{error}</span>}
       </span>
     )
@@ -198,6 +199,7 @@ function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { n
       ) : (
         <button type="button" className="btn btn-small" onClick={() => setConfirm(true)}>ยกเลิกผลงาน</button>
       )}
+      {busy && <LeafSpinner />}
       {error && <span className="gate-error small">{error}</span>}
     </span>
   )
@@ -391,7 +393,7 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
 /** Works lecturers added themselves, for a level-2 admin to approve or reject (2026-11-07).
  *  The level-2 sign-in carries an approval key the backend checks; an admin signed in by e-mail
  *  (listed in the admins sheet) can also decide. */
-function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => void; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => unknown }) {
+function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conferences, onConfChanged }: { submissions: Submission[]; faculty: Faculty[]; onChanged: () => unknown; approvalKey?: string; conferences: ConferenceEntry[]; onConfChanged: () => unknown }) {
   const { user, checking } = useEmailUser()
   const [show, setShow] = useState<'pending' | 'decided' | 'all'>('pending')
   const [busy, setBusy] = useState('')
@@ -413,7 +415,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
     setError('')
     try {
       const r = await api({ action: 'decide', session: sessionStore.get(), adminKey: approvalKey ?? '', id, status })
-      if (r.ok) onChanged()
+      if (r.ok) await onChanged() // spinner stays until the table shows the new status
       else setError(errorText(r.error))
     } catch {
       setError(errorText(''))
@@ -520,6 +522,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
                           ยกเลิกการตัดสิน
                         </button>
                       ))}
+                    {busy === s.id && <LeafSpinner />}
                   </td>
                 </tr>
               ))}
