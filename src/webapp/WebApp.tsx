@@ -7,7 +7,7 @@
 // outlook and history need level 2.
 // The menu lists only what the visitor may open (Tum, 2026-11-11): a lecturer sees the two open
 // pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
@@ -28,6 +28,7 @@ import { displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
 import { inboxItems } from './inboxItems'
+import { SeenIcon, type IconKey } from './iconSets'
 import { useStoredChoice } from './storedChoice'
 
 const data = raw as unknown as DataBundle
@@ -63,24 +64,16 @@ export function parseWebAppHash(hash: string): Route {
 }
 
 /** Pages and the admin level each needs (0 = open to everyone). */
-const NAV: { page: Page; th: string; short: string; level: 0 | 1 | 2; icon: ReactNode }[] = [
-  { page: 'overview', th: 'ภาพรวม', short: 'ภาพรวม', level: 0, icon: <Icon d="M3 10.5 10 4l7 6.5M5 9v7h4v-4h2v4h4V9" /> },
-  { page: 'me', th: 'ตรวจสอบคุณสมบัติของฉัน', short: 'ของฉัน', level: 0, icon: <Icon d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /> },
-  { page: 'lecturers', th: 'ผลงานอาจารย์', short: 'ผลงาน อ.', level: 1, icon: <Icon d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8c0-3 2.2-5 5-5s5 2 5 5M14 9a2.5 2.5 0 1 0 0-5M15 12c2 .4 3 2.2 3 5" /> },
-  { page: 'inbox', th: 'งานรอดำเนินการ', short: 'งาน', level: 2, icon: <Icon d="M3 11h4l1 2h4l1-2h4M3 11l2-7h10l2 7v5H3v-5Z" /> },
-  { page: 'forms', th: 'เพิ่มผลงานด้วยตัวเอง', short: 'เพิ่มผลงาน', level: 2, icon: <Icon d="M6 3h6l4 4v10H6V3Zm6 0v4h4M8 11h6M8 14h4" /> },
-  { page: 'outlook', th: 'แนวโน้ม 1–2 ปี', short: 'แนวโน้ม', level: 2, icon: <Icon d="M3 16l5-5 3 3 6-7M13 7h4v4" /> },
-  { page: 'sources', th: 'แหล่งข้อมูล', short: 'ข้อมูล', level: 2, icon: <Icon d="M10 3c3.9 0 7 1.1 7 2.5S13.9 8 10 8 3 6.9 3 5.5 6.1 3 10 3ZM3 5.5v9C3 15.9 6.1 17 10 17s7-1.1 7-2.5v-9M3 10c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5" /> },
-  { page: 'history', th: 'ประวัติการตัดสิน', short: 'ประวัติ', level: 2, icon: <Icon d="M3 10a7 7 0 1 0 2-4.9M3 3v3.5h3.5M10 6v4l3 2" /> },
+const NAV: { page: IconKey; th: string; short: string; level: 0 | 1 | 2 }[] = [
+  { page: 'overview', th: 'ภาพรวม', short: 'ภาพรวม', level: 0 },
+  { page: 'me', th: 'ตรวจสอบคุณสมบัติของฉัน', short: 'ของฉัน', level: 0 },
+  { page: 'lecturers', th: 'ผลงานอาจารย์', short: 'ผลงาน อ.', level: 1 },
+  { page: 'inbox', th: 'งานรอดำเนินการ', short: 'งาน', level: 2 },
+  { page: 'forms', th: 'เพิ่มผลงานด้วยตัวเอง', short: 'เพิ่มผลงาน', level: 2 },
+  { page: 'outlook', th: 'แนวโน้ม 1–2 ปี', short: 'แนวโน้ม', level: 2 },
+  { page: 'sources', th: 'แหล่งข้อมูล', short: 'ข้อมูล', level: 2 },
+  { page: 'history', th: 'ประวัติการตัดสิน', short: 'ประวัติ', level: 2 },
 ]
-
-function Icon({ d }: { d: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
 
 export function WebApp() {
   const [route, setRoute] = useState<Route>(() => parseWebAppHash(window.location.hash))
@@ -158,7 +151,13 @@ export function WebApp() {
         <nav className="app-nav">
           {visibleNav.map((n) => (
             <a key={n.page} href={n.page === 'overview' ? '#/' : `#/${n.page}`} className={`app-nav-link${n.level > 0 ? ' app-nav-admin' : ''}`} aria-current={active === n.page ? 'page' : undefined}>
-              {n.icon}
+              {/* SEEN icons (Tum, 2026-11-11): style A (leaf outline) in the side menu, style C (solid) in the phone bar. */}
+              <span className="app-icon app-icon-side">
+                <SeenIcon name={n.page} style="leaf" size={22} />
+              </span>
+              <span className="app-icon app-icon-phone">
+                <SeenIcon name={n.page} style="solid" size={22} />
+              </span>
               <span className="app-nav-label">{n.th}</span>
               <span className="app-nav-short" aria-hidden="true">
                 {n.short}
