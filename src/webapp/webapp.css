@@ -1,6 +1,6 @@
-/* App-shell prototype, design A (src/proto/). Loaded after styles.css and theme-academic.css and
-   uses their tokens, so light and dark both work. Flatter than the site: fewer shadows and frames,
-   a fixed side menu, and pages that fill the space beside it. */
+/* sfs_webapp.html, design A (src/webapp/). Loaded after styles.css and theme-academic.css and uses
+   their tokens, so light and dark both work. Flatter than sfs.html: fewer shadows and frames, a fixed
+   side menu, and pages that fill the space beside it. */
 
 body { background: var(--bg); }
 .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
@@ -29,7 +29,9 @@ body { background: var(--bg); }
   background: var(--ember); color: var(--on-ember); font: 700 0.75rem/1 var(--font-body);
 }
 .app-side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
-.proto-tag { align-self: flex-start; padding: 2px 8px; border-radius: 999px; background: var(--rev-bg); color: var(--rev); font: 700 0.72rem/1.5 var(--font-body); }
+.app-side-foot .btn { align-self: flex-start; }
+.app-nav-lock { margin-left: auto; color: var(--subtle); flex: none; }
+.app-nav-lock + .app-badge { margin-left: 6px; }
 
 /* ── Top bar and content ── */
 .app-main { min-width: 0; display: flex; flex-direction: column; }
@@ -45,7 +47,10 @@ body { background: var(--bg); }
 .app-crumb { font-size: 0.82rem; color: var(--muted); text-decoration: none; }
 .app-top-tools { display: flex; align-items: center; gap: 14px; }
 .app-top-tools .hover-select { flex-direction: row; align-items: center; gap: 8px; }
-.proto-banner { margin: 0; padding: 8px 28px; background: var(--rev-bg); color: var(--rev); font-size: 0.82rem; border-bottom: 1px solid var(--line); }
+.app-update { margin: 12px 28px 0; }
+.app-footer { margin-top: auto; padding: 16px 28px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
+/* The passcode form keeps its own card look, centred in the content area. */
+.app-page-gate { display: grid; justify-items: center; }
 .app-content { padding: 24px 28px 48px; min-width: 0; }
 .app-content:focus { outline: none; }
 
@@ -124,7 +129,8 @@ body { background: var(--bg); }
   .app-brand img { width: 48px; }
   .app-nav-link { justify-content: center; padding: 10px; }
   .app-badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; }
-  .proto-tag { align-self: center; }
+  .app-side-foot .btn, .app-side-foot .level-badge { display: none; }
+  .app-nav-lock { position: absolute; bottom: 4px; right: 6px; }
   .inbox { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
 }
 
@@ -145,7 +151,9 @@ body { background: var(--bg); }
   .app-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; margin: 0; font-size: 0.68rem; }
   .app-top { padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
   .app-title h1 { font-size: 1.15rem; }
-  .proto-banner { padding: 6px 16px; }
+  .app-update { margin: 10px 16px 0; }
+  .app-footer { padding: 14px 16px 20px; }
+  .app-nav-lock { position: absolute; top: 6px; right: calc(50% - 20px); width: 10px; height: 10px; }
   .app-content { padding: 16px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px)); }
   .app-page-inbox { padding: 0; }
   .inbox { display: block; min-height: 0; }
@@ -159,7 +167,7 @@ body { background: var(--bg); }
   .app-toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) { .app-nav-link { transition: none; } }
-@media print { .app { display: block; } .app-side, .app-top, .proto-banner { display: none; } }
+@media print { .app { display: block; } .app-side, .app-top, .app-footer { display: none; } }
 
 /* Inbox fixes after the browser check: the status tabs wrap instead of being clipped, and the detail
    stays in view (below the sticky top bar) while the list scrolls. */

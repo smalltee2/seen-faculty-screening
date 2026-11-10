@@ -14,10 +14,7 @@ import { conferenceGroups, undecidedGroups } from '../pending'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => unknown; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
-  // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table above.
-  const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
-  const person = (key: string) => faculty.find((f) => f.nameEn === key)
   const scholar = useScholarJob(approvalKey)
 
   return (
@@ -70,6 +67,19 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
         <ConferenceRegister pubs={pubs} faculty={faculty} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
       </section>
 
+      <FormWorks pubs={pubs} faculty={faculty} formUrl={formUrl} approvalKey={approvalKey} formCancelled={formCancelled} onFormChanged={onFormChanged} />
+    </>
+  )
+}
+
+/** "ผลงานที่เพิ่มผ่านแบบฟอร์ม": works added through the admin Google Form, with cancel/restore.
+ *  Used by AdminPage (sfs.html) and by the web app's own page (sfs_webapp.html), 2026-11-11. */
+export function FormWorks({ pubs, faculty, formUrl, approvalKey, formCancelled = [], onFormChanged = () => undefined }: { pubs: Pub[]; faculty: Faculty[]; formUrl: string; approvalKey?: string; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
+  // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table.
+  const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
+  const person = (key: string) => faculty.find((f) => f.nameEn === key)
+  return (
+    <>
       {/* Steps box removed (Tum, 2026-11-07); the admin form button moved here */}
       <section className="admin-box admin-box-form" aria-label="ผลงานที่เพิ่มผ่านแบบฟอร์ม">
       <div className="block-head-row">
@@ -598,7 +608,7 @@ export function LeafSpinner() {
 /** "นำเข้าจาก Google Scholar" (Tum, 2026-11-08): a level-2 admin copies a lecturer's Scholar list in
  *  their own browser with the export snippet, pastes it here, checks which rows are new and imports
  *  them (Apps Script scholarImport). Nothing here contacts Scholar. Each import can be undone. */
-function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { faculty: Faculty[]; pubs: Pub[]; raw: { key: string; title: string }[]; items: ScholarImportItem[] | null; approvalKey?: string; onChanged: () => void }) {
+export function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { faculty: Faculty[]; pubs: Pub[]; raw: { key: string; title: string }[]; items: ScholarImportItem[] | null; approvalKey?: string; onChanged: () => void }) {
   const [nameEn, setNameEn] = useState('')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)

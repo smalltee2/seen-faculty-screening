@@ -26,10 +26,10 @@ describe('inboxItems', () => {
     expect(item(after)!.status).toBe('pending')
     expect(after[0].status).toBe('pending')
   })
-  it('submissions: withdrawn ones are left out, and a local decision overrides the status', () => {
-    const items = inboxItems(pubs(false), [], [sub('a', 'pending'), sub('b', 'withdrawn'), sub('c', 'approved')], { a: 'approved' })
+  it('submissions: withdrawn ones are left out; pending ones wait, decided ones do not', () => {
+    const items = inboxItems(pubs(false), [], [sub('a', 'pending'), sub('b', 'withdrawn'), sub('c', 'approved')])
     expect(items.some((i) => i.id === subId('b'))).toBe(false)
-    expect(items.find((i) => i.id === subId('a'))).toMatchObject({ status: 'decided', sub: { status: 'approved' } })
+    expect(items.find((i) => i.id === subId('a'))?.status).toBe('pending')
     expect(items.find((i) => i.id === subId('c'))?.status).toBe('decided')
   })
 })

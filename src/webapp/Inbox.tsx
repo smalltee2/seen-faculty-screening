@@ -1,7 +1,10 @@
-// "งานรอดำเนินการ" in the app-shell prototype: a list on the left and the selected item on the right,
-// like a mail inbox. On a phone the list and the detail take turns (the detail has a back button).
-// Decisions here are local to the prototype and are never sent to the backend.
+// "งานรอดำเนินการ" in the web app (sfs_webapp.html): a list on the left and the selected item on the
+// right, like a mail inbox. On a phone the list and the detail take turns (the detail has a back button).
+// The buttons are the site's own: ConfButtons (confDecide) and the approval table's "decide" call.
+import { useState } from 'react'
 import { CONFERENCE_TAG } from '../conferences'
+import { api, errorText, sessionStore } from '../emailLogin'
+import { ConfButtons, LeafSpinner } from '../pages/AdminPage'
 import { STATUS_TH, TYPE_TH, type SubmissionStatus } from '../submissions'
 import type { Faculty } from '../types'
 import { Segmented, displayName } from '../ui'
@@ -20,8 +23,9 @@ export function Inbox({
   kind,
   onShow,
   onKind,
-  onConf,
-  onSub,
+  approvalKey,
+  onConfChanged,
+  onSubChanged,
 }: {
   items: InboxItem[]
   faculty: Faculty[]
@@ -30,8 +34,9 @@ export function Inbox({
   kind: InboxKind
   onShow: (s: InboxShow) => void
   onKind: (k: InboxKind) => void
-  onConf: (key: string, name: string, decision: 'count' | 'no_count' | 'clear') => void
-  onSub: (id: string, status: SubmissionStatus) => void
+  approvalKey?: string
+  onConfChanged: () => unknown
+  onSubChanged: () => unknown
 }) {
   const ofKind = kind === 'all' ? items : items.filter((i) => i.kind === kind)
   const list = show === 'all' ? ofKind : ofKind.filter((i) => i.status === show)
@@ -91,7 +96,11 @@ export function Inbox({
             <a className="inbox-back" href="#/inbox">
               ‹ กลับไปที่รายการ
             </a>
-            {selected.kind === 'conference' ? <ConfDetail item={selected} nameOf={nameOf} onConf={onConf} /> : <SubDetail item={selected} nameOf={nameOf} onSub={onSub} />}
+            {selected.kind === 'conference' ? (
+              <ConfDetail item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onConfChanged} />
+            ) : (
+              <SubDetail item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onSubChanged} />
+            )}
           </>
         ) : (
           <div className="inbox-placeholder">
@@ -122,7 +131,7 @@ function StatusPill({ item }: { item: InboxItem }) {
   return <span className="pill pill-wait">รอตัดสิน</span>
 }
 
-function ConfDetail({ item, nameOf, onConf }: { item: Extract<InboxItem, { kind: 'conference' }>; nameOf: (k: string) => string; onConf: (key: string, name: string, d: 'count' | 'no_count' | 'clear') => void }) {
+function ConfDetail({ item, nameOf, approvalKey, onChanged }: { item: Extract<InboxItem, { kind: 'conference' }>; nameOf: (k: string) => string; approvalKey?: string; onChanged: () => unknown }) {
   const { match, pubs } = item.group
   const e = match.entry
   const works = [...new Map(pubs.map((p) => [p.titleNorm, p])).values()]
@@ -137,17 +146,7 @@ function ConfDetail({ item, nameOf, onConf }: { item: Extract<InboxItem, { kind:
       </header>
 
       <div className="detail-actions" role="group" aria-label="ตัดสินงานประชุม">
-        <button type="button" className="btn btn-primary" aria-pressed={match.by === 'admin' && match.verdict === 'count'} onClick={() => onConf(match.key, item.title, 'count')}>
-          นับ
-        </button>
-        <button type="button" className="btn" aria-pressed={match.by === 'admin' && match.verdict === 'no_count'} onClick={() => onConf(match.key, item.title, 'no_count')}>
-          ไม่นับ
-        </button>
-        {item.status === 'decided' && (
-          <button type="button" className="btn btn-quiet" onClick={() => onConf(match.key, item.title, 'clear')}>
-            ยกเลิกการตัดสิน
-          </button>
-        )}
+        <ConfButtons ckey={match.key} name={item.title} decided={!!e?.decision} approvalKey={approvalKey} onChanged={onChanged} />
       </div>
 
       <dl className="detail-facts">
@@ -206,8 +205,24 @@ function ConfDetail({ item, nameOf, onConf }: { item: Extract<InboxItem, { kind:
   )
 }
 
-function SubDetail({ item, nameOf, onSub }: { item: Extract<InboxItem, { kind: 'submission' }>; nameOf: (k: string) => string; onSub: (id: string, s: SubmissionStatus) => void }) {
+function SubDetail({ item, nameOf, approvalKey, onChanged }: { item: Extract<InboxItem, { kind: 'submission' }>; nameOf: (k: string) => string; approvalKey?: string; onChanged: () => unknown }) {
   const s = item.sub
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  // Same call as the approval table on sfs.html (ApproveWorks in src/pages/AdminPage.tsx).
+  const decide = async (status: SubmissionStatus) => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await api({ action: 'decide', session: sessionStore.get(), adminKey: approvalKey ?? '', id: s.id, status })
+      if (r.ok) await onChanged() // spinner stays until the list shows the new status
+      else setError(errorText(r.error))
+    } catch {
+      setError(errorText(''))
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <article className="detail">
       <header className="detail-head">
@@ -220,17 +235,19 @@ function SubDetail({ item, nameOf, onSub }: { item: Extract<InboxItem, { kind: '
         </p>
       </header>
       <div className="detail-actions" role="group" aria-label="อนุมัติผลงาน">
-        <button type="button" className="btn btn-primary" aria-pressed={s.status === 'approved'} onClick={() => onSub(s.id, 'approved')}>
+        <button type="button" className="btn btn-primary" disabled={busy || s.status === 'approved'} onClick={() => void decide('approved')}>
           อนุมัติ
         </button>
-        <button type="button" className="btn" aria-pressed={s.status === 'rejected'} onClick={() => onSub(s.id, 'rejected')}>
+        <button type="button" className="btn" disabled={busy || s.status === 'rejected'} onClick={() => void decide('rejected')}>
           ไม่อนุมัติ
         </button>
         {s.status !== 'pending' && (
-          <button type="button" className="btn btn-quiet" onClick={() => onSub(s.id, 'pending')}>
+          <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void decide('pending')}>
             ยกเลิกการตัดสิน
           </button>
         )}
+        {busy && <LeafSpinner />}
+        {error && <span className="gate-error small">{error}</span>}
       </div>
       <dl className="detail-facts">
         <div>

@@ -5,13 +5,13 @@ import { initTci } from '../tciIndex'
 import type { DataBundle } from '../types'
 import '../styles.css'
 import '../theme-academic.css'
-import './proto.css'
-import { ProtoApp } from './ProtoApp'
+import './webapp.css'
+import { WebApp } from './WebApp'
 
 initTci(raw as unknown as DataBundle)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ProtoApp />
+    <WebApp />
   </StrictMode>,
 )

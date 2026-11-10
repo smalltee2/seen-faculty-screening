@@ -49,7 +49,8 @@ export default defineConfig({
   // Embed the SEEN logo and favicon (under 8 KB) so standalone/index.html works offline.
   build: {
     assetsInlineLimit: 8192,
-    rollupOptions: { input: 'index.html' },
+    // sfs_webapp.html: the web-app layout (src/webapp/, Tum 2026-11-11), next to sfs.html.
+    rollupOptions: { input: ['index.html', 'sfs_webapp.html'] },
   },
   test: {
     environment: 'node',
