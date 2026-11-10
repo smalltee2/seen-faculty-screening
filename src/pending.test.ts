@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { ConferenceMatch } from './conferences'
-import { conferenceGroups, pendingQueue } from './pending'
-import { evaluatePerson, type Settings } from './rules'
-import type { Submission } from './submissions'
-import type { Faculty, Pub } from './types'
+import { conferenceGroups } from './pending'
+import type { Pub } from './types'
 
-const S: Settings = { year: 2026, countPosters: true, strict: true }
-const P: Faculty = { nameEn: 'P', nameTh: 'พ', scholarId: '', rank: 'ผศ.', degree: 'ปริญญาเอก', degreeYear: 2005, programs: [], notes: '' }
 let n = 0
 const pub = (year: number | null, over: Partial<Pub> = {}): Pub => {
   n++
@@ -17,8 +13,6 @@ const pub = (year: number | null, over: Partial<Pub> = {}): Pub => {
   }
 }
 const conf = (key: string, verdict: ConferenceMatch['verdict']): ConferenceMatch => ({ entry: null, key, verdict, reason: '', by: 'none' as ConferenceMatch['by'] })
-const sub = (id: string, status: Submission['status'], created: string): Submission =>
-  ({ id, nameEn: 'P', year: 2026, title: id, authors: '', type: 'journal', venue: 'J', volume: '', doi: '', research: true, created, status, decidedAt: '', note: '' }) as Submission
 
 describe('conferenceGroups', () => {
   const pubs = [
@@ -40,32 +34,5 @@ describe('conferenceGroups', () => {
     expect(g.find((x) => x.match.key === 'c')).toMatchObject({ pending: 1 })
     expect(g.find((x) => x.match.key === 'b')).toMatchObject({ pending: 1 })
     expect(g.find((x) => x.match.key === 'b')!.pubs).toHaveLength(3)
-  })
-})
-
-describe('pendingQueue', () => {
-  const pubs = [
-    pub(2025, { type: 'proceeding', conference: conf('a', 'count') }),
-    pub(2026, { type: 'proceeding', conference: conf('b', 'pending') }),
-    pub(2025, { typeUncertain: true, typeReason: 'ไม่ชัด' }), // in the 2022–2026 window
-    pub(2018, { typeUncertain: true, typeReason: 'ไม่ชัด' }), // outside: cannot change this year's result
-    pub(null), // no year: listed
-  ]
-  const results = [evaluatePerson(P, pubs, S)]
-  const q = pendingQueue({
-    results, pubs, pendingPubs: [], settings: S, minYear: 2022,
-    submissions: [sub('s2', 'pending', '2026-11-02'), sub('s0', 'approved', '2026-10-01'), sub('s1', 'pending', '2026-11-01')],
-  })
-  it('keeps only undecided conferences', () => {
-    expect(q.conferences.map((g) => g.match.key)).toEqual(['b'])
-  })
-  it('lists submissions awaiting approval, oldest first', () => {
-    expect(q.submissions.map((s) => s.id)).toEqual(['s1', 's2'])
-  })
-  it('lists review items inside the window or without a year', () => {
-    expect(q.review.map((it) => it.pub.year).sort()).toEqual([2025, null])
-  })
-  it('totals the three lists', () => {
-    expect(q.total).toBe(1 + 2 + 2)
   })
 })

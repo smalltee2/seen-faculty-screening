@@ -35,9 +35,6 @@ function versionFile(): Plugin {
       const fresh = { scopus: null, openalex: null, scholar: null, forms: null, ...freshness }
       if (!fresh.forms) fresh.forms = await publishedFormsStamp()
       this.emitFile({ type: 'asset', fileName: 'status.json', source: JSON.stringify({ builtAt, freshness: fresh }) })
-      // changes.json: what each refresh changed (scripts/snapshot.ts), read by the admin's back-office page.
-      const changes = existsSync('data/changes.json') ? (JSON.parse(readFileSync('data/changes.json', 'utf8')) as unknown[]) : []
-      this.emitFile({ type: 'asset', fileName: 'changes.json', source: JSON.stringify(changes) })
     },
   }
 }

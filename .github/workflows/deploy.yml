@@ -75,10 +75,6 @@ jobs:
       # Validate the fetched data before it is committed, so a bad fetch is not pushed.
       - name: Build JSON from data/
         run: npm run data
-      # Back-office change summary: what the refresh added, removed or changed (data/changes.json).
-      - name: Record what changed since the last refresh
-        if: github.event_name != 'push'
-        run: npm run snapshot
       - name: Commit refreshed data
         if: github.event_name != 'push'
         run: |
@@ -86,7 +82,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/openalex.tsv data/scopus.tsv data/manual.tsv data/self.tsv data/scholar_imports.tsv data/form_cancels.tsv data/crossref.tsv data/tci_journals.csv data/tci_snapshots data/tci_tier_history.csv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv data/last_full_fetch.txt
           if [ -d data/status ]; then git add data/status; fi
-          git add data/snapshot.json data/changes.json
           if git diff --cached --quiet; then
             echo "No data changes."
           else
