@@ -4,6 +4,8 @@ src/generated/
 *.local
 .DS_Store
 standalone/
+# Written by every hourly forms fetch; published in status.json instead of being committed 24 times a day.
+data/status/forms.txt
 tsconfig.tsbuildinfo
 docs/manual/shots/
 docs/manual/annotated/

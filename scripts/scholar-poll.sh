@@ -44,7 +44,13 @@ if ! node scripts/build-data.mjs >/dev/null 2>&1; then
   log "Scholar: build-data failed; changes discarded"; exit 1
 fi
 git add data/publications.tsv
-if git diff --cached --quiet; then
+# The stamp alone (Scholar answered, nothing changed) is committed too, so the site shows the check.
+[[ -f data/status/scholar.txt ]] && git add data/status/scholar.txt
+if git diff --cached --quiet -- data/publications.tsv; then
+  if ! git diff --cached --quiet; then
+    git commit -q -m "Google Scholar checked from iMac $(date +%Y-%m-%d)"
+    git push -q || { git pull --rebase -q && git push -q; } || { git rebase --abort >/dev/null 2>&1; log "WARNING: stamp push failed"; }
+  fi
   MSG="$MSG · ไม่มีการเปลี่ยนแปลง"
 else
   git commit -q -m "Google Scholar refresh from iMac $(date +%Y-%m-%d)"

@@ -8,6 +8,8 @@ import { STATUS_TH, TYPE_TH, conferenceSubmissions, type Submission, type Submis
 import type { Faculty } from '../types'
 import type { FormCancelItem } from '../formCancel'
 import leafIcon from '../assets/leaf-spinner.png'
+import { FreshnessPanel } from '../FreshnessPanel'
+import { conferenceGroups } from '../pending'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 const SOURCE_LABEL: Record<PubSource, string> = {
@@ -56,6 +58,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
             อัปเดตล่าสุด {new Date(data.builtAt).toLocaleString('th-TH')} · รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้
             จึงให้ผู้ดูแลระดับ 2 นำเข้าเป็นครั้งคราวที่ "นำเข้าจาก Google Scholar" ด้านล่าง
           </p>
+          <FreshnessPanel builtAt={data.builtAt} freshness={data.freshness} />
         </section>
 
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
@@ -206,7 +209,7 @@ function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { n
 }
 
 /** Same window as the automatic check: papers that can still fall in this year's or next year's 5-year window. */
-function registerWindow(pubs: Pub[]) {
+export function registerWindow(pubs: Pub[]) {
   const minYear = new Date().getFullYear() - 5
   const older = pubs.filter((p) => (p.type === 'proceeding' || p.type === 'poster') && p.conference && (p.year ?? 0) < minYear).length
   return { minYear, older }
@@ -241,20 +244,8 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
 function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => unknown }) {
-  const groups = new Map<string, { match: NonNullable<Pub['conference']>; pubs: Pub[]; pending: number }>()
   const { minYear } = registerWindow(pubs)
-  const add = (p: Pub, isPending: boolean) => {
-    if ((p.type !== 'proceeding' && p.type !== 'poster') || !p.conference) return
-    if ((p.year ?? 0) < minYear) return
-    const g = groups.get(p.conference.key) ?? { match: p.conference, pubs: [], pending: 0 }
-    g.pubs.push(p)
-    if (isPending) g.pending++
-    groups.set(p.conference.key, g)
-  }
-  for (const p of pubs) add(p, false)
-  for (const p of pendingPubs) add(p, true)
-  const order: Record<string, number> = { pending: 0, no_count: 1, count: 2 }
-  const rows = [...groups.values()].sort((a, b) => order[a.match.verdict] - order[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0))
+  const rows = conferenceGroups(pubs, pendingPubs, minYear)
   const pending = rows.filter((r) => r.match.verdict === 'pending').length
   // Year filter and 10 conferences per page (Tum, 2026-11-07), so the register stays short as it grows.
   const [year, setYear] = useState<number | 'all'>('all')
@@ -368,10 +359,10 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
   )
 }
 
-const PAGE_SIZE = 10
+export const PAGE_SIZE = 10
 
 /** Page buttons: previous, numbered pages, next. */
-function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
+export function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
   return (
     <nav className="pager no-print" aria-label="เลือกหน้าทะเบียนงานประชุม">
       <button type="button" className="btn btn-small" disabled={page === 0} onClick={() => onPage(page - 1)}>
@@ -536,7 +527,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
 
 /** "นับ / ไม่นับ / ยกเลิกการตัดสิน" for one conference (replaces the decision form, 2026-11-07).
  *  Allowed with the level-2 approval key, or for an admin signed in by e-mail. */
-function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => unknown }) {
+export function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: string; name: string; decided: boolean; approvalKey?: string; onChanged: () => unknown }) {
   const { user } = useEmailUser()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -574,7 +565,7 @@ function ConfButtons({ ckey, name, decided, approvalKey, onChanged }: { ckey: st
 }
 
 /** Turning three-leaf icon shown while a decision is saved (Tum, 2026-11-10). */
-function LeafSpinner() {
+export function LeafSpinner() {
   return (
     <span className="leaf-spinner" role="status">
       <img src={leafIcon} alt="" width={22} height={22} />

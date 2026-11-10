@@ -63,6 +63,9 @@ if ! node scripts/build-data.mjs >/dev/null 2>&1; then
 fi
 
 git add data/scopus.tsv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv
+# data/status/scopus.txt is written only when Scopus answered (fetch-sources.mjs); it changes every
+# successful day, so the site and the stale-data e-mail alert know this job is alive.
+[[ -f data/status/scopus.txt ]] && git add data/status/scopus.txt
 if git diff --cached --quiet; then
   log "No Scopus or conference changes"
   exit 0

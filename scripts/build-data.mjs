@@ -282,9 +282,21 @@ function publicSources() {
   return Object.fromEntries(PUBLIC_SOURCE_KEYS.filter((k) => k in all).map((k) => [k, all[k]]))
 }
 
+/** When each source last really answered (data/status/<name>.txt, written by the fetch scripts
+ *  only on success). null = no stamp: never fetched here, or the file is not a readable time. */
+function freshness() {
+  const one = (name) => {
+    const f = join(ROOT, 'data/status', `${name}.txt`)
+    if (!existsSync(f)) return null
+    const t = read(f).trim()
+    return Number.isNaN(Date.parse(t)) ? null : t
+  }
+  return { scopus: one('scopus'), openalex: one('openalex'), scholar: one('scholar'), forms: one('forms') }
+}
+
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, formCancelled: [...formCancelled], crossref, programmes, quartiles }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), freshness: freshness(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, formCancelled: [...formCancelled], crossref, programmes, quartiles }, null, 1),
 )
 log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides), ${programmes.length} programmes, ${quartiles.length} journal-year quartiles -> src/generated/data.json`)

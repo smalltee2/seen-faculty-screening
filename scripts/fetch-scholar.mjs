@@ -11,7 +11,7 @@
 //
 //   node scripts/fetch-scholar.mjs            all lecturers with a scholar_id
 //   node scripts/fetch-scholar.mjs --only=Name_En --dry-run
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
@@ -130,7 +130,12 @@ export async function runScholar({ only = '', dryRun = false, onProgress = () =>
     if (m.mode === 'added-only') stats.addedOnly.push(f.name_en)
     onProgress(i + 1, people.length, f.name_en)
   }
-  if (!dryRun && stats.people) writeFileSync(PUB_FILE, [HEADER.join('\t'), ...pubs.map((p) => HEADER.map((c) => clean(p[c])).join('\t'))].join('\n') + '\n')
+  if (!dryRun && stats.people) {
+    writeFileSync(PUB_FILE, [HEADER.join('\t'), ...pubs.map((p) => HEADER.map((c) => clean(p[c])).join('\t'))].join('\n') + '\n')
+    // When Scholar last answered (shown per source on the admin page; same format as fetch-sources.mjs).
+    mkdirSync(join(ROOT, 'data/status'), { recursive: true })
+    writeFileSync(join(ROOT, 'data/status/scholar.txt'), `${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}\n`)
+  }
   return stats
 }
 

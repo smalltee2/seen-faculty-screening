@@ -56,8 +56,18 @@ export interface Override {
   note: string
 }
 
+/** When each source last really answered (ISO time; null = no record). `forms` is null in a build
+ *  that did not fetch the form itself; status.json on the site carries the last known time. */
+export interface Freshness {
+  scopus: string | null
+  openalex: string | null
+  scholar: string | null
+  forms: string | null
+}
+
 export interface DataBundle {
   builtAt: string
+  freshness?: Freshness
   sources: {
     manualSheetCsvUrl?: string
     googleFormUrl?: string

@@ -27,6 +27,7 @@ const CONFIG = {
   sources: join(ROOT, 'data/sources.json'),
   openalexOut: join(ROOT, 'data/openalex.tsv'),
   scopusOut: join(ROOT, 'data/scopus.tsv'),
+  statusDir: join(ROOT, 'data/status'),
   manualOut: join(ROOT, 'data/manual.tsv'),
   selfOut: join(ROOT, 'data/self.tsv'),
   tciOut: join(ROOT, 'data/tci_journals.csv'),
@@ -53,6 +54,14 @@ const clean = (s) => String(s ?? '').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, 
 /** Crossref returns some names HTML-escaped ("Air Quality, Atmosphere &amp; Health"). */
 const unescapeHtml = (s) => String(s ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+/** Records that a source really answered in this run (data/status/<name>.txt, one ISO time).
+ *  The site shows it as "ข้อมูลล่าสุด" per source and the backend's daily check e-mails the
+ *  admin when a stamp is more than 2 days old (apps-script/Code.gs, checkFreshness). A run that
+ *  only kept the previous rows writes no stamp. */
+function stamp(name) {
+  mkdirSync(CONFIG.statusDir, { recursive: true })
+  writeFileSync(join(CONFIG.statusDir, `${name}.txt`), `${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}\n`)
+}
 
 async function getJson(url, tries = 3, headers = {}) {
   for (let i = 1; ; i++) {
@@ -154,6 +163,7 @@ async function fetchOpenAlex(faculty) {
   if (tried && !ok) throw new Error('every OpenAlex request failed; data/openalex.tsv left unchanged')
   out.sort((a, b) => a.key.localeCompare(b.key) || b.year - a.year || a.oa_id.localeCompare(b.oa_id))
   writeTsv(CONFIG.openalexOut, OA_HEADER, out)
+  if (ok) stamp('openalex')
   log(`OpenAlex: ${out.length} rows for ${ok}/${tried} lecturers -> data/openalex.tsv`)
 }
 
@@ -258,6 +268,7 @@ async function fetchScopus(faculty, key) {
   }
   out.sort((a, b) => a.key.localeCompare(b.key) || b.year - a.year || String(a.eid).localeCompare(String(b.eid)))
   writeTsv(CONFIG.scopusOut, SC_HEADER, out)
+  if (ok) stamp('scopus')
   log(`Scopus: ${out.length} rows, ${ok}/${faculty.length} lecturers fetched -> data/scopus.tsv`)
 }
 
@@ -510,6 +521,7 @@ async function fetchManual(faculty, url) {
   }
   for (const r of out) r.issn = await issnByDoi(r.doi, previousManual)
   writeTsv(CONFIG.manualOut, MANUAL_HEADER, out)
+  stamp('forms') // hourly, so this stamp is not committed (.gitignore); the build carries it in status.json
   log(`Google Sheet: ${out.length} rows (${out.filter((r) => r.issn).length} with ISSN from DOI) -> data/manual.tsv`)
 }
 

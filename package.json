@@ -15,7 +15,8 @@
     "standalone": "node scripts/build-standalone.mjs",
     "fetch": "node scripts/fetch-sources.mjs",
     "set-passcode": "node scripts/set-admin-passcode.mjs",
-    "screen-conferences": "node scripts/build-data.mjs && tsx scripts/screen-conferences.ts"
+    "screen-conferences": "node scripts/build-data.mjs && tsx scripts/screen-conferences.ts",
+    "snapshot": "tsx scripts/snapshot.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

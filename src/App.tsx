@@ -6,13 +6,15 @@ import type { ConferenceEntry, DataBundle, RawPub } from './types'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
-import { AdminPage } from './pages/AdminPage'
+import { AdminPage, registerWindow } from './pages/AdminPage'
+import { ADMIN_VIEWS, ChangesPage, HistoryPage, OutlookPage, PendingPage, ReportPage, isAdminView, type AdminView } from './pages/AdminTools'
+import { pendingQueue } from './pending'
 import { MyPage } from './pages/MyPage'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adminGate'
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
 import { fetchLiveManual } from './liveManual'
-import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
+import { approvedRows, conferenceSubmissions, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
 import { dropRemovedScholar, fetchScholarImports, scholarImportRows, type ScholarImportItem } from './scholarImport'
 import { cancelledForms, dropCancelledForms, fetchFormCancels, type FormCancelItem } from './formCancel'
 import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
@@ -39,7 +41,7 @@ type Route =
   | { page: 'overview' }
   | { page: 'lecturers'; filter: LecturerFilter; scope: LecturerScope; view?: LecturerView; prog?: string; section?: LecturerSection }
   | { page: 'person'; key: string }
-  | { page: 'admin' }
+  | { page: 'admin'; view?: AdminView }
   | { page: 'me'; login?: string }
 
 /** #/lecturers link that keeps the current section, filter, scope and view (read from the address,
@@ -78,6 +80,11 @@ function parseHash(): Route {
     }
   }
   if (h === 'admin') return { page: 'admin' }
+  // #/admin/<view>: the level-2 back-office pages (src/pages/AdminTools.tsx), 2026-11-10.
+  if (h.startsWith('admin/')) {
+    const v = h.slice('admin/'.length)
+    return { page: 'admin', view: isAdminView(v) ? v : undefined }
+  }
   // #/me, or #/me/login=<code> from the e-mail link (forwarded by /me/).
   if (h === 'me' || h.startsWith('me/')) {
     const m = h.match(/^me\/login=([0-9a-f]+)$/)
@@ -195,6 +202,14 @@ export function App() {
   if (REAL_USE) years.splice(0, years.length, CURRENT_YEAR, CURRENT_YEAR + 1)
 
   const programmes = data.programmes ?? []
+  // Everything awaiting an admin decision (level 2): its total is shown in the "เลือกดู" menu.
+  const queue = useMemo(() => {
+    const pendingPubs = conferenceSubmissions(submissions, conferences)
+      .filter((x) => x.sub.status === 'pending')
+      .map((x) => x.pub)
+    return pendingQueue({ results, pubs, pendingPubs, submissions, settings, minYear: registerWindow(pubs).minYear })
+  }, [results, pubs, submissions, conferences, settings])
+  const adminValue = route.page === 'admin' ? (route.view && admin?.level === 2 ? `admin/${route.view}` : 'admin') : 'lecturers'
   // Level 2 only (Tum, 2026-11-08); level 1 sees every lecturer as before.
   const programme = route.page === 'lecturers' && route.prog && admin?.level === 2 ? programmes.find((p) => p.id === route.prog) : undefined
 
@@ -263,9 +278,15 @@ export function App() {
               {/* Admin tab (Tum, 2026-11-07): the view drop-down sits beside the year; range and counted-works text are hidden */}
               <label className="control" htmlFor="admin-view">
                 <span className="control-label">เลือกดู</span>
-                <select id="admin-view" value={route.page === 'admin' ? 'admin' : 'lecturers'} onChange={(e) => (window.location.hash = e.target.value === 'admin' ? '#/admin' : '#/lecturers')}>
+                <select id="admin-view" value={adminValue} onChange={(e) => (window.location.hash = `#/${e.target.value}`)}>
                   <option value="lecturers">ข้อมูลอาจารย์</option>
                   <option value="admin">{admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง'}</option>
+                  {admin?.level === 2 &&
+                    ADMIN_VIEWS.map((v) => (
+                      <option key={v.id} value={`admin/${v.id}`}>
+                        {v.id === 'pending' ? `${v.th} (${queue.total})` : v.th}
+                      </option>
+                    ))}
                 </select>
               </label>
               {route.page === 'lecturers' && admin?.level === 2 && programmes.length > 0 && (
@@ -333,9 +354,26 @@ export function App() {
               onUnlocked={setAdmin}
             />
           )}
-          {route.page === 'admin' && admin !== null && admin.level === 2 && (
+          {route.page === 'admin' && admin !== null && admin.level === 2 && !route.view && (
             <AdminPage data={data} pubs={pubs} scholarItems={scholarItems} onScholarChanged={refreshScholar} faculty={data.faculty} formUrl={admin.formUrl} submissions={submissions} onSubmissionsChanged={refreshSubmissions} approvalKey={admin.approvalKey} conferences={conferences} onConferencesChanged={refreshConf} formCancelled={[...cancelled.values()]} onFormChanged={refreshFormCancels} />
           )}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'pending' && (
+            <PendingPage queue={queue} faculty={data.faculty} approvalKey={admin.approvalKey} onConferencesChanged={refreshConf} onSubmissionsChanged={refreshSubmissions} />
+          )}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'history' && (
+            <HistoryPage
+              confItems={confItems}
+              formCancels={formCancels ?? []}
+              submissions={submissions}
+              notices={notices}
+              faculty={data.faculty}
+              approvalKey={admin.approvalKey}
+              onChanged={() => Promise.all([refreshConf(), refreshSubmissions(), refreshFormCancels()])}
+            />
+          )}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'outlook' && <OutlookPage results={results} settings={settings} />}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'report' && <ReportPage programmes={programmes} results={results} settings={settings} builtAt={data.builtAt} />}
+          {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'changes' && <ChangesPage />}
           {route.page === 'person' && admin !== null && (
             <PersonPage
               result={results.find((r) => r.person.nameEn === route.key)}

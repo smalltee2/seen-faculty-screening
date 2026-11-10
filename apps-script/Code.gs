@@ -165,6 +165,8 @@ function doPost(e) {
         return json(formCancel(body));
       case 'formCancelList':
         return json(formCancelList());
+      case 'decisionLog':
+        return json(decisionLog());
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
@@ -406,6 +408,28 @@ function listWorks() {
     };
   });
   return { ok: true, items: items };
+}
+
+/** Every approve / reject / reopen / withdraw of a self-submitted work, from the log sheet (the
+ *  submissions sheet keeps only the latest decision). No e-mail addresses: an admin's address is
+ *  cut to the part before @, a lecturer's is not shown at all. */
+function decisionLogItems(logRows) {
+  var out = [];
+  logRows.forEach(function (r) {
+    var action = String(r.action);
+    if ((action !== 'decide' && action !== 'withdraw') || String(r.ok) !== 'yes') return;
+    var parts = String(r.note || '').trim().split(/\s+/);
+    if (!parts[0]) return;
+    var by = String(r.email || '');
+    if (action === 'withdraw') by = 'อาจารย์เจ้าของผลงาน';
+    else if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0].toLowerCase() + ')';
+    out.push({ at: r.time ? new Date(r.time).toISOString() : '', action: action, by: by, id: parts[0], status: action === 'withdraw' ? 'withdrawn' : String(parts[1] || '') });
+  });
+  return out;
+}
+
+function decisionLog() {
+  return { ok: true, items: decisionLogItems(rows('log')) };
 }
 
 /** A level-2 admin approves or rejects a work: either with the approval key from the level-2
@@ -714,4 +738,84 @@ function scholarJobUpdate(body) {
   sh.getRange(last._row, col('updated')).setValue(new Date());
   if (status !== 'running') log('scholarJob', 'imac', status === 'done', status + ' ' + cell(body.message, 200));
   return { ok: true };
+}
+
+// ───────────────────────── Stale-data alert (2026-11-10) ─────────────────────────
+// The site publishes status.json: when the site was built and when each source last really
+// answered (data/status/*.txt, written by the fetch scripts only on success). checkFreshness()
+// runs once a day from a time trigger and e-mails the admin while anything is older than
+// STALE_HOURS: a failed GitHub Actions run, an iMac that is off, a refused Scopus key or an
+// unreadable form all show up as a time that stopped moving. Same rule as src/freshness.ts
+// (src/freshness.test.ts runs both on the same cases).
+//
+// One-time setup by the script owner: run installAlertTrigger() in the editor (it asks for the
+// new permissions: fetch an external URL, manage triggers). The address is the Script Property
+// ALERT_EMAIL (Project Settings → Script Properties); without it the mail goes to the script owner.
+var STATUS_URL = SITE + 'status.json';
+var STALE_HOURS = 48;
+var STALE_WATCHED = ['build', 'scopus', 'openalex', 'forms']; // Scholar is refreshed by hand
+var STALE_LABEL = {
+  build: 'การสร้างเว็บ (GitHub Actions)',
+  scopus: 'Scopus (งานบน iMac 07:30)',
+  openalex: 'OpenAlex (GitHub Actions 03:00)',
+  forms: 'Google Form (GitHub Actions ทุกชั่วโมง)',
+};
+
+/** Pure: the watched sources that are stale. status = parsed status.json; nowMs = Date.now(). */
+function staleSources(status, nowMs) {
+  var f = (status && status.freshness) || {};
+  var times = { build: status && status.builtAt, scopus: f.scopus, openalex: f.openalex, forms: f.forms };
+  var out = [];
+  STALE_WATCHED.forEach(function (key) {
+    var t = typeof times[key] === 'string' ? Date.parse(times[key]) : NaN;
+    var hours = isNaN(t) ? null : Math.max(0, Math.floor((nowMs - t) / 3600000));
+    if (hours === null || hours > STALE_HOURS) out.push({ key: key, at: isNaN(t) ? null : times[key], hours: hours });
+  });
+  return out;
+}
+
+/** Daily (time trigger). Sends at most one e-mail per day, and none while everything is fresh. */
+function checkFreshness() {
+  var props = PropertiesService.getScriptProperties();
+  var problems = [];
+  var unreadable = '';
+  try {
+    var res = UrlFetchApp.fetch(STATUS_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) unreadable = 'HTTP ' + res.getResponseCode();
+    else problems = staleSources(JSON.parse(res.getContentText()), Date.now());
+  } catch (err) {
+    unreadable = String(err && err.message ? err.message : err);
+  }
+  if (!unreadable && !problems.length) {
+    log('freshness', '', true, 'fresh');
+    return 'fresh';
+  }
+  var today = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+  if (props.getProperty('ALERT_SENT_ON') === today) return 'already sent today';
+  var to = props.getProperty('ALERT_EMAIL') || Session.getEffectiveUser().getEmail();
+  var lines = unreadable
+    ? ['อ่านไฟล์สถานะของเว็บไม่ได้ (' + unreadable + '): ' + STATUS_URL, 'เว็บอาจล่ม หรือการ deploy ครั้งล่าสุดล้มเหลว']
+    : problems.map(function (p) {
+        return '• ' + STALE_LABEL[p.key] + ': ' + (p.at ? 'ครั้งล่าสุด ' + Utilities.formatDate(new Date(p.at), 'Asia/Bangkok', 'd MMM yyyy HH:mm') + ' น. (' + Math.floor(p.hours / 24) + ' วันที่แล้ว)' : 'ไม่มีบันทึกเวลา');
+      });
+  MailApp.sendEmail({
+    to: to,
+    subject: '[SEEN] ข้อมูลระบบตรวจสอบคุณสมบัติอาจารย์ไม่อัปเดตเกิน 2 วัน',
+    body:
+      'ระบบตรวจพบว่าข้อมูลต่อไปนี้ไม่ได้อัปเดตเกิน ' + STALE_HOURS + ' ชั่วโมง\n\n' + lines.join('\n') +
+      '\n\nตรวจได้ที่\n- GitHub Actions: https://github.com/smalltee2/seen-faculty-screening/actions\n- iMac: ~/Library/Logs/seen-scopus.log\n- หน้าผู้ดูแลของเว็บ (แหล่งข้อมูล): ' + SITE + 'sfs.html#/admin' +
+      '\n\nอีเมลนี้ส่งวันละไม่เกิน 1 ฉบับ และจะหยุดเองเมื่อข้อมูลกลับมาอัปเดต',
+  });
+  props.setProperty('ALERT_SENT_ON', today);
+  log('freshness', to, false, unreadable || problems.map(function (p) { return p.key; }).join(','));
+  return 'sent';
+}
+
+/** Run once in the editor: (re)installs the daily check at about 09:00 Bangkok time. */
+function installAlertTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'checkFreshness') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('checkFreshness').timeBased().everyDays(1).atHour(9).inTimezone('Asia/Bangkok').create();
+  return 'installed';
 }
