@@ -12,11 +12,14 @@ export type SourceKey = keyof Freshness | 'build'
 
 export const SOURCE_TH: Record<SourceKey, string> = {
   build: 'การสร้างเว็บ (GitHub Actions)',
-  scopus: 'Scopus (iMac 07:30)',
-  openalex: 'OpenAlex (03:00)',
-  forms: 'Google Form (ทุกชั่วโมง)',
-  scholar: 'Google Scholar (เมื่อกดอัปเดต)',
+  scopus: 'Scopus (ทุกวัน, iMac 07:30)',
+  openalex: 'OpenAlex (ทุกวัน 03:00)',
+  forms: 'แบบฟอร์มผู้ดูแล (Google Form ทุกชั่วโมง)',
+  scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
 }
+
+/** Row order of the "แหล่งข้อมูล" list on the admin page: the four data sources, then the site build. */
+export const DISPLAY_ORDER: SourceKey[] = ['openalex', 'scopus', 'forms', 'scholar', 'build']
 
 /** Scholar is refreshed by hand (the "อัปเดตจาก Google Scholar" button), so its age is shown but never counts as stale. */
 export const WATCHED: SourceKey[] = ['build', 'scopus', 'openalex', 'forms']

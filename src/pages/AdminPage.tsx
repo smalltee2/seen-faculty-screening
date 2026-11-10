@@ -12,13 +12,6 @@ import { FreshnessPanel } from '../FreshnessPanel'
 import { conferenceGroups } from '../pending'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
-const SOURCE_LABEL: Record<PubSource, string> = {
-  scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
-  openalex: 'OpenAlex (อัปเดตทุกวัน)',
-  scopus: 'Scopus (อัปเดตทุกวัน)',
-  manual: 'แบบฟอร์มผู้ดูแล (อัปเดตทุกวัน)',
-}
-
 export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => unknown; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
   // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table above.
   const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
@@ -46,19 +39,14 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
       <div className="admin-grid">
         <section className="panel">
           <h3>แหล่งข้อมูล</h3>
-          <dl className="source-list">
-            {(['openalex', 'scopus', 'manual', 'scholar'] as PubSource[]).map((s) => (
-              <div key={s}>
-                <dt>{SOURCE_LABEL[s]}</dt>
-                <dd className="mono">{rawCount(s)} รายการ</dd>
-              </div>
-            ))}
-          </dl>
+          <FreshnessPanel
+            builtAt={data.builtAt}
+            freshness={data.freshness}
+            counts={{ openalex: rawCount('openalex'), scopus: rawCount('scopus'), forms: rawCount('manual'), scholar: rawCount('scholar') }}
+          />
           <p className="note">
-            อัปเดตล่าสุด {new Date(data.builtAt).toLocaleString('th-TH')} · รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้
-            จึงให้ผู้ดูแลระดับ 2 นำเข้าเป็นครั้งคราวที่ "นำเข้าจาก Google Scholar" ด้านล่าง
+            รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้ผู้ดูแลระดับ 2 นำเข้าเป็นครั้งคราวที่ "นำเข้าจาก Google Scholar" ด้านล่าง
           </p>
-          <FreshnessPanel builtAt={data.builtAt} freshness={data.freshness} />
         </section>
 
         <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
