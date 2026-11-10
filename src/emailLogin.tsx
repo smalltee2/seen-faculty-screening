@@ -11,12 +11,27 @@ const API = (import.meta.env.VITE_LOGIN_API as string | undefined) ?? ''
 export type ApiOk = { ok: true; session?: string; email?: string; nameEn?: string; folder?: string; expires?: string; isAdmin?: boolean; id?: string; items?: unknown[]; added?: number; skipped?: number; removed?: number; batch?: string }
 export type ApiErr = { ok: false; error: string }
 
+/** Public read-only actions. When several are sent at once (every page load sends about seven),
+ *  Apps Script can refuse some with an error page that has no CORS header, so the browser reports a
+ *  network error and the list came back empty. These are retried; a write never is, because a write
+ *  that looked failed may still have been saved (2026-11-11). */
+export const READ_ACTIONS = new Set(['confList', 'list', 'formCancelList', 'noticeList', 'scholarJob', 'scholarList', 'decisionLog'])
+const RETRY_DELAYS_MS = [700, 2000]
+
 /** POST to the Apps Script web app as text/plain (no CORS preflight); it redirects once. */
-export async function api(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
+export async function api(body: Record<string, unknown>, delays: number[] = RETRY_DELAYS_MS): Promise<ApiOk | ApiErr> {
   if (!API) return { ok: false, error: 'not_configured' }
-  const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
-  if (!res.ok) return { ok: false, error: `http_${res.status}` }
-  return (await res.json()) as ApiOk | ApiErr
+  const retries = READ_ACTIONS.has(String(body.action)) ? delays : []
+  for (let i = 0; ; i++) {
+    try {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
+      if (!res.ok) return { ok: false, error: `http_${res.status}` }
+      return (await res.json()) as ApiOk | ApiErr
+    } catch (e) {
+      if (i >= retries.length) throw e
+      await new Promise((r) => setTimeout(r, retries[i]))
+    }
+  }
 }
 export const loginConfigured = API !== ''
 

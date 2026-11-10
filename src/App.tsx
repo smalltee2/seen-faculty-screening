@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { HoverSelect } from './HoverSelect'
 import raw from './generated/data.json'
-import { preparePubs } from './classify'
 import { evaluatePerson, toBE, type Settings } from './rules'
-import type { ConferenceEntry, DataBundle, RawPub } from './types'
+import type { DataBundle } from './types'
+import { useSiteData } from './siteData'
 import { Overview } from './pages/Overview'
 import { LecturersPage } from './pages/LecturersPage'
 import { PersonPage } from './pages/PersonPage'
@@ -13,19 +13,11 @@ import { MyPage } from './pages/MyPage'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from './adminGate'
 import seenLogo from './assets/seen-logo.png'
 import { reloadForBuild, useAutoRefresh } from './autoRefresh'
-import { fetchLiveManual } from './liveManual'
-import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
-import { dropRemovedScholar, fetchScholarImports, scholarImportRows, type ScholarImportItem } from './scholarImport'
-import { cancelledForms, dropCancelledForms, fetchFormCancels, type FormCancelItem } from './formCancel'
-import { applyConfDecisions, fetchConfDecisions, type ConfDecisionItem } from './confDecisions'
-import { fetchNotices, type Notice } from './notify'
 import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 
 const data = raw as unknown as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
-const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
-const makePubs = (bundled: RawPub[], extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundled, ...extra], data.overrides, conferences)
 const CURRENT_YEAR = new Date().getFullYear()
 /** True on sfs.html (the page for real use), whose <html> carries data-years="current-next" (scripts/build-personal.mjs). */
 const REAL_USE = document.documentElement.dataset.years === 'current-next'
@@ -108,60 +100,7 @@ function loadSettings(): Settings {
 export function App() {
   const [route, setRoute] = useState<Route>(parseHash)
   const [settings, setSettings] = useState<Settings>(loadSettings)
-  // Works added through the admin form since the last build, read live from its sheet.
-  const [liveRows, setLiveRows] = useState<RawPub[]>([])
-  useEffect(() => {
-    let on = true
-    void fetchLiveManual(data.sources.manualSheetCsvUrl, data.faculty, bundledRows).then((rows) => {
-      if (on && rows.length) setLiveRows(rows)
-    })
-    return () => {
-      on = false
-    }
-  }, [])
-  // Works lecturers added themselves (src/submissions.ts): approved ones count, pending ones are only shown.
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const refreshSubmissions = () => fetchSubmissions().then(setSubmissions)
-  useEffect(() => {
-    void refreshSubmissions()
-  }, [])
-  const lecturerNames = useMemo(() => new Set(data.faculty.map((f) => f.nameEn)), [])
-  const selfRows = useMemo(() => approvedRows(submissions, lecturerNames, bundledRows), [submissions, lecturerNames])
-  // Google Scholar rows a level-2 admin imported (src/scholarImport.ts); null = list not read.
-  const [scholarItems, setScholarItems] = useState<ScholarImportItem[] | null>(null)
-  const refreshScholar = () => {
-    void fetchScholarImports().then(setScholarItems)
-  }
-  useEffect(refreshScholar, [])
-  const scholarRows = useMemo(() => scholarImportRows(scholarItems ?? [], lecturerNames, bundledRows), [scholarItems, lecturerNames])
-  // Conference decisions from the register buttons (src/confDecisions.ts), applied live.
-  const [confItems, setConfItems] = useState<ConfDecisionItem[]>([])
-  // Returns the reload, so the register's buttons can keep their spinner until the new result shows.
-  const refreshConf = () => fetchConfDecisions().then(setConfItems)
-  useEffect(() => {
-    void refreshConf()
-  }, [])
-  const conferences = useMemo(() => applyConfDecisions(data.conferences ?? [], confItems), [confItems])
-  // Reminder e-mails sent to lecturers (src/notify.ts): when each was last notified.
-  const [notices, setNotices] = useState<Notice[]>([])
-  const refreshNotices = () => {
-    void fetchNotices().then(setNotices)
-  }
-  useEffect(refreshNotices, [])
-  // Admin-form works a level-2 admin cancelled on the site (src/formCancel.ts); null = list not read.
-  const [formCancels, setFormCancels] = useState<FormCancelItem[] | null>(null)
-  const refreshFormCancels = () => fetchFormCancels().then(setFormCancels)
-  useEffect(() => {
-    void refreshFormCancels()
-  }, [])
-  const cancelled = useMemo(() => cancelledForms(formCancels ?? []), [formCancels])
-  // When the list cannot be read, the keys known at build time still apply to the live form rows.
-  const cancelKeys = useMemo(() => (formCancels ? cancelled : new Set(data.formCancelled ?? [])), [formCancels, cancelled])
-  // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
-  // Bundled Scholar imports undone since the build are dropped too.
-  const keptBundled = useMemo(() => dropCancelledForms(dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), cancelKeys), [submissions, scholarItems, cancelKeys])
-  const keptLive = useMemo(() => dropCancelledForms(liveRows, cancelKeys), [liveRows, cancelKeys])
-  const pubs = useMemo(() => makePubs(keptBundled, [...keptLive, ...selfRows, ...scholarRows], conferences), [keptBundled, keptLive, selfRows, scholarRows, conferences])
+  const { pubs, submissions, refreshSubmissions, scholarItems, refreshScholar, confItems, refreshConf, conferences, notices, refreshNotices, formCancels, refreshFormCancels, cancelled } = useSiteData()
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).
   const [admin, setAdmin] = useState<AdminLinks | null>(() => initialAdmin(data))
