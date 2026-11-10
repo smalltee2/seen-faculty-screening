@@ -24,6 +24,17 @@ export async function fetchPublishedBuild(): Promise<string | null> {
   }
 }
 
+/** True only when `published` is a later build than `current` (both ISO timestamps). A CDN copy
+ *  of version.json that is older than the running bundle is not "newer", and an unreadable
+ *  timestamp never triggers a reload. */
+export function isNewerBuild(published: string | null, current: string): boolean {
+  if (!published) return false
+  const p = Date.parse(published)
+  const c = Date.parse(current)
+  if (Number.isNaN(p)) return false
+  return Number.isNaN(c) ? published !== current : p > c
+}
+
 /** Reload with a cache-busting query so the HTML itself is refetched. */
 export function reloadForBuild(builtAt: string): void {
   try {
@@ -56,7 +67,7 @@ export function useAutoRefresh(currentBuild: string, auto: boolean): string | nu
     const check = async () => {
       if (document.visibilityState === 'hidden') return
       const published = await fetchPublishedBuild()
-      if (stopped || !published || published === currentBuild) return
+      if (stopped || !published || !isNewerBuild(published, currentBuild)) return
       let alreadyTried = ''
       try {
         alreadyTried = sessionStorage.getItem(RELOAD_GUARD_KEY) ?? ''

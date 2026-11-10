@@ -48,6 +48,20 @@ else
   log "claude not installed; conference screening skipped"
 fi
 
+# Nothing is pushed unless the site data still builds from it: a push redeploys the site, and
+# a broken data file would fail that build for everyone. If the build fails, drop this run's
+# conference screening first (the Scopus rows alone may be fine) and try once more.
+if ! node scripts/build-data.mjs >/dev/null 2>&1; then
+  log "WARNING: build-data fails with this run's data; dropping the conference screening changes"
+  git checkout -q -- data/conferences.csv
+  if ! node scripts/build-data.mjs >/dev/null 2>&1; then
+    log "ERROR: build-data still fails with the new Scopus data; nothing pushed"
+    node scripts/build-data.mjs 2>&1 | tail -5 | while IFS= read -r l; do log "$l"; done
+    git reset -q --hard origin/main
+    exit 1
+  fi
+fi
+
 git add data/scopus.tsv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv
 if git diff --cached --quiet; then
   log "No Scopus or conference changes"

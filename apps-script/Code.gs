@@ -356,10 +356,16 @@ function findAdmin(email) {
   return a.length ? a[0] : null;
 }
 
-/** Text stored in the sheet: trimmed, capped, and never read as a formula. */
+/** Text stored in the sheet: trimmed, capped, and always kept as text. The leading apostrophe is
+ *  Sheets' own text marker (it is not part of the stored value), so the sheet never reads the text
+ *  as a formula, a number or a date: a volume "3/4" stays "3/4" and a title "2020" stays "2020". */
 function cell(v, max) {
-  var t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 500);
-  return /^[=+\-@]/.test(t) ? "'" + t : t;
+  return asText(String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 500));
+}
+
+/** A string marked as text for the sheet (see cell); other values (dates, numbers) pass unchanged. */
+function asText(v) {
+  return typeof v === 'string' && v !== '' ? "'" + v : v;
 }
 
 /** A signed-in lecturer adds one of their own works; it waits for a level-2 admin. */
@@ -458,7 +464,7 @@ function confDecide(body) {
   if (!/^(venue|work):/.test(key) || !decision) return { ok: false, error: 'bad_request' };
   var sh = sheet('conf_decisions');
   if (!sh) return { ok: false, error: 'not_configured' };
-  sh.appendRow([new Date(), key, decision, auth.who, cell(body.note, 300), cell(body.name, 300)]);
+  sh.appendRow([new Date(), asText(key), decision, auth.who, cell(body.note, 300), cell(body.name, 300)]);
   log('confDecide', auth.who, true, key + ' ' + decision);
   return { ok: true };
 }
@@ -571,7 +577,7 @@ function scholarImport(body) {
       return;
     }
     seen[k] = true;
-    out.push([now, nameEn, year, title, cell(w.authors, 800), cell(w.venue, 300), Math.max(0, Math.floor(Number(w.cites) || 0)), cell(auth.who, 200), batch]);
+    out.push([now, asText(nameEn), year, title, cell(w.authors, 800), cell(w.venue, 300), Math.max(0, Math.floor(Number(w.cites) || 0)), cell(auth.who, 200), batch]);
   });
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, SCH_HEAD.length).setValues(out);
   log('scholarImport', auth.who, true, nameEn + ' +' + out.length + ' (' + batch + ')');
@@ -607,7 +613,8 @@ function scholarRemove(body) {
   var n = values.length - 1 - keep.length;
   if (!n) return { ok: false, error: 'not_found' };
   sh.getRange(2, 1, values.length - 1, values[0].length).clearContent();
-  if (keep.length) sh.getRange(2, 1, keep.length, values[0].length).setValues(keep);
+  // Written back as text: a plain rewrite would let the sheet re-read a title such as "2020" as a number.
+  if (keep.length) sh.getRange(2, 1, keep.length, values[0].length).setValues(keep.map(function (r) { return r.map(asText); }));
   log('scholarRemove', auth.who, true, batch + ' -' + n);
   return { ok: true, removed: n };
 }
@@ -627,7 +634,7 @@ function formCancel(body) {
     sh = SpreadsheetApp.getActiveSpreadsheet().insertSheet('form_cancels');
     sh.appendRow(FORM_CANCEL_HEAD);
   }
-  sh.appendRow([new Date(), nameEn, k, title, action, auth.who]);
+  sh.appendRow([new Date(), asText(nameEn), asText(k), title, action, auth.who]);
   log('formCancel', auth.who, true, nameEn + ' ' + action + ' ' + k.slice(0, 60));
   return { ok: true };
 }

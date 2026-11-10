@@ -30,15 +30,45 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Fetch all sources (daily run and manual dispatch)
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 20 * * *'
+      # One run waits in the `pages` queue at a time, so a waiting daily run can be dropped when a newer
+      # run arrives. The full fetch is therefore decided by the age of data/last_full_fetch.txt as well:
+      # an hourly run does the full fetch when the last one is more than 25 hours old.
+      - name: Decide which fetch this run does
+        id: mode
+        if: github.event_name != 'push'
+        run: |
+          mode=forms
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "0 20 * * *" ]; then
+            mode=full
+          else
+            last=0
+            # An empty or unreadable stamp counts as "never" (date -d "" would mean today).
+            stamp=$(tr -d '[:space:]' < data/last_full_fetch.txt 2>/dev/null || true)
+            if [ -n "$stamp" ]; then last=$(date -u -d "$stamp" +%s 2>/dev/null || echo 0); fi
+            if [ $(( $(date -u +%s) - last )) -gt 90000 ]; then mode=catchup; fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Fetch mode: $mode"
+      - name: Fetch all sources (daily run, manual dispatch, or an hourly run catching up)
+        if: steps.mode.outputs.mode == 'full' || steps.mode.outputs.mode == 'catchup'
         env:
           SCOPUS_API_KEY: ${{ secrets.SCOPUS_API_KEY }}
           SCOPUS_INSTTOKEN: ${{ secrets.SCOPUS_INSTTOKEN }}
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
-        run: npm run fetch
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          if npm run fetch; then
+            date -u +%Y-%m-%dT%H:%M:%SZ > data/last_full_fetch.txt
+          elif [ "$MODE" = "catchup" ]; then
+            # The hourly run still has to publish the forms; the full fetch is tried again next hour.
+            echo "::warning::Full fetch failed in a catch-up run; fetching the forms only."
+            git checkout -- data
+            node scripts/fetch-sources.mjs --only=manual,decisions
+          else
+            exit 1
+          fi
       - name: Fetch the two Google Forms only (hourly run)
-        if: github.event.schedule == '15 * * * *'
+        if: steps.mode.outputs.mode == 'forms'
         env:
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: node scripts/fetch-sources.mjs --only=manual,decisions
@@ -50,7 +80,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/openalex.tsv data/scopus.tsv data/manual.tsv data/self.tsv data/scholar_imports.tsv data/form_cancels.tsv data/crossref.tsv data/tci_journals.csv data/tci_snapshots data/tci_tier_history.csv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv
+          git add data/openalex.tsv data/scopus.tsv data/manual.tsv data/self.tsv data/scholar_imports.tsv data/form_cancels.tsv data/crossref.tsv data/tci_journals.csv data/tci_snapshots data/tci_tier_history.csv data/scopus_journals.csv data/scopus_quartiles.csv data/conferences.csv data/last_full_fetch.txt
           if git diff --cached --quiet; then
             echo "No data changes."
           else

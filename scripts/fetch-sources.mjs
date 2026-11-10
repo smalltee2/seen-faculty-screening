@@ -134,6 +134,14 @@ async function fetchOpenAlex(faculty) {
         cursor = d.meta?.next_cursor && d.results.length ? d.meta.next_cursor : null
         await sleep(150)
       }
+      // An answer with no works for a lecturer who had some is treated as a failed request:
+      // writing it would silently drop every OpenAlex row of that lecturer.
+      const before = previous.filter((r) => r.key === f.name_en)
+      if (!rows.length && before.length) {
+        out.push(...before)
+        warn(`${f.name_en}: OpenAlex returned no works; kept ${before.length} previous rows`)
+        continue
+      }
       out.push(...rows)
       ok++
       log(`${f.name_en}: ${rows.length} works`)
@@ -225,6 +233,13 @@ async function fetchScopus(faculty, key) {
         const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
         if (start + 25 >= total || !entries.length) break
         await sleep(200)
+      }
+      // Same guard as OpenAlex: an empty answer never replaces rows already on file.
+      const before = previous.filter((r) => r.key === f.name_en)
+      if (!rows.length && before.length) {
+        out.push(...before)
+        warn(`${f.name_en}: Scopus returned no documents; kept ${before.length} previous rows`)
+        continue
       }
       out.push(...rows)
       ok++

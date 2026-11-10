@@ -28,6 +28,7 @@ import {
   type Settings,
 } from './rules'
 import { inProgramme } from './rules'
+import { normalizeTitle } from './classify'
 import type { Faculty, Pub } from './types'
 
 const Y = 2026
@@ -276,6 +277,12 @@ describe('programme check', () => {
     expect(c.status).toBe('not_met')
     expect(c.met).toHaveLength(2)
   })
+  it('metAll counts everyone who qualifies, listed in the programme or not', () => {
+    const res = [...evalAll(ppl(2, ['M.Sc.']), true), ...evalAll(ppl(1, ['Ph.D.']), true)]
+    const c = programmeCheck('ms', res)
+    expect(c.met).toHaveLength(2)
+    expect(c.metAll).toHaveLength(3)
+  })
   it('a bachelor’s programme needs 5 responsible lecturers (10.1.2)', () => {
     expect(programmeCheck('ba', evalAll(ppl(4, ['B.Sc.']), true)).status).toBe('not_met')
     expect(programmeCheck('ba', evalAll(ppl(5, ['B.Sc.']), true)).status).toBe('met')
@@ -364,5 +371,25 @@ describe('countedWorks', () => {
     const works = countedWorks(res, S)
     expect(works.map((w) => w.titleNorm).sort()).toEqual(['shared', works.find((w) => w.year === 2024)!.titleNorm].sort())
     expect(works).toHaveLength(2)
+  })
+
+  it('counts once a work two lecturers list under different title forms', () => {
+    const a = person({ nameEn: 'A' })
+    const b = person({ nameEn: 'B' })
+    const full = 'effects of biomass burning on surface ozone over northern thailand in the dry season'
+    const pubs = [
+      // Same DOI, titles differ.
+      pub({ key: 'A', year: 2025, titleNorm: 'paper one', doi: '10.1000/X1' }),
+      pub({ key: 'B', year: 2025, titleNorm: 'paper one erratum style title', doi: '10.1000/x1' }),
+      // B has only the Scholar copy cut with an ellipsis.
+      pub({ key: 'A', year: 2024, title: full, titleNorm: normalizeTitle(full) }),
+      pub({ key: 'B', year: 2024, title: `${full.slice(0, 45)}…`, titleNorm: normalizeTitle(full.slice(0, 45)) }),
+      // A different work that merely shares no key with the others stays separate.
+      pub({ key: 'B', year: 2024, titleNorm: 'another work', doi: '10.1000/x2' }),
+    ]
+    const res = [a, b].map((p) => evaluatePerson(p, pubs, S))
+    expect(countedWorks(res, S)).toHaveLength(3)
+    // Order of the lecturers must not matter (the cut title may come first).
+    expect(countedWorks([...res].reverse(), S)).toHaveLength(3)
   })
 })

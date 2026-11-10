@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { countedWorks, nextYearRisk, programmeCheck, toBE, type PersonResult, type Settings } from '../rules'
+import { countedWorks, nextYearRisk, programmeCheck, toBE, type PersonResult, type ProgrammeCheck, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, YEAR_SERIES, type OutputsView, type YearMode } from '../charts'
 import { LEVEL_GROUPS, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
@@ -49,8 +49,8 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
           ปีการประเมิน พ.ศ. {Y} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
         </p>
         <p>
-          อาจารย์ทั้งคณะที่มีคุณสมบัติตามเกณฑ์มาตรฐานหลักสูตร ระดับปริญญาตรี จำนวน <b className="mono">{ba.met.length}</b> คน ระดับปริญญาโทจำนวน{' '}
-          <b className="mono">{ms.met.length}</b> คน และระดับปริญญาเอกจำนวน <b className="mono">{phd.met.length}</b> คน
+          อาจารย์ทั้งคณะที่มีคุณสมบัติตามเกณฑ์มาตรฐานหลักสูตร ระดับปริญญาตรี จำนวน <b className="mono">{ba.metAll.length}</b> คน ระดับปริญญาโทจำนวน{' '}
+          <b className="mono">{ms.metAll.length}</b> คน และระดับปริญญาเอกจำนวน <b className="mono">{phd.metAll.length}</b> คน
         </p>
       </div>
 
@@ -83,9 +83,9 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
 
       <section className="stat-banner" aria-label="สรุปผลการประเมิน">
         <Stat badge="รวม" color="var(--card-total)" label="อาจารย์ทั้งหมด" value={results.length} unit="คน" sub={`ผ่านครบทุกหน้าที่ ${fullyMet} คน`} />
-        <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ba.met.length} unit="คน" sub={<StatusChip status={ba.status} />} />
-        <Stat badge="ป.โท" color="var(--lvl-ms)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ms.met.length} unit="คน" sub={<StatusChip status={ms.status} />} />
-        <Stat badge="ป.เอก" color="var(--lvl-phd)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={phd.met.length} unit="คน" sub={<StatusChip status={phd.status} />} />
+        <Stat badge="ป.ตรี" color="var(--lvl-ba)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ba.metAll.length} unit="คน" sub={<ProgrammeSub c={ba} />} />
+        <Stat badge="ป.โท" color="var(--lvl-ms)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={ms.metAll.length} unit="คน" sub={<ProgrammeSub c={ms} />} />
+        <Stat badge="ป.เอก" color="var(--lvl-phd)" label="มีผู้ผ่านตามเกณฑ์มาตรฐานหลักสูตร จำนวน" value={phd.metAll.length} unit="คน" sub={<ProgrammeSub c={phd} />} />
         <Stat color="var(--card-pubs)" label="ผลงานรวมที่นับได้ในช่วง 5 ปี จำนวน" value={countedPubs} unit="รายการ" />
       </section>
 
@@ -255,5 +255,22 @@ function Stat({ badge, color, label, value, unit, sub }: { badge?: string; color
       </b>
       <span className="stat-sub">{sub}</span>
     </div>
+  )
+}
+
+/** Programme result under a faculty-wide count. The count above is everyone who qualifies; the
+ *  chip is the programme's own result, so once lecturers are listed per programme the number
+ *  the chip rests on is shown next to it. */
+function ProgrammeSub({ c }: { c: ProgrammeCheck }) {
+  return (
+    <>
+      <StatusChip status={c.status} />
+      {!c.usedAll && (
+        <span className="muted small">
+          {' '}
+          ในรายชื่อหลักสูตรผ่าน {c.met.length} จาก {c.listed} คน
+        </span>
+      )}
+    </>
   )
 }

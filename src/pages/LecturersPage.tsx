@@ -149,7 +149,7 @@ export function LecturersPage({
         x.research + x.other,
         x.maybe,
         `≥ ${g.rule}`,
-        x.failed > 0 ? `ไม่ผ่าน ${x.failed} หน้าที่` : x.risk.length > 0 ? `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน` : "ผ่าน",
+        x.failed > 0 ? `ไม่ผ่าน ${x.failed} หน้าที่` : x.review > 0 ? `รอตรวจสอบ ${x.review} หน้าที่` : x.risk.length > 0 ? `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน` : "ผ่าน",
       ]),
     );
   };

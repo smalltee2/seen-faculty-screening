@@ -290,8 +290,10 @@ export function outputRows(results: PersonResult[], settings: Settings, group: L
         maybe: c.totalPossible - c.total,
         name: displayName(r.person),
         risk: nextYearRisk(r, settings).filter((role) => levelGroup(role.level) === group),
-        // Duties of this level group not passed in the evaluation year.
-        failed: roles.filter((role) => r.roles[role.id].status !== 'met').length,
+        // Duties of this level group in the evaluation year: failed (not_met) and still to be
+        // checked (needs_review) are counted apart, so a duty awaiting a check is never shown as failed.
+        failed: roles.filter((role) => r.roles[role.id].status === 'not_met').length,
+        review: roles.filter((role) => r.roles[role.id].status === 'needs_review').length,
       }
     })
     .sort((a, b) =>
@@ -329,7 +331,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
   const sx = (v: number) => m.l + (v / max) * iw
   const bh = narrow ? 14 : 18
   const bubbles: ReactNode[] = [] // drawn after the threshold line so it never covers a total
-  const tone = (x: { failed: number; risk: unknown[] }) => (x.failed > 0 ? 'fail' : x.risk.length > 0 ? 'risk' : 'ok')
+  const tone = (x: { failed: number; review: number; risk: unknown[] }) => (x.failed > 0 ? 'fail' : x.review > 0 || x.risk.length > 0 ? 'risk' : 'ok')
 
   return (
     <figure className="chart" ref={ref}>
@@ -346,7 +348,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
           <i className="swatch swatch-fail" /> ไม่ผ่านบางหน้าที่ของ{lvl} ในปีที่ประเมิน
         </span>
         <span>
-          <i className="swatch swatch-risk" /> ปีหน้าอาจไม่ผ่าน{lvl} ถ้าไม่มีผลงานเพิ่ม
+          <i className="swatch swatch-risk" /> รอตรวจสอบบางหน้าที่ของ{lvl} หรือปีหน้าอาจไม่ผ่านถ้าไม่มีผลงานเพิ่ม
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน (${group === 'ba' ? 'ระดับปริญญาตรี' : 'ระดับบัณฑิตศึกษา'})`}>
@@ -365,8 +367,8 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
           const total = x.research + x.other
           return (
             <g key={x.r.person.nameEn}>
-              {/* Red = fails now (takes precedence); yellow = passes now but may fail next year */}
-              {(x.failed > 0 || x.risk.length > 0) && (
+              {/* Red = fails now (takes precedence); yellow = a duty awaits a check, or passes now but may fail next year */}
+              {(x.failed > 0 || x.review > 0 || x.risk.length > 0) && (
                 <rect className={x.failed > 0 ? 'fail-frame' : 'risk-frame'} x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />
               )}
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
@@ -414,6 +416,10 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
                   {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน (${lvl}) ${x.failed}/${roles.length} หน้าที่`}
                 </text>
+              ) : x.review > 0 ? (
+                <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
+                  {`? รอตรวจสอบ (${lvl}) ${x.review}/${roles.length} หน้าที่`}
+                </text>
               ) : (
                 x.risk.length > 0 && (
                   <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
@@ -444,6 +450,11 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                       {x.failed > 0 && (
                         <span className="tip-fail">
                           ✗ ปี {toBE(settings.year)} ไม่ผ่าน ({lvl}) {x.failed} จาก {roles.length} หน้าที่
+                        </span>
+                      )}
+                      {x.review > 0 && (
+                        <span className="tip-risk">
+                          ? ปี {toBE(settings.year)} รอตรวจสอบ ({lvl}) {x.review} จาก {roles.length} หน้าที่
                         </span>
                       )}
                       {x.risk.length > 0 && (

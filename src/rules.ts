@@ -7,6 +7,7 @@
 // Three-valued logic: each publication counts "yes", "maybe" (uncertain
 // classification) or "no". A rule is met when the certain counts satisfy it,
 // not met when even the possible counts fail, and needs review otherwise.
+import { truncatedStem } from './classify'
 import type { Faculty, Pub, Rank } from './types'
 
 export type Status = 'met' | 'not_met' | 'needs_review'
@@ -342,13 +343,30 @@ export interface PersonResult {
 
 /** Faculty-wide outputs that count, any year: each work once (co-authors share it), kept when
  *  the work counts for at least one of its lecturers. The overview banner, the per-year chart
- *  and its table all use this list (Tum, 2026-11-09), so their totals agree. */
+ *  and its table all use this list (Tum, 2026-11-09), so their totals agree.
+ *  Two lecturers' rows are the same work under the rules `dedupe` uses for one lecturer: the same
+ *  normalised title, the same DOI, or a Scholar title cut with "…" that the other title starts with. */
 export function countedWorks(results: PersonResult[], s: Settings): Pub[] {
-  const out = new Map<string, Pub>()
+  const out: Pub[] = []
+  const byTitle = new Set<string>()
+  const byDoi = new Set<string>()
+  const stems: string[] = []
   for (const r of results)
-    for (const pub of r.pubs)
-      if (!out.has(pub.titleNorm) && evaluatePub(pub, r.person, s).eligible === 'yes') out.set(pub.titleNorm, pub)
-  return [...out.values()]
+    for (const pub of r.pubs) {
+      if (evaluatePub(pub, r.person, s).eligible !== 'yes') continue
+      const doi = pub.doi?.trim().toLowerCase() || ''
+      const stem = truncatedStem(pub.title)
+      const known =
+        byTitle.has(pub.titleNorm) ||
+        (doi !== '' && byDoi.has(doi)) ||
+        stems.some((x) => pub.titleNorm.startsWith(x)) ||
+        (stem !== null && out.some((o) => o.titleNorm.startsWith(stem)))
+      byTitle.add(pub.titleNorm)
+      if (doi) byDoi.add(doi)
+      if (stem) stems.push(stem)
+      if (!known) out.push(pub)
+    }
+  return out
 }
 
 export function evaluatePerson(p: Faculty, pubs: Pub[], s: Settings): PersonResult {
@@ -382,6 +400,9 @@ export interface ProgrammeCheck {
   status: Status
   listed: number
   met: PersonResult[]
+  /** Everyone in the faculty who meets the criterion, listed in the programme or not
+   *  (equals `met` while no lecturer has `programs` filled in). */
+  metAll: PersonResult[]
   review: PersonResult[]
   /** Lecturers who meet the criterion but are not listed in this programme. */
   metNotListed: PersonResult[]
@@ -400,7 +421,8 @@ export function programmeCheck(level: Level, results: PersonResult[]): Programme
   const n = lv.minResponsible
   const status: Status = met.length >= n ? 'met' : met.length + review.length >= n ? 'needs_review' : 'not_met'
   const metNotListed = usedAll ? [] : results.filter((r) => !inProgramme(r.person, level) && r.roles[lv.responsible].status === 'met')
-  return { level: lv, status, listed: listedPeople.length, met, review, metNotListed, usedAll }
+  const metAll = results.filter((r) => r.roles[lv.responsible].status === 'met')
+  return { level: lv, status, listed: listedPeople.length, met, metAll, review, metNotListed, usedAll }
 }
 
 export const toBE = (ce: number) => ce + 543
