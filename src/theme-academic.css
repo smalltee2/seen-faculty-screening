@@ -713,3 +713,22 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .leaf-spinner img { display: block; animation: leaf-spin 1.1s linear infinite; }
 @keyframes leaf-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .leaf-spinner img { animation-duration: 3s; } }
+
+/* Coloured frames around the three work lists on the admin page (Tum, 2026-11-11):
+   self-added works = orange, conference register = blue, admin form = green. The hues are the
+   chart tokens (journal / proceeding / poster), which are defined for both themes. */
+.admin-box {
+  --box: var(--accent);
+  margin: 28px 0; padding: 4px 22px 20px; min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--box) 45%, var(--line));
+  border-left: 5px solid var(--box);
+  border-radius: var(--radius-xl, 14px);
+  background: color-mix(in srgb, var(--box) 5%, var(--panel));
+}
+.admin-box-self { --box: var(--c-journal); }
+.admin-box-conf { --box: var(--c-proceeding); }
+.admin-box-form { --box: var(--c-poster); }
+.admin-box h2.block-title::after { background: var(--box); }
+.admin-box .table-wrap { background: var(--panel); }
+@media (max-width: 720px) { .admin-box { padding: 2px 12px 14px; margin: 20px 0; } }
+@media print { .admin-box { background: none; border-color: #999; border-left-color: #555; } }

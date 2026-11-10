@@ -56,12 +56,18 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
         <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
       </ScholarUpdate>
 
-      <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
+      {/* Coloured frames so the three work lists are easy to tell apart (Tum, 2026-11-11) */}
+      <section className="admin-box admin-box-self" aria-label="ผลงานที่อาจารย์เพิ่มเอง">
+        <ApproveWorks submissions={submissions} faculty={faculty} onChanged={onSubmissionsChanged} approvalKey={approvalKey} conferences={conferences} onConfChanged={onConferencesChanged} />
+      </section>
 
       {/* Pending proceedings/posters lecturers added also enter the register, so the conference can be judged before approval */}
-      <ConferenceRegister pubs={pubs} faculty={faculty} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
+      <section className="admin-box admin-box-conf" aria-label="ทะเบียนงานประชุม">
+        <ConferenceRegister pubs={pubs} faculty={faculty} pendingPubs={conferenceSubmissions(submissions, conferences).filter((x) => x.sub.status === 'pending').map((x) => x.pub)} approvalKey={approvalKey} onChanged={onConferencesChanged} />
+      </section>
 
       {/* Steps box removed (Tum, 2026-11-07); the admin form button moved here */}
+      <section className="admin-box admin-box-form" aria-label="ผลงานที่เพิ่มผ่านแบบฟอร์ม">
       <div className="block-head-row">
         <h2 className="block-title">ผลงานที่เพิ่มผ่านแบบฟอร์ม · {manual.length} รายการ</h2>
         {formUrl ? (
@@ -145,6 +151,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
           </div>
         </details>
       )}
+      </section>
     </>
   )
 }
