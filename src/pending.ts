@@ -29,3 +29,8 @@ export function conferenceGroups(pubs: Pub[], pendingPubs: Pub[], minYear: numbe
     (a, b) => VERDICT_ORDER[a.match.verdict] - VERDICT_ORDER[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0),
   )
 }
+
+/** Conferences no admin has decided yet (นับ/ไม่นับ). A decision cleared again ("clear") counts as undecided. */
+export function undecidedGroups(groups: ConfGroup[]): ConfGroup[] {
+  return groups.filter((g) => g.match.by !== 'admin')
+}

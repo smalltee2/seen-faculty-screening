@@ -13,13 +13,19 @@ const sub = (id: string, status: Submission['status'], over: Partial<Submission>
 const empty = { confItems: [], formCancels: [], submissions: [], decisionLog: [] as DecisionLogItem[], notices: [] }
 
 describe('buildHistory', () => {
-  it('keeps every conference press and undoes only the latest, back to the one before', () => {
+  it('keeps every conference press; undoing the latest นับ/ไม่นับ cancels it, back to the register', () => {
     const h = buildHistory({ ...empty, confItems: [conf('2026-11-01T01:00:00Z', 'venue:x', 'count'), conf('2026-11-02T01:00:00Z', 'venue:x', 'no_count', 'ไม่เกี่ยวกับสาขา')] })
     expect(h).toHaveLength(2)
     expect(h[0].action).toBe('ไม่นับ')
     expect(h[0].note).toBe('ไม่เกี่ยวกับสาขา')
-    expect(h[0].undo).toEqual({ action: 'confDecide', key: 'venue:x', decision: 'count', name: 'x' })
+    expect(h[0].undo).toEqual({ action: 'confDecide', key: 'venue:x', decision: 'clear', name: 'x' })
+    expect(h[0].undoLabel).toContain('กลับไปอยู่ในทะเบียนงานประชุม')
     expect(h[1].undo).toBeUndefined()
+  })
+  it('undoing a cancel re-applies the decision before it', () => {
+    const h = buildHistory({ ...empty, confItems: [conf('2026-11-01T01:00:00Z', 'venue:x', 'no_count'), conf('2026-11-02T01:00:00Z', 'venue:x', 'clear')] })
+    expect(h[0].undo).toEqual({ action: 'confDecide', key: 'venue:x', decision: 'no_count', name: 'x' })
+    expect(h[0].undoLabel).toBe('กลับเป็น "ไม่นับ"')
   })
   it('undoes a first conference decision with "clear", and offers nothing when nothing would change', () => {
     const one = buildHistory({ ...empty, confItems: [conf('2026-11-01T01:00:00Z', 'venue:x', 'count')] })

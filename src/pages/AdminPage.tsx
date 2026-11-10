@@ -9,7 +9,7 @@ import type { Faculty } from '../types'
 import type { FormCancelItem } from '../formCancel'
 import leafIcon from '../assets/leaf-spinner.png'
 import { FreshnessPanel } from '../FreshnessPanel'
-import { conferenceGroups } from '../pending'
+import { conferenceGroups, undecidedGroups } from '../pending'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => unknown; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
@@ -218,7 +218,7 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
           <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
         </li>
         <li>
-          <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") ผล AI เป็นเพียงคำแนะนำ (แนะนำให้นับ / แนะนำไม่นับ) ทุกงานประชุมจะอยู่ในสถานะ "รอตรวจสอบ" และยังไม่นับ จนกว่าผู้ดูแลระดับ 2 จะกด "นับ" หรือ "ไม่นับ"
+          <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") ผล AI เป็นเพียงคำแนะนำ (แนะนำให้นับ / แนะนำไม่นับ) ทุกงานประชุมจะอยู่ในสถานะ "รอตรวจสอบ" และยังไม่นับ จนกว่าผู้ดูแลระดับ 2 จะกด "นับ" หรือ "ไม่นับ" เมื่อกดแล้วงานประชุมจะย้ายไปอยู่ที่ "ประวัติการตัดสิน" และยกเลิกได้จากที่นั่น
         </li>
         {!screening && (
           <li>
@@ -233,8 +233,11 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
 function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => unknown }) {
   const { minYear } = registerWindow(pubs)
-  const rows = conferenceGroups(pubs, pendingPubs, minYear)
-  const pending = rows.filter((r) => r.match.verdict === 'pending').length
+  // Only conferences still awaiting an admin's นับ/ไม่นับ (Tum, 2026-11-11). A decided one moves to
+  // "ประวัติการตัดสิน", where cancelling the decision brings it back here.
+  const all = conferenceGroups(pubs, pendingPubs, minYear)
+  const rows = undecidedGroups(all)
+  const decided = all.length - rows.length
   // Year filter and 10 conferences per page (Tum, 2026-11-07), so the register stays short as it grows.
   const [year, setYear] = useState<number | 'all'>('all')
   const [page, setPage] = useState(0)
@@ -246,8 +249,13 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
   return (
     <>
       <h2 className="block-title">
-        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน{pending > 0 && <span className="muted"> (รอตรวจสอบ {pending})</span>}
+        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน
       </h2>
+      {decided > 0 && (
+        <p className="note">
+          ตัดสินแล้ว {decided} งาน ย้ายไปอยู่ที่ <a href="#/admin/history">ประวัติการตัดสิน</a> · กด "ย้อนกลับ" ที่นั่นเพื่อยกเลิกการตัดสิน แล้วงานประชุมจะกลับมาอยู่ในทะเบียนนี้
+        </p>
+      )}
       {rows.length > 0 && (
         <div className="register-tools no-print">
           <label className="control" htmlFor="register-year">
@@ -274,7 +282,7 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
         </div>
       )}
       {rows.length === 0 ? (
-        <p className="note">ไม่มี proceedings ในข้อมูล</p>
+        <p className="note">{decided > 0 ? 'ตัดสินครบทุกงานประชุมแล้ว' : 'ไม่มี proceedings ในข้อมูล'}</p>
       ) : filtered.length === 0 ? null : (
         <>
         <div className="table-wrap">

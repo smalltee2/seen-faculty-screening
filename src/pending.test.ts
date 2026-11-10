@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ConferenceMatch } from './conferences'
-import { conferenceGroups } from './pending'
+import { conferenceGroups, undecidedGroups } from './pending'
 import type { Pub } from './types'
 
 let n = 0
@@ -34,5 +34,21 @@ describe('conferenceGroups', () => {
     expect(g.find((x) => x.match.key === 'c')).toMatchObject({ pending: 1 })
     expect(g.find((x) => x.match.key === 'b')).toMatchObject({ pending: 1 })
     expect(g.find((x) => x.match.key === 'b')!.pubs).toHaveLength(3)
+  })
+})
+
+describe('undecidedGroups', () => {
+  const by = (key: string, b: ConferenceMatch['by']): ConferenceMatch => ({ ...conf(key, b === 'admin' ? 'count' : 'pending'), by: b })
+  const groups = conferenceGroups(
+    [
+      pub(2025, { type: 'proceeding', conference: by('decided', 'admin') }),
+      pub(2025, { type: 'proceeding', conference: by('auto', 'auto') }),
+      pub(2025, { type: 'proceeding', conference: by('unchecked', 'none') }),
+    ],
+    [],
+    2022,
+  )
+  it('keeps conferences the AI checked or nobody checked, and drops those an admin decided', () => {
+    expect(undecidedGroups(groups).map((g) => g.match.key).sort()).toEqual(['auto', 'unchecked'])
   })
 })

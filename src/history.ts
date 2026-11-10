@@ -72,17 +72,18 @@ export function buildHistory(input: {
   const nameOf = input.nameOf ?? ((n: string) => n)
   const out: HistoryEntry[] = []
 
-  // Conferences: every press is kept by the backend; undo re-applies the decision before the latest one.
+  // Conferences: every press is kept by the backend. Undoing a นับ/ไม่นับ cancels the decision, so the
+  // conference goes back to the register (Tum, 2026-11-11); undoing a cancel re-applies the decision before it.
   const confByKey = new Map<string, ConfDecisionItem[]>()
   for (const it of byTime(input.confItems)) confByKey.set(it.key, [...(confByKey.get(it.key) ?? []), it])
   for (const list of confByKey.values()) {
     list.forEach((it, i) => {
       const e: HistoryEntry = { at: it.at, kind: 'conference', by: it.by, action: CONF_TH[it.decision] ?? it.decision, target: it.name || it.key, note: it.note }
       if (i === list.length - 1) {
-        const before: ConfDecision = i > 0 ? list[i - 1].decision : 'clear'
+        const before: ConfDecision = it.decision === 'clear' ? (i > 0 ? list[i - 1].decision : 'clear') : 'clear'
         if (before !== it.decision) {
           e.undo = { action: 'confDecide', key: it.key, decision: before, name: it.name }
-          e.undoLabel = before === 'clear' ? 'กลับไปใช้ผลอัตโนมัติ' : `กลับเป็น "${CONF_TH[before]}"`
+          e.undoLabel = before === 'clear' ? 'ยกเลิกการตัดสิน (กลับไปอยู่ในทะเบียนงานประชุม)' : `กลับเป็น "${CONF_TH[before]}"`
         }
       }
       out.push(e)
