@@ -1,5 +1,5 @@
-// The register and the history agree on the real data (Tum, 2026-11-11): a conference an admin decided
-// leaves the register and is undoable in the history; the undo ("clear") brings it back.
+// The register's status tabs on the real data (Tum, 2026-11-11): a conference an admin decided leaves
+// "รอตัดสิน" (it shows under "ตัดสินแล้ว"); "ยกเลิกการตัดสิน" ("clear") brings it back.
 import { describe, expect, it } from 'vitest'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
@@ -15,7 +15,7 @@ const register = (items: ConfDecisionItem[]) => {
   return undecidedGroups(conferenceGroups(pubs, [], registerWindow(pubs).minYear))
 }
 
-describe('register ⇄ history', () => {
+describe('register status tabs', () => {
   // Start from a conference that an admin decided and that has works inside the register window.
   const decided = (data.conferences ?? []).filter((c) => c.decision)
   const inWindow = (items: ConfDecisionItem[]) => {
@@ -26,7 +26,7 @@ describe('register ⇄ history', () => {
   it('has a decided conference to test with', () => {
     expect(key).toBeTruthy()
   })
-  it('a decided conference is not in the register; cancelling brings it back; deciding again removes it', () => {
+  it('a decided conference is not under รอตัดสิน; cancelling brings it back; deciding again removes it', () => {
     const k = key!
     expect(register([]).some((g) => g.match.key === k)).toBe(false)
     const cleared: ConfDecisionItem = { at: '2030-01-01T00:00:00.000Z', key: k, decision: 'clear', by: 'ผู้ดูแลระดับ 2', note: '', name: 'X' }

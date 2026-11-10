@@ -218,7 +218,7 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
           <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
         </li>
         <li>
-          <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") ผล AI เป็นเพียงคำแนะนำ (แนะนำให้นับ / แนะนำไม่นับ) ทุกงานประชุมจะอยู่ในสถานะ "รอตรวจสอบ" และยังไม่นับ จนกว่าผู้ดูแลระดับ 2 จะกด "นับ" หรือ "ไม่นับ" เมื่อกดแล้วงานประชุมจะย้ายไปอยู่ที่ "ประวัติการตัดสิน" และยกเลิกได้จากที่นั่น
+          <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") ผล AI เป็นเพียงคำแนะนำ (แนะนำให้นับ / แนะนำไม่นับ) ทุกงานประชุมจะอยู่ในสถานะ "รอตรวจสอบ" และยังไม่นับ จนกว่าผู้ดูแลระดับ 2 จะกด "นับ" หรือ "ไม่นับ" เมื่อกดแล้วงานประชุมจะย้ายไปอยู่ในแถบ "ตัดสินแล้ว" และกด "ยกเลิกการตัดสิน" ได้ที่นั่น
         </li>
         {!screening && (
           <li>
@@ -233,36 +233,48 @@ function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean 
 /** Every conference seen among proceedings, with the register's verdict; admins edit data/conferences.csv. */
 function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onChanged }: { pubs: Pub[]; faculty: Faculty[]; pendingPubs?: Pub[]; approvalKey?: string; onChanged: () => unknown }) {
   const { minYear } = registerWindow(pubs)
-  // Only conferences still awaiting an admin's นับ/ไม่นับ (Tum, 2026-11-11). A decided one moves to
-  // "ประวัติการตัดสิน", where cancelling the decision brings it back here.
+  // Status tabs like "ผลงานที่อาจารย์เพิ่มเอง" (Tum, 2026-11-11): awaiting นับ/ไม่นับ, decided, all.
+  // "ยกเลิกการตัดสิน" on a decided row puts it back under รอตัดสิน.
   const all = conferenceGroups(pubs, pendingPubs, minYear)
-  const rows = undecidedGroups(all)
-  const decided = all.length - rows.length
+  const waiting = undecidedGroups(all)
+  const decided = all.filter((g) => !waiting.includes(g))
+  const [show, setShow] = useState<'pending' | 'decided' | 'all'>('pending')
+  const rows = show === 'pending' ? waiting : show === 'decided' ? decided : all
   // Year filter and 10 conferences per page (Tum, 2026-11-07), so the register stays short as it grows.
   const [year, setYear] = useState<number | 'all'>('all')
   const [page, setPage] = useState(0)
   const yearsInRows = [...new Set(rows.flatMap((r) => r.pubs.map((p) => p.year)).filter((y): y is number => y !== null))].sort((a, b) => b - a)
-  const filtered = year === 'all' ? rows : rows.filter((r) => r.pubs.some((p) => p.year === year))
+  const filtered = year === 'all' || !yearsInRows.includes(year) ? rows : rows.filter((r) => r.pubs.some((p) => p.year === year))
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const cur = Math.min(page, pages - 1)
   const shown = filtered.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE)
   return (
     <>
       <h2 className="block-title">
-        ทะเบียนงานประชุม (proceedings) จำนวน {rows.length} งาน
+        ทะเบียนงานประชุม (proceedings) จำนวน {all.length} งาน <small className="title-hint">รอตัดสิน {waiting.length} งาน</small>
       </h2>
-      {decided > 0 && (
-        <p className="note">
-          ตัดสินแล้ว {decided} งาน ย้ายไปอยู่ที่ <a href="#/admin/history">ประวัติการตัดสิน</a> · กด "ย้อนกลับ" ที่นั่นเพื่อยกเลิกการตัดสิน แล้วงานประชุมจะกลับมาอยู่ในทะเบียนนี้
-        </p>
-      )}
-      {rows.length > 0 && (
+      {all.length > 0 && (
         <div className="register-tools no-print">
+          <Segmented
+            label="แสดงงานประชุม"
+            value={show}
+            onChange={(v) => {
+              setShow(v)
+              setPage(0)
+            }}
+            options={[
+              { id: 'pending', label: `รอตัดสิน (${waiting.length})` },
+              { id: 'decided', label: `ตัดสินแล้ว (${decided.length})` },
+              { id: 'all', label: `ทั้งหมด (${all.length})` },
+            ]}
+          />
+          {rows.length > 0 && (
+            <>
           <label className="control" htmlFor="register-year">
             <span className="control-label">ปีของผลงาน</span>
             <select
               id="register-year"
-              value={year}
+              value={year !== 'all' && yearsInRows.includes(year) ? year : 'all'}
               onChange={(e) => {
                 setYear(e.target.value === 'all' ? 'all' : Number(e.target.value))
                 setPage(0)
@@ -279,10 +291,12 @@ function ConferenceRegister({ pubs, faculty, pendingPubs = [], approvalKey, onCh
           <span className="muted small">
             {filtered.length === 0 ? 'ไม่มีงานประชุมในปีนี้' : `แสดง ${cur * PAGE_SIZE + 1}–${cur * PAGE_SIZE + shown.length} จาก ${filtered.length} งาน`}
           </span>
+            </>
+          )}
         </div>
       )}
       {rows.length === 0 ? (
-        <p className="note">{decided > 0 ? 'ตัดสินครบทุกงานประชุมแล้ว' : 'ไม่มี proceedings ในข้อมูล'}</p>
+        <p className="note">{all.length === 0 ? 'ไม่มี proceedings ในข้อมูล' : show === 'pending' ? 'ไม่มีงานประชุมรอตัดสิน' : 'ยังไม่มีงานประชุมที่ตัดสินแล้ว'}</p>
       ) : filtered.length === 0 ? null : (
         <>
         <div className="table-wrap">
