@@ -241,7 +241,9 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; color: v
 select, input[type='search'], .search {
   border-radius: var(--radius-md); border: 1px solid var(--line-strong); background: var(--panel); color: var(--fg);
 }
-select:focus-visible, input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+select:focus-visible, input:focus-visible, .hover-select-button:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.hover-select-button:hover, .hover-select-button[aria-expanded='true'] { border-color: var(--accent); }
+.hover-select-list li[aria-selected='true'] { color: var(--accent); }
 
 /* Sign-in cards: keep their green panel, match the card radius */
 .gate-shell { border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); }

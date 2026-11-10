@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { HoverSelect } from './HoverSelect'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
 import { evaluatePerson, toBE, type Settings } from './rules'
@@ -255,44 +256,35 @@ export function App() {
           </div>
         )}
         <section className="controls no-print">
-          <label className="control">
-            <span className="control-label">ปีที่ประเมิน</span>
-            <select id="eval-year" value={settings.year} onChange={(e) => setSettings({ ...settings, year: Number(e.target.value) })}>
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  พ.ศ.{toBE(y)} ({y})
-                </option>
-              ))}
-            </select>
-          </label>
+          <HoverSelect
+            id="eval-year"
+            label="ปีที่ประเมิน"
+            value={String(settings.year)}
+            options={years.map((y) => ({ value: String(y), label: `พ.ศ.${toBE(y)} (${y})` }))}
+            onChange={(v) => setSettings({ ...settings, year: Number(v) })}
+          />
           {adminView ? (
             <>
               {/* Admin tab (Tum, 2026-11-07): the view drop-down sits beside the year; range and counted-works text are hidden */}
-              <label className="control" htmlFor="admin-view">
-                <span className="control-label">เลือกดู</span>
-                <select id="admin-view" value={adminValue} onChange={(e) => (window.location.hash = `#/${e.target.value}`)}>
-                  <option value="lecturers">ข้อมูลอาจารย์</option>
-                  <option value="admin">{admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง'}</option>
-                  {admin?.level === 2 &&
-                    ADMIN_VIEWS.map((v) => (
-                      <option key={v.id} value={`admin/${v.id}`}>
-                        {v.th}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              <HoverSelect
+                id="admin-view"
+                label="เลือกดู"
+                value={adminValue}
+                options={[
+                  { value: 'lecturers', label: 'ข้อมูลอาจารย์' },
+                  { value: 'admin', label: admin?.level === 1 ? 'เพิ่มผลงานด้วยตนเอง (ผู้ดูแลระดับ 2)' : 'เพิ่มผลงานด้วยตนเอง' },
+                  ...(admin?.level === 2 ? ADMIN_VIEWS.map((v) => ({ value: `admin/${v.id}`, label: v.th })) : []),
+                ]}
+                onChange={(v) => (window.location.hash = `#/${v}`)}
+              />
               {route.page === 'lecturers' && admin?.level === 2 && programmes.length > 0 && (
-                <label className="control" htmlFor="admin-programme">
-                  <span className="control-label">หลักสูตร</span>
-                  <select id="admin-programme" value={programme?.id ?? ''} onChange={(e) => (window.location.hash = lecturersHash(e.target.value))}>
-                    <option value="">ทุกหลักสูตร (อาจารย์ทั้งหมด)</option>
-                    {programmes.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.th.replace(/^หลักสูตร\s*/, '')}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <HoverSelect
+                  id="admin-programme"
+                  label="หลักสูตร"
+                  value={programme?.id ?? ''}
+                  options={[{ value: '', label: 'ทุกหลักสูตร (อาจารย์ทั้งหมด)' }, ...programmes.map((p) => ({ value: p.id, label: p.th.replace(/^หลักสูตร\s*/, '') }))]}
+                  onChange={(v) => (window.location.hash = lecturersHash(v))}
+                />
               )}
               {lock && (
                 <div className="control control-end">
