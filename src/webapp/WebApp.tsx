@@ -3,9 +3,10 @@
 // data, sign-in and backend actions as sfs.html (src/App.tsx), which stays as it is.
 //
 // Who sees what is the same as on sfs.html: ภาพรวม and ของฉัน are open; อาจารย์ needs an admin
-// passcode (level 1 or 2); the inbox, form works, sources, outlook and history need level 2.
+// passcode (level 1 = ประธานหลักสูตร or 2 = รองฯวิชาการ/ผู้ดูแลระบบ); the inbox, form works, sources,
+// outlook and history need level 2.
 // The menu lists only what the visitor may open (Tum, 2026-11-11): a lecturer sees the two open
-// pages, level 1 adds อาจารย์, level 2 sees everything. Admins sign in at #/login.
+// pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
@@ -33,6 +34,8 @@ const data = raw as unknown as DataBundle
 const CURRENT_YEAR = new Date().getFullYear()
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
+/** What the two admin levels are called on this page (Tum, 2026-11-11); sfs.html keeps "ผู้ดูแลระดับ 1/2". */
+export const LEVEL_TH = { 1: 'ประธานหลักสูตร', 2: 'รองฯวิชาการ/ผู้ดูแลระบบ' } as const
 const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/item/6942-2022-07-22-03-17-22'
 
 type Page = 'overview' | 'me' | 'lecturers' | 'person' | 'inbox' | 'forms' | 'outlook' | 'sources' | 'history' | 'login'
@@ -63,9 +66,9 @@ export function parseWebAppHash(hash: string): Route {
 const NAV: { page: Page; th: string; short: string; level: 0 | 1 | 2; icon: ReactNode }[] = [
   { page: 'overview', th: 'ภาพรวม', short: 'ภาพรวม', level: 0, icon: <Icon d="M3 10.5 10 4l7 6.5M5 9v7h4v-4h2v4h4V9" /> },
   { page: 'me', th: 'ตรวจสอบคุณสมบัติของฉัน', short: 'ของฉัน', level: 0, icon: <Icon d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /> },
-  { page: 'lecturers', th: 'อาจารย์', short: 'อาจารย์', level: 1, icon: <Icon d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8c0-3 2.2-5 5-5s5 2 5 5M14 9a2.5 2.5 0 1 0 0-5M15 12c2 .4 3 2.2 3 5" /> },
+  { page: 'lecturers', th: 'ผลงานอาจารย์', short: 'ผลงาน อ.', level: 1, icon: <Icon d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8c0-3 2.2-5 5-5s5 2 5 5M14 9a2.5 2.5 0 1 0 0-5M15 12c2 .4 3 2.2 3 5" /> },
   { page: 'inbox', th: 'งานรอดำเนินการ', short: 'งาน', level: 2, icon: <Icon d="M3 11h4l1 2h4l1-2h4M3 11l2-7h10l2 7v5H3v-5Z" /> },
-  { page: 'forms', th: 'ผลงานจากแบบฟอร์ม', short: 'แบบฟอร์ม', level: 2, icon: <Icon d="M6 3h6l4 4v10H6V3Zm6 0v4h4M8 11h6M8 14h4" /> },
+  { page: 'forms', th: 'เพิ่มผลงานด้วยตัวเอง', short: 'เพิ่มผลงาน', level: 2, icon: <Icon d="M6 3h6l4 4v10H6V3Zm6 0v4h4M8 11h6M8 14h4" /> },
   { page: 'outlook', th: 'แนวโน้ม 1–2 ปี', short: 'แนวโน้ม', level: 2, icon: <Icon d="M3 16l5-5 3 3 6-7M13 7h4v4" /> },
   { page: 'sources', th: 'แหล่งข้อมูล', short: 'ข้อมูล', level: 2, icon: <Icon d="M10 3c3.9 0 7 1.1 7 2.5S13.9 8 10 8 3 6.9 3 5.5 6.1 3 10 3ZM3 5.5v9C3 15.9 6.1 17 10 17s7-1.1 7-2.5v-9M3 10c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5" /> },
   { page: 'history', th: 'ประวัติการตัดสิน', short: 'ประวัติ', level: 2, icon: <Icon d="M3 10a7 7 0 1 0 2-4.9M3 3v3.5h3.5M10 6v4l3 2" /> },
@@ -171,7 +174,7 @@ export function WebApp() {
         <div className="app-side-foot">
           {admin && lock ? (
             <>
-              <span className={`level-badge level-badge-${admin.level}`}>{admin.level === 1 ? 'ผู้ดูแลระดับ 1' : 'ผู้ดูแลระดับ 2'}</span>
+              <span className={`level-badge level-badge-${admin.level}`}>{LEVEL_TH[admin.level]}</span>
               <button type="button" className="btn btn-small" onClick={lock}>
                 ออกจากระบบผู้ดูแล
               </button>
@@ -206,7 +209,7 @@ export function WebApp() {
           <div className="app-title">
             {route.page === 'person' && (
               <a className="app-crumb" href="#/lecturers">
-                อาจารย์ ›
+                ผลงานอาจารย์ ›
               </a>
             )}
             <h1>{title}</h1>
@@ -262,13 +265,13 @@ export function WebApp() {
               data={data}
               title={route.page === 'login' ? 'เข้าสู่ระบบผู้ดูแล' : title}
               needLevel={need === 2 ? 2 : 1}
-              note={need === 2 && admin?.level === 1 ? 'หน้านี้สำหรับผู้ดูแลระดับ 2 กรุณาใส่รหัสผู้ดูแลระดับ 2' : undefined}
+              note={need === 2 && admin?.level === 1 ? `หน้านี้สำหรับ${LEVEL_TH[2]} กรุณาใส่รหัสของ${LEVEL_TH[2]}` : undefined}
               onUnlocked={setAdmin}
             />
           ) : (
             <>
               {route.page === 'overview' && <Overview results={results} settings={settings} />}
-              {route.page === 'me' && <MyPage results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
+              {route.page === 'me' && <MyPage approverTh={LEVEL_TH[2]} results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
               {route.page === 'lecturers' && (
                 <LecturersPage
                   key={`${q?.toString() ?? ''}`}
@@ -318,7 +321,7 @@ export function WebApp() {
                       }}
                       actions={{ scholar: <ScholarButton scholar={scholar} /> }}
                     />
-                    <p className="note">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้ผู้ดูแลระดับ 2 กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>
+                    <p className="note">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้{LEVEL_TH[2]}กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>
                   </section>
                   <ScholarStatus scholar={scholar}>
                     <ScholarImport faculty={data.faculty} pubs={site.pubs} raw={data.publications} items={site.scholarItems} approvalKey={approvalKey} onChanged={site.refreshScholar} />

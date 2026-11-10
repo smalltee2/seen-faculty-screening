@@ -9,7 +9,8 @@ import { EmailLogin, api, errorText, sessionStore, useEmailUser } from '../email
 import { STATUS_TH, TYPE_TH, findDuplicate, type Submission, type WorkType } from '../submissions'
 import type { CrossrefEntry, Pub } from '../types'
 
-export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[] }) {
+/** `approverTh` names who approves self-added works: sfs.html says ผู้ดูแลระดับ 2, sfs_webapp.html its own title. */
+export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref, approverTh = 'ผู้ดูแลระดับ 2' }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[]; approverTh?: string }) {
   const { user, checking, notice, logout } = useEmailUser(loginCode)
 
   if (checking) return <p className="note">กำลังตรวจสอบการเข้าสู่ระบบ…</p>
@@ -29,7 +30,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
       {result ? (
         <>
           <PersonPage result={result} settings={settings} personal crossref={crossref} />
-          <AddWork mine={mine} pubs={result.pubs} onChanged={onSubmissionsChanged} />
+          <AddWork mine={mine} pubs={result.pubs} onChanged={onSubmissionsChanged} approverTh={approverTh} />
         </>
       ) : user.isAdmin ? (
         <p className="note">บัญชีนี้เป็นผู้ดูแลที่อนุมัติผลงานได้ ไปที่แถบ สำหรับผู้ดูแลระบบ → เพิ่มผลงานด้วยตนเอง</p>
@@ -43,7 +44,7 @@ export function MyPage({ results, settings, loginCode, submissions, onSubmission
 const EMPTY = { year: '', title: '', authors: '', type: '' as WorkType | '', venue: '', volume: '', doi: '', research: '' as '' | 'yes' | 'no' }
 
 /** Form for a lecturer's own work + the list of works they have added. */
-function AddWork({ mine, pubs, onChanged }: { mine: Submission[]; pubs: Pub[]; onChanged: () => void }) {
+function AddWork({ mine, pubs, onChanged, approverTh }: { mine: Submission[]; pubs: Pub[]; onChanged: () => void; approverTh: string }) {
   const [w, setW] = useState(EMPTY)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -96,7 +97,7 @@ function AddWork({ mine, pubs, onChanged }: { mine: Submission[]; pubs: Pub[]; o
       <h2 id="add-work-title" className="block-title">
         เพิ่มผลงานของฉัน <small className="title-hint">(ผลงานที่ยังไม่มีในระบบ เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ)</small>
       </h2>
-      <p className="note">ผลงานที่ส่งจะแสดงเป็น "รออนุมัติ" และยังไม่นับในการประเมิน จนกว่าผู้ดูแลระดับ 2 จะอนุมัติ</p>
+      <p className="note">ผลงานที่ส่งจะแสดงเป็น "รออนุมัติ" และยังไม่นับในการประเมิน จนกว่า{approverTh}จะอนุมัติ</p>
       <form className="work-form" onSubmit={submit}>
         <label className="wf wf-year">
           <span>ปีที่ตีพิมพ์ (ค.ศ.) *</span>

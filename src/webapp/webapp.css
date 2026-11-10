@@ -177,7 +177,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-nav-link { flex: 1 1 0; flex-direction: column; gap: 2px; min-height: 52px; padding: 6px 0; font-size: 0.68rem; justify-content: center; }
   .app-nav-link[aria-current='page']::before { left: 25%; right: 25%; top: -4px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
   .app-nav-label { display: none; }
-  .app-nav-short { display: inline; }
+  .app-nav-short { display: block; max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: anywhere; }
   .app-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; margin: 0; font-size: 0.68rem; }
   .app-top { padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
   .app-title h1 { font-size: 1.15rem; }
