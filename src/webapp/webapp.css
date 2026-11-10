@@ -111,6 +111,31 @@ body { background: var(--bg); }
 .detail-works li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--sub-panel); }
 .detail-work-title { font-size: 0.9rem; }
 
+/* ── Side-menu toggle (Tum, 2026-11-11) ── */
+.app-nav-toggle {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-right: -8px;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); color: var(--muted); cursor: pointer;
+}
+.app-nav-toggle:hover { color: var(--fg); border-color: var(--line-strong); }
+.app-nav-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.app-top { justify-content: flex-start; }
+.app-title { flex: 1 1 auto; }
+.app.app-nav-hidden { grid-template-columns: minmax(0, 1fr); }
+.app.app-nav-hidden .app-side { display: none; }
+
+/* ── Inbox width buttons and the three splits ── */
+.inbox-split { display: flex; gap: 4px; align-self: flex-end; margin-bottom: -4px; }
+.inbox-split-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 30px; padding: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm, 4px); background: transparent; color: var(--muted); cursor: pointer;
+}
+.inbox-split-btn:hover { color: var(--fg); background: var(--panel-hover); }
+.inbox-split-btn[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
+.inbox-split-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.inbox.inbox-split-list { grid-template-columns: minmax(320px, 58%) minmax(0, 1fr); }
+.inbox.inbox-split-normal { grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); }
+.inbox.inbox-split-detail { grid-template-columns: minmax(230px, 270px) minmax(0, 1fr); }
+
 /* ── Sources page ── */
 .sources-page { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
 
@@ -129,7 +154,8 @@ body { background: var(--bg); }
   .app-nav-link { justify-content: center; padding: 10px; }
   .app-badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; }
   .app-side-foot .btn, .app-side-foot .level-badge { display: none; }
-  .inbox { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
+  .inbox.inbox-split-normal { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); }
+  .inbox.inbox-split-list { grid-template-columns: minmax(280px, 55%) minmax(0, 1fr); }
 }
 
 /* ── Phone: bottom tab bar; list and detail take turns ── */
@@ -140,7 +166,8 @@ body { background: var(--bg); }
     padding: 4px max(4px, env(safe-area-inset-right, 0px)) calc(4px + env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
     border-right: 0; border-top: 1px solid var(--line);
   }
-  .app-brand, .app-side-foot { display: none; }
+  .app-brand, .app-side-foot, .app-nav-toggle, .inbox-split { display: none; }
+  .app.app-nav-hidden .app-side { display: flex; }
   .app-nav { flex-direction: row; width: 100%; }
   .app-nav-link { flex: 1 1 0; flex-direction: column; gap: 2px; min-height: 52px; padding: 6px 0; font-size: 0.68rem; justify-content: center; }
   .app-nav-link[aria-current='page']::before { left: 25%; right: 25%; top: -4px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }

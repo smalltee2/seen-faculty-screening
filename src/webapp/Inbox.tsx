@@ -12,6 +12,13 @@ import type { InboxItem, InboxStatus } from './inboxItems'
 
 export type InboxShow = InboxStatus | 'all'
 export type InboxKind = 'all' | 'conference' | 'submission'
+/** How the width is shared between the list and the detail (computers and tablets only). */
+export const INBOX_LAYOUTS = ['list', 'normal', 'detail'] as const
+export type InboxLayout = (typeof INBOX_LAYOUTS)[number]
+const LAYOUT_TH: Record<InboxLayout, string> = { list: 'ขยายรายการ', normal: 'แบ่งปกติ', detail: 'ขยายรายละเอียด' }
+// Split icons: the shaded part is the side that gets wider.
+const LAYOUT_ICON: Record<InboxLayout, string> = { list: 'M12.5 4v12', normal: 'M8 4v12', detail: 'M6 4v12' }
+const LAYOUT_FILL: Record<InboxLayout, string> = { list: 'M3.5 4.5h9v11h-9z', normal: '', detail: 'M6 4.5h10.5v11H6z' }
 
 const KIND_TH = { conference: 'งานประชุม', submission: 'ผลงานที่อาจารย์เพิ่มเอง' } as const
 
@@ -26,6 +33,8 @@ export function Inbox({
   approvalKey,
   onConfChanged,
   onSubChanged,
+  layout = 'normal',
+  onLayout = () => undefined,
 }: {
   items: InboxItem[]
   faculty: Faculty[]
@@ -37,6 +46,8 @@ export function Inbox({
   approvalKey?: string
   onConfChanged: () => unknown
   onSubChanged: () => unknown
+  layout?: InboxLayout
+  onLayout?: (l: InboxLayout) => void
 }) {
   const ofKind = kind === 'all' ? items : items.filter((i) => i.kind === kind)
   const list = show === 'all' ? ofKind : ofKind.filter((i) => i.status === show)
@@ -48,9 +59,20 @@ export function Inbox({
   }
 
   return (
-    <div className={`inbox${selected ? ' has-selection' : ''}`}>
+    <div className={`inbox inbox-split-${layout}${selected ? ' has-selection' : ''}`}>
       <section className="inbox-list" aria-label="รายการงาน">
         <div className="inbox-tools">
+          <div className="inbox-split" role="group" aria-label="ปรับความกว้างของรายการและรายละเอียด">
+            {INBOX_LAYOUTS.map((l) => (
+              <button key={l} type="button" className="inbox-split-btn" aria-pressed={layout === l} title={LAYOUT_TH[l]} aria-label={LAYOUT_TH[l]} onClick={() => onLayout(l)}>
+                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4">
+                  {LAYOUT_FILL[l] && <path d={LAYOUT_FILL[l]} fill="currentColor" fillOpacity="0.25" stroke="none" />}
+                  <rect x="3" y="4" width="14" height="12" rx="1.5" />
+                  <path d={LAYOUT_ICON[l]} />
+                </svg>
+              </button>
+            ))}
+          </div>
           <Segmented
             label="สถานะ"
             value={show}
