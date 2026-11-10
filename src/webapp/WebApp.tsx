@@ -25,7 +25,7 @@ import { FreshnessPanel } from '../FreshnessPanel'
 import { conferenceSubmissions } from '../submissions'
 import { displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
-import { Inbox, INBOX_LAYOUTS, type InboxKind, type InboxLayout, type InboxShow } from './Inbox'
+import { Inbox, type InboxKind, type InboxShow } from './Inbox'
 import { inboxItems } from './inboxItems'
 import { useStoredChoice } from './storedChoice'
 
@@ -112,9 +112,8 @@ export function WebApp() {
   const items = useMemo(() => inboxItems(site.pubs, pendingPubs, site.submissions), [site.pubs, pendingPubs, site.submissions])
   const waiting = items.filter((i) => i.status === 'pending').length
   const [show, setShow] = useState<InboxShow>('pending')
-  // Side menu shown or hidden, and the inbox's list/detail split (Tum, 2026-11-11), kept per browser.
+  // Side menu shown or hidden (Tum, 2026-11-11), kept per browser.
   const [nav, setNav] = useStoredChoice('seen-webapp-nav', 'shown', ['shown', 'hidden'] as const)
-  const [split, setSplit] = useStoredChoice<InboxLayout>('seen-webapp-inbox-split', 'normal', INBOX_LAYOUTS)
   const [kind, setKind] = useState<InboxKind>('all')
   const scholar = useScholarJob(admin?.level === 2 ? admin.approvalKey : undefined)
 
@@ -185,25 +184,25 @@ export function WebApp() {
           <span className="muted small">ข้อมูลล่าสุด {UPDATED_AT} น.</span>
         </div>
       </aside>
+      {/* A tab on the menu's edge hides or shows it (computers and tablets; phones use the bottom bar). */}
+      <button
+        type="button"
+        className="app-nav-tab no-print"
+        aria-controls="app-side"
+        aria-expanded={nav === 'shown'}
+        aria-label={nav === 'shown' ? 'ซ่อนเมนูด้านข้าง' : 'แสดงเมนูด้านข้าง'}
+        onClick={() => setNav(nav === 'shown' ? 'hidden' : 'shown')}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {nav === 'shown' ? <path d="M10 3.5 5.5 8l4.5 4.5" /> : <path d="M6 3.5 10.5 8 6 12.5" />}
+        </svg>
+        <span className="app-nav-tip" aria-hidden="true">
+          {nav === 'shown' ? 'ซ่อนเมนูด้านข้าง' : 'แสดงเมนูด้านข้าง'}
+        </span>
+      </button>
 
       <div className="app-main">
         <header className="app-top no-print">
-          {/* Hides or shows the side menu on computers and tablets; phones use the bottom bar instead. */}
-          <button
-            type="button"
-            className="app-nav-toggle"
-            aria-controls="app-side"
-            aria-expanded={nav === 'shown'}
-            aria-label={nav === 'shown' ? 'ซ่อนเมนูด้านข้าง' : 'แสดงเมนูด้านข้าง'}
-            title={nav === 'shown' ? 'ซ่อนเมนูด้านข้าง' : 'แสดงเมนูด้านข้าง'}
-            onClick={() => setNav(nav === 'shown' ? 'hidden' : 'shown')}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
-              <path d="M7.5 3.5v13" />
-              {nav === 'shown' ? <path d="M13 8l-2 2 2 2" /> : <path d="M11 8l2 2-2 2" />}
-            </svg>
-          </button>
           <div className="app-title">
             {route.page === 'person' && (
               <a className="app-crumb" href="#/lecturers">
@@ -298,8 +297,6 @@ export function WebApp() {
                   approvalKey={approvalKey}
                   onConfChanged={site.refreshConf}
                   onSubChanged={site.refreshSubmissions}
-                  layout={split}
-                  onLayout={setSplit}
                 />
               )}
               {route.page === 'forms' && admin && (

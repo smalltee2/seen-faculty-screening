@@ -1,7 +1,7 @@
 // "งานรอดำเนินการ" in the web app (sfs_webapp.html): a list on the left and the selected item on the
 // right, like a mail inbox. On a phone the list and the detail take turns (the detail has a back button).
 // The buttons are the site's own: ConfButtons (confDecide) and the approval table's "decide" call.
-import { useState } from 'react'
+import { useRef, useState, type PointerEvent } from 'react'
 import { CONFERENCE_TAG } from '../conferences'
 import { api, errorText, sessionStore } from '../emailLogin'
 import { ConfButtons, LeafSpinner } from '../pages/AdminPage'
@@ -12,13 +12,20 @@ import type { InboxItem, InboxStatus } from './inboxItems'
 
 export type InboxShow = InboxStatus | 'all'
 export type InboxKind = 'all' | 'conference' | 'submission'
-/** How the width is shared between the list and the detail (computers and tablets only). */
-export const INBOX_LAYOUTS = ['list', 'normal', 'detail'] as const
-export type InboxLayout = (typeof INBOX_LAYOUTS)[number]
-const LAYOUT_TH: Record<InboxLayout, string> = { list: 'ขยายรายการ', normal: 'แบ่งปกติ', detail: 'ขยายรายละเอียด' }
-// Split icons: the shaded part is the side that gets wider.
-const LAYOUT_ICON: Record<InboxLayout, string> = { list: 'M12.5 4v12', normal: 'M8 4v12', detail: 'M6 4v12' }
-const LAYOUT_FILL: Record<InboxLayout, string> = { list: 'M3.5 4.5h9v11h-9z', normal: '', detail: 'M6 4.5h10.5v11H6z' }
+
+// List width in px, dragged by the divider and kept per browser.
+const LIST_WIDTH_KEY = 'seen-webapp-inbox-width'
+export const DEFAULT_LIST = 400
+export const MIN_LIST = 240
+export const MIN_DETAIL = 360
+function readListWidth(): number {
+  try {
+    const v = Number(localStorage.getItem(LIST_WIDTH_KEY))
+    return Number.isFinite(v) && v >= MIN_LIST ? v : DEFAULT_LIST
+  } catch {
+    return DEFAULT_LIST
+  }
+}
 
 const KIND_TH = { conference: 'งานประชุม', submission: 'ผลงานที่อาจารย์เพิ่มเอง' } as const
 
@@ -33,8 +40,6 @@ export function Inbox({
   approvalKey,
   onConfChanged,
   onSubChanged,
-  layout = 'normal',
-  onLayout = () => undefined,
 }: {
   items: InboxItem[]
   faculty: Faculty[]
@@ -46,9 +51,43 @@ export function Inbox({
   approvalKey?: string
   onConfChanged: () => unknown
   onSubChanged: () => unknown
-  layout?: InboxLayout
-  onLayout?: (l: InboxLayout) => void
 }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [listW, setListW] = useState(readListWidth)
+  const maxList = () => Math.max(MIN_LIST, (box.current?.getBoundingClientRect().width ?? 1200) - MIN_DETAIL)
+  const clamp = (w: number) => Math.round(Math.min(maxList(), Math.max(MIN_LIST, w)))
+  const saveW = (w: number) => {
+    const v = clamp(w)
+    setListW(v)
+    try {
+      localStorage.setItem(LIST_WIDTH_KEY, String(v))
+    } catch {
+      /* not remembered */
+    }
+  }
+  const startDrag = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const left = box.current?.getBoundingClientRect().left ?? 0
+    const handle = e.currentTarget
+    handle.setPointerCapture(e.pointerId)
+    document.body.classList.add('is-resizing')
+    let last = listW
+    const move = (ev: globalThis.PointerEvent) => {
+      last = clamp(ev.clientX - left)
+      setListW(last)
+    }
+    const up = () => {
+      handle.removeEventListener('pointermove', move)
+      handle.removeEventListener('pointerup', up)
+      handle.removeEventListener('pointercancel', up)
+      document.body.classList.remove('is-resizing')
+      saveW(last)
+    }
+    handle.addEventListener('pointermove', move)
+    handle.addEventListener('pointerup', up)
+    handle.addEventListener('pointercancel', up)
+  }
   const ofKind = kind === 'all' ? items : items.filter((i) => i.kind === kind)
   const list = show === 'all' ? ofKind : ofKind.filter((i) => i.status === show)
   const selected = items.find((i) => i.id === selectedId) ?? null
@@ -59,20 +98,33 @@ export function Inbox({
   }
 
   return (
-    <div className={`inbox inbox-split-${layout}${selected ? ' has-selection' : ''}`}>
+    <div ref={box} className={`inbox${selected ? ' has-selection' : ''}`} style={{ gridTemplateColumns: `max(${MIN_LIST}px, min(${listW}px, calc(100% - ${MIN_DETAIL}px))) minmax(0, 1fr)` }}>
       <section className="inbox-list" aria-label="รายการงาน">
+        {/* Drag this edge to share the width between the list and the detail (Tum, 2026-11-11).
+            Arrow keys move it too; a double click goes back to the default width. */}
+        <div
+          className="inbox-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="ปรับความกว้างของรายการ"
+          aria-valuenow={listW}
+          aria-valuemin={MIN_LIST}
+          aria-valuemax={maxList()}
+          tabIndex={0}
+          title="ลากเพื่อปรับความกว้าง · ดับเบิลคลิกเพื่อกลับค่าเดิม"
+          onPointerDown={startDrag}
+          onDoubleClick={() => saveW(DEFAULT_LIST)}
+          onKeyDown={(e) => {
+            const step = e.shiftKey ? 80 : 24
+            if (e.key === 'ArrowLeft') saveW(listW - step)
+            else if (e.key === 'ArrowRight') saveW(listW + step)
+            else if (e.key === 'Home') saveW(MIN_LIST)
+            else if (e.key === 'End') saveW(maxList())
+            else return
+            e.preventDefault()
+          }}
+        />
         <div className="inbox-tools">
-          <div className="inbox-split" role="group" aria-label="ปรับความกว้างของรายการและรายละเอียด">
-            {INBOX_LAYOUTS.map((l) => (
-              <button key={l} type="button" className="inbox-split-btn" aria-pressed={layout === l} title={LAYOUT_TH[l]} aria-label={LAYOUT_TH[l]} onClick={() => onLayout(l)}>
-                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4">
-                  {LAYOUT_FILL[l] && <path d={LAYOUT_FILL[l]} fill="currentColor" fillOpacity="0.25" stroke="none" />}
-                  <rect x="3" y="4" width="14" height="12" rx="1.5" />
-                  <path d={LAYOUT_ICON[l]} />
-                </svg>
-              </button>
-            ))}
-          </div>
           <Segmented
             label="สถานะ"
             value={show}
