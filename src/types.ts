@@ -81,6 +81,8 @@ export interface DataBundle {
   conferences?: ConferenceEntry[]
   /** data/rules.json → conferenceScreening: 'on' applies the register to the counts; 'off' only shows it. */
   conferenceScreening?: 'on' | 'off'
+  /** Admin-form works cancelled at build time, as "name_en|title_norm" (data/form_cancels.tsv). */
+  formCancelled?: string[]
   /** Crossref record per DOI (data/crossref.tsv), used by the Scopus-style CSV export. */
   crossref?: CrossrefEntry[]
   /** Programme membership (data/programmes.csv), shown in the admin tab's "หลักสูตร" view only. */

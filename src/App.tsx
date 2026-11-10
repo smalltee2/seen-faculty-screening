@@ -148,10 +148,12 @@ export function App() {
     void refreshFormCancels()
   }, [])
   const cancelled = useMemo(() => cancelledForms(formCancels ?? []), [formCancels])
+  // When the list cannot be read, the keys known at build time still apply to the live form rows.
+  const cancelKeys = useMemo(() => (formCancels ? cancelled : new Set(data.formCancelled ?? [])), [formCancels, cancelled])
   // Bundled self-added works withdrawn since the build are dropped (src/submissions.ts).
   // Bundled Scholar imports undone since the build are dropped too.
-  const keptBundled = useMemo(() => dropCancelledForms(dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), cancelled), [submissions, scholarItems, cancelled])
-  const keptLive = useMemo(() => dropCancelledForms(liveRows, cancelled), [liveRows, cancelled])
+  const keptBundled = useMemo(() => dropCancelledForms(dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), cancelKeys), [submissions, scholarItems, cancelKeys])
+  const keptLive = useMemo(() => dropCancelledForms(liveRows, cancelKeys), [liveRows, cancelKeys])
   const pubs = useMemo(() => makePubs(keptBundled, [...keptLive, ...selfRows, ...scholarRows], conferences), [keptBundled, keptLive, selfRows, scholarRows, conferences])
   const scrolled = useScrolled()
   // Admin sign-in: level 1 = ข้อมูลอาจารย์ only, level 2 = also เพิ่มผลงานด้วยตนเอง (src/adminGate.tsx).

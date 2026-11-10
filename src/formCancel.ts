@@ -37,7 +37,7 @@ export function cancelledForms(items: FormCancelItem[]): Map<string, FormCancelI
 export const isFormRow = (p: Pick<RawPub, 'source' | 'submitted'>) => p.source === 'manual' && !p.submitted?.startsWith('self:')
 
 /** Drop admin-form rows that are cancelled. */
-export function dropCancelledForms(rows: RawPub[], cancelled: Map<string, FormCancelItem>): RawPub[] {
+export function dropCancelledForms(rows: RawPub[], cancelled: { size: number; has(key: string): boolean }): RawPub[] {
   if (!cancelled.size) return rows
   return rows.filter((p) => !(isFormRow(p) && cancelled.has(formKey(p.key, normalizeTitle(p.title)))))
 }

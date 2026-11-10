@@ -372,7 +372,7 @@ function submitWork(body) {
   var w = body.work || {};
   var year = Number(w.year);
   var thisYear = new Date().getFullYear();
-  if (!(year >= 1990 && year <= thisYear + 1) || !String(w.title || '').trim() || !oneOf(w.type, ['journal', 'proceeding', 'poster']) || !String(w.venue || '').trim()) {
+  if (!(year >= 1990 && year <= thisYear + 1) || year !== Math.floor(year) || !String(w.title || '').trim() || !oneOf(w.type, ['journal', 'proceeding', 'poster']) || !String(w.venue || '').trim()) {
     return { ok: false, error: 'bad_work' };
   }
   var dayAgo = Date.now() - 24 * 3600 * 1000;
@@ -451,7 +451,9 @@ function withdrawWork(body) {
 function confDecide(body) {
   var auth = adminWho(body);
   if (auth.error) return { ok: false, error: auth.error };
-  var key = cell(body.key, 300);
+  // The key is matched exactly by the site and the hourly job, so it is never cut (a "work:" key is as long as its title).
+  var key = String(body.key || '').trim();
+  if (key.length > 3000 || /[\t\r\n]/.test(key)) return { ok: false, error: 'bad_request' };
   var decision = oneOf(body.decision, ['count', 'no_count', 'clear']) ? String(body.decision) : '';
   if (!/^(venue|work):/.test(key) || !decision) return { ok: false, error: 'bad_request' };
   var sh = sheet('conf_decisions');
@@ -564,7 +566,7 @@ function scholarImport(body) {
     var k = normTitle(title);
     var y = String(w && w.year != null ? w.year : '').trim();
     var year = y === '' ? '' : Number(y);
-    if (!k || seen[k] || (year !== '' && !(year >= 1900 && year <= thisYear + 1))) {
+    if (!k || seen[k] || (year !== '' && !(year >= 1900 && year <= thisYear + 1 && year === Math.floor(year)))) {
       skipped++;
       return;
     }
@@ -617,7 +619,7 @@ function formCancel(body) {
   if (auth.error) return { ok: false, error: auth.error };
   var nameEn = String(body.nameEn || '').trim();
   var title = cell(body.title, 600);
-  var k = normTitle(title);
+  var k = normTitle(String(body.title || '')); // from the full title: the site and the build compare the whole title
   var action = oneOf(body.mode, ['cancel', 'restore']) ? String(body.mode) : '';
   if (!nameEn || !k || !action) return { ok: false, error: 'bad_request' };
   var sh = sheet('form_cancels');

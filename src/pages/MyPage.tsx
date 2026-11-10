@@ -175,7 +175,7 @@ function AddWork({ mine, pubs, onChanged }: { mine: Submission[]; pubs: Pub[]; o
         </div>
       </form>
 
-      <h3 className="mine-title">ผลงานที่ฉันเพิ่ม ({mine.length})</h3>
+      <h3 className="mine-title">ผลงานที่ฉันเพิ่ม ({shown.length})</h3>
       {shown.length === 0 ? (
         <p className="note">ยังไม่มีผลงานที่เพิ่มเอง</p>
       ) : (

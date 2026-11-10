@@ -649,6 +649,8 @@ function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChanged }: { 
       const r = await api({ action: 'scholarRemove', adminKey: approvalKey, batch })
       setMsg(r.ok ? { ok: true, text: `ยกเลิกการนำเข้าแล้ว ${Number(r.removed) || 0} รายการ` } : { ok: false, text: errorText(r.error) })
       if (r.ok) onChanged()
+    } catch {
+      setMsg({ ok: false, text: errorText('') })
     } finally {
       setBusy(false)
     }

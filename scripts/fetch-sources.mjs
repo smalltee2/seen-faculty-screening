@@ -405,7 +405,10 @@ async function fetchConfDecisions(loginApiUrl) {
   const registerPath = join(ROOT, 'data/conferences.csv')
   const register = readRegister(registerPath)
   const latest = new Map()
-  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) if (/^(venue|work):/.test(it.key) && ['count', 'no_count', 'clear'].includes(it.decision)) latest.set(it.key, it)
+  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) {
+    const key = String(it.key ?? '').trim() // register keys are trimmed on read
+    if (/^(venue|work):/.test(key) && ['count', 'no_count', 'clear'].includes(it.decision)) latest.set(key, { ...it, key })
+  }
   let applied = 0
   for (const it of latest.values()) {
     let e = register.find((x) => x.key === it.key)
@@ -513,6 +516,11 @@ async function fetchSelf(faculty, loginApiUrl) {
     warn(`Self-added works: could not read the list (${e.message}); data/self.tsv left unchanged`)
     return
   }
+  // The backend answers an empty list when its sheet is missing or renamed; that must not empty the file.
+  if (!items.length && existsSync(CONFIG.selfOut) && readTsv(CONFIG.selfOut).rows.length) {
+    warn('Self-added works: the backend returned an empty list; data/self.tsv left unchanged')
+    return
+  }
   const names = new Set(faculty.map((f) => f.name_en))
   const out = items
     .filter((s) => s.status === 'approved' && names.has(s.nameEn) && ['journal', 'proceeding', 'poster'].includes(s.type) && Number.isInteger(s.year) && s.title)
@@ -572,6 +580,12 @@ async function fetchFormCancels(loginApiUrl) {
     items = js.items
   } catch (e) {
     warn(`Form cancels: could not read the list (${e.message}); data/form_cancels.tsv left unchanged`)
+    return
+  }
+  const cancelsPath = join(ROOT, 'data/form_cancels.tsv')
+  // Every press is kept by the backend, so an empty list after cancels exist means the sheet was not read.
+  if (!items.length && existsSync(cancelsPath) && readTsv(cancelsPath).rows.length) {
+    warn('Form cancels: the backend returned an empty list; data/form_cancels.tsv left unchanged')
     return
   }
   const latest = new Map()

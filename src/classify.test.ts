@@ -86,6 +86,26 @@ describe('classifyRow on proceedings series and title words (review, 2026-11-07)
   })
 })
 
+describe('classifier edge cases (bug review, 2026-11-10)', () => {
+  it('does not read "Synthesis" as a thesis', () => {
+    expect(classifyType('Effect of light on algae', 'Photosynthesis Research 150 (1), 1-12, 2022').type).toBe('journal')
+    expect(classifyType('A route to amides', 'Synthesis 12 (3), 45-67, 2021').type).toBe('journal')
+    expect(classifyType('A study', 'PhD thesis, Chiang Mai University, 2020').type).toBe('exclude')
+  })
+  it('keeps a four-digit article number that looks like a year', () => {
+    expect(classifyType('Rainfall trends', 'Water 12, 1998, 2020')).toMatchObject({ type: 'journal', uncertain: false })
+    expect(classifyType('Land use', 'Sustainability 13, 2045, 2021')).toMatchObject({ type: 'journal', uncertain: false })
+  })
+  it('does not read the journal "Abstract and Applied Analysis" as a poster', () => {
+    expect(classifyType('Some fixed point theorem', 'Abstract and Applied Analysis 2014 (1), 1-9, 2014').type).toBe('journal')
+    expect(classifyType('Haze in Phayao', 'Book of Abstracts, 2021').type).toBe('poster')
+  })
+  it('excludes a discussion paper even when the index lists a journal source', () => {
+    expect(classifyRow(raw({ source: 'openalex', extType: 'article', sourceType: 'journal', venue: 'Atmospheric Chemistry and Physics Discussions, 2021' })).type).toBe('exclude')
+    expect(classifyRow(raw({ source: 'scopus', extType: 'Article', sourceType: 'Journal', venue: 'Atmospheric Chemistry and Physics Discussions, 2021' })).type).toBe('exclude')
+  })
+})
+
 describe('classifyResearch', () => {
   it('marks review articles as not research', () => {
     expect(classifyResearch('A review of air quality models', 'J 1 (2), 1-2')).toMatchObject({ isResearch: false, uncertain: false })

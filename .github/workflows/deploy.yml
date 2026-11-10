@@ -42,6 +42,9 @@ jobs:
         env:
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
         run: node scripts/fetch-sources.mjs --only=manual,decisions
+      # Validate the fetched data before it is committed, so a bad fetch is not pushed.
+      - name: Build JSON from data/
+        run: npm run data
       - name: Commit refreshed data
         if: github.event_name != 'push'
         run: |
@@ -56,7 +59,8 @@ jobs:
             git pull --rebase origin main
             git push
           fi
-      - name: Build JSON from data/
+      - name: Build JSON again (the pull above may have brought newer data)
+        if: github.event_name != 'push'
         run: npm run data
       - name: Unit tests (rules engine and classifier)
         run: npm test
