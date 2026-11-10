@@ -236,13 +236,18 @@ export function WebApp() {
             <ThemeToggle />
             {/* Phones have no side-menu footer, so sign-in and sign-out sit here (CSS shows it ≤760 px). */}
             {admin && lock ? (
-              <button type="button" className="btn btn-small app-top-admin" onClick={lock}>
-                ออกจากระบบ
+              <button type="button" className="icon-btn app-top-admin" onClick={lock} aria-label="ออกจากระบบผู้ดูแล" title="ออกจากระบบผู้ดูแล">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M9 16l-4-4 4-4M5 12h10" />
+                </svg>
               </button>
             ) : (
               !admin && (
-                <a className="btn btn-small app-top-admin" href="#/login">
-                  ผู้ดูแล
+                <a className="icon-btn app-top-admin" href="#/login" aria-label="เข้าสู่ระบบผู้ดูแล" title="เข้าสู่ระบบผู้ดูแล">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="8" cy="15" r="4" />
+                    <path d="M11 12l9-9M17 6l3 3M15 8l2 2" />
+                  </svg>
                 </a>
               )
             )}

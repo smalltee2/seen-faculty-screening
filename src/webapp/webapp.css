@@ -218,3 +218,38 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 }
 @media (min-width: 761px) { .inbox-tools { top: 74px; z-index: 5; } }
 @media (max-width: 760px) { .inbox-tools { top: 0; position: static; } }
+
+/* ── Phones: one compact top bar, both bars locked to the screen (Tum, 2026-11-11) ──
+   The top bar is one row (title left; year, theme and admin as compact controls right) and stays at
+   the top; the menu bar stays at the bottom. The page cannot be dragged sideways or bounced past its
+   ends, so neither bar moves. */
+@media (max-width: 760px) {
+  html, body { overscroll-behavior: none; }
+  .app-main { overflow-x: clip; }
+  .app-top {
+    position: sticky; top: 0; flex-wrap: nowrap; gap: 8px; min-height: 56px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px;
+  }
+  .app-title { min-width: 0; flex: 1 1 auto; }
+  .app-title h1 { font-size: 1.05rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-title p { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-crumb { display: none; }
+  .app-top-tools { flex: none; gap: 6px; }
+  /* The year menu keeps its name for screen readers but shows only the value. */
+  .app-top-tools .hover-select .control-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .app-top-tools .hover-select-button { min-width: 0; margin: 0; padding: 0 8px 0 10px; height: 44px; min-height: 44px; font-size: 0.8rem; gap: 4px; }
+  .app-top-tools .hover-select-list { left: auto; right: 0; }
+  .app-top-tools .icon-btn { width: 44px; height: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .app-top-admin { color: var(--accent); }
+  /* Bottom bar: fixed, full width, its items share the width evenly whatever the count. */
+  .app-side { position: fixed; transform: translateZ(0); }
+  .app-nav { justify-content: space-around; }
+  .app-nav-link { max-width: 96px; }
+  .app-content { padding-bottom: 24px; }
+}
+@media (max-width: 360px) {
+  .app-title p { display: none; }
+  .app-top-tools .hover-select-button { padding: 0 6px; font-size: 0.75rem; }
+}
