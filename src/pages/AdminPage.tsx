@@ -781,11 +781,11 @@ const JOB_TH: Record<ScholarJob['status'], string> = {
 /** "อัปเดตจาก Google Scholar" (Tum, 2026-11-08): one button queues a refresh of every lecturer's
  *  Scholar list; the iMac job (scripts/scholar-poll.sh, every 5 min) runs it and reports here.
  *  The paste method stays below as the fallback when Scholar blocks the iMac. */
-type ScholarState = ReturnType<typeof useScholarJob>
+export type ScholarState = ReturnType<typeof useScholarJob>
 
 /** The Google Scholar update job (Apps Script scholarRequest; the iMac picks it up every 5 minutes).
  *  Shared by the button on the Scholar row of "แหล่งข้อมูล" and the status panel beside it (Tum, 2026-11-11). */
-function useScholarJob(approvalKey?: string) {
+export function useScholarJob(approvalKey?: string) {
   const [job, setJob] = useState<ScholarJob | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
