@@ -9,6 +9,7 @@ import type { Faculty } from '../types'
 import type { FormCancelItem } from '../formCancel'
 import leafIcon from '../assets/leaf-spinner.png'
 import { FreshnessPanel } from '../FreshnessPanel'
+import { InfoTip } from '../InfoTip'
 import { conferenceGroups, undecidedGroups } from '../pending'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
@@ -17,6 +18,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
   const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const rawCount = (s: PubSource) => data.publications.filter((p) => (p.source ?? 'scholar') === s).length
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
+  const scholar = useScholarJob(approvalKey)
 
   return (
     <>
@@ -24,7 +26,10 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
         <div>
           <h1>
             เพิ่มผลงานด้วยตนเอง{' '}
-            <small className="title-hint">(เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ)</small>
+            <small className="title-hint">(เพิ่มผลงานที่ยังไม่มีใน Scholar, OpenAlex หรือ Scopus เช่น บทความในวารสารไทย หรือ proceedings ของงานประชุมในประเทศ)</small>{' '}
+            <InfoTip label="คำอธิบาย">
+              <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
+            </InfoTip>
           </h1>
         </div>
         {onLock && (
@@ -43,18 +48,17 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
             builtAt={data.builtAt}
             freshness={data.freshness}
             counts={{ openalex: rawCount('openalex'), scopus: rawCount('scopus'), forms: rawCount('manual'), scholar: rawCount('scholar') }}
+            actions={{ scholar: <ScholarButton scholar={scholar} /> }}
           />
           <p className="note">
-            รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้ผู้ดูแลระดับ 2 นำเข้าเป็นครั้งคราวที่ "นำเข้าจาก Google Scholar" ด้านล่าง
+            รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้ผู้ดูแลระดับ 2 กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว
           </p>
         </section>
 
-        <RegisterExplain pubs={pubs} screening={data.conferenceScreening === 'on'} />
+        <ScholarStatus scholar={scholar}>
+          <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
+        </ScholarStatus>
       </div>
-
-      <ScholarUpdate approvalKey={approvalKey}>
-        <ScholarImport faculty={faculty} pubs={pubs} raw={data.publications} items={scholarItems} approvalKey={approvalKey} onChanged={onScholarChanged} />
-      </ScholarUpdate>
 
       {/* Coloured frames so the three work lists are easy to tell apart (Tum, 2026-11-11) */}
       <section className="admin-box admin-box-self" aria-label="ผลงานที่อาจารย์เพิ่มเอง">
@@ -210,30 +214,30 @@ export function registerWindow(pubs: Pub[]) {
   return { minYear, older }
 }
 
-/** "คำอธิบาย" panel for the conference register, shown beside the data sources. */
+/** "คำอธิบาย" for the admin page, shown by the (i) after the page title (Tum, 2026-11-11). Spans only, as it sits inside the <h1>. */
 function RegisterExplain({ pubs, screening }: { pubs: Pub[]; screening: boolean }) {
   const { minYear, older } = registerWindow(pubs)
   return (
-    <section className="panel explain-panel">
-      <h3>คำอธิบาย</h3>
-      <ul className="explain-list">
-        <li>
+    <span className="explain-pop">
+      <span className="explain-pop-title">คำอธิบาย</span>
+      <span className="explain-list">
+        <span className="explain-item">
           <b>ช่วงที่แสดง:</b> ทะเบียนงานประชุมแสดงงานที่มีผลงานของอาจารย์ตั้งแต่ พ.ศ. {toBE(minYear)} ({minYear}) ซึ่งยังอยู่ในช่วงประเมินของปีนี้หรือปีหน้า
           {older > 0 && <span className="muted"> (ผลงานที่เก่ากว่านี้ {older} รายการ ไม่ต้องตรวจ)</span>}
-        </li>
-        <li>
+        </span>
+        <span className="explain-item">
           <b>เกณฑ์ที่นับ:</b> proceedings นับได้เมื่อ (1) สมาคมวิชาการหรือวิชาชีพเป็นผู้จัดหรือร่วมจัด และ (2) งานประชุมอยู่ในสาขาสิ่งแวดล้อมหรือพลังงาน
-        </li>
-        <li>
+        </span>
+        <span className="explain-item">
           <b>การตรวจ:</b> AI ค้นหาผู้จัดให้อัตโนมัติ (ดูคอลัมน์ "ตรวจโดย") ผล AI เป็นเพียงคำแนะนำ (แนะนำให้นับ / แนะนำไม่นับ) ทุกงานประชุมจะอยู่ในสถานะ "รอตรวจสอบ" และยังไม่นับ จนกว่าผู้ดูแลระดับ 2 จะกด "นับ" หรือ "ไม่นับ" เมื่อกดแล้วงานประชุมจะย้ายไปอยู่ในแถบ "ตัดสินแล้ว" และกด "ยกเลิกการตัดสิน" ได้ที่นั่น
-        </li>
+        </span>
         {!screening && (
-          <li>
+          <span className="explain-item">
             <b>หมายเหตุ:</b> ขณะนี้ปิดการใช้ทะเบียนในการคำนวณ จึงยังนับ proceedings ทุกรายการ
-          </li>
+          </span>
         )}
-      </ul>
-    </section>
+      </span>
+    </span>
   )
 }
 
@@ -777,7 +781,11 @@ const JOB_TH: Record<ScholarJob['status'], string> = {
 /** "อัปเดตจาก Google Scholar" (Tum, 2026-11-08): one button queues a refresh of every lecturer's
  *  Scholar list; the iMac job (scripts/scholar-poll.sh, every 5 min) runs it and reports here.
  *  The paste method stays below as the fallback when Scholar blocks the iMac. */
-function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; children: React.ReactNode }) {
+type ScholarState = ReturnType<typeof useScholarJob>
+
+/** The Google Scholar update job (Apps Script scholarRequest; the iMac picks it up every 5 minutes).
+ *  Shared by the button on the Scholar row of "แหล่งข้อมูล" and the status panel beside it (Tum, 2026-11-11). */
+function useScholarJob(approvalKey?: string) {
   const [job, setJob] = useState<ScholarJob | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -792,7 +800,6 @@ function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; childr
       window.clearInterval(t)
     }
   }, [active])
-  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '')
   const waitingLong = job?.status === 'requested' && Date.now() - new Date(job.at).getTime() > 15 * 60000
   const start = async () => {
     if (!approvalKey) return
@@ -809,22 +816,27 @@ function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; childr
       setBusy(false)
     }
   }
+  return { job, busy, err, active, waitingLong, start, canStart: !!approvalKey }
+}
+
+/** "อัปเดตจาก Google Scholar", on the Google Scholar row of the data sources (level-2 admins only). */
+export function ScholarButton({ scholar }: { scholar: ScholarState }) {
+  if (!scholar.canStart) return null
+  return (
+    <button type="button" className="btn btn-small btn-primary source-action" disabled={scholar.busy || scholar.active} onClick={() => void scholar.start()}>
+      {scholar.active ? 'กำลังอัปเดต…' : scholar.busy ? 'กำลังส่งคำขอ…' : 'อัปเดตจาก Google Scholar'}
+    </button>
+  )
+}
+
+/** The panel beside the data sources: where the Google Scholar update stands, plus the manual fallback. */
+export function ScholarStatus({ scholar, children }: { scholar: ScholarState; children: React.ReactNode }) {
+  const { job, err, waitingLong } = scholar
+  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '')
   return (
     <section className="panel scholar-update">
-      <div className="scholar-update-head">
-        <h2 className="block-title">Google Scholar <small className="title-hint">(นำเข้าเป็นครั้งคราว โดยผู้ดูแลระดับ 2)</small></h2>
-        {approvalKey ? (
-          <button type="button" className="btn btn-primary" disabled={busy || active} onClick={() => void start()}>
-            {active ? 'กำลังอัปเดต…' : busy ? 'กำลังส่งคำขอ…' : 'อัปเดตจาก Google Scholar'}
-          </button>
-        ) : (
-          <span className="note">ต้องเข้าสู่ระบบด้วยรหัสผู้ดูแลระดับ 2</span>
-        )}
-      </div>
-      <p className="note">
-        กดปุ่มเดียว ระบบจะดึงรายการผลงานจากโปรไฟล์ Google Scholar ของอาจารย์ทุกคน แล้วเพิ่มผลงานใหม่ให้อัตโนมัติ (รับงานทุก 5 นาที ใช้เวลาประมาณ 5–10 นาที)
-      </p>
-      {job && (
+      <h3>สถานะการอัปเดต Google Scholar</h3>
+      {job ? (
         <p className={`scholar-job scholar-job-${job.status}`} role="status">
           <b>{JOB_TH[job.status]}</b>
           {job.status === 'running' && job.progress && ` · ${job.progress} คน${job.message ? ` (${job.message})` : ''}`}
@@ -832,8 +844,14 @@ function ScholarUpdate({ approvalKey, children }: { approvalKey?: string; childr
           <span className="muted"> · สั่งเมื่อ {when(job.at)} โดย {job.by}{job.updated && job.status !== 'requested' ? ` · ล่าสุด ${when(job.updated)}` : ''}</span>
           {waitingLong && <span className="warn-text"> ระบบยังไม่รับงานเกิน 15 นาที เครื่องที่ทำงานอาจปิดอยู่หรือไม่ได้เชื่อมต่ออินเทอร์เน็ต</span>}
         </p>
+      ) : (
+        <p className="scholar-job" role="status">ยังไม่มีการสั่งอัปเดต</p>
       )}
       {err && <p className="warn-text">{err}</p>}
+      <p className="note">
+        {scholar.canStart ? 'กด "อัปเดตจาก Google Scholar" ที่แถว Google Scholar ทางซ้าย ' : 'ผู้ดูแลระดับ 2 กด "อัปเดตจาก Google Scholar" ได้ที่แถว Google Scholar ทางซ้าย '}
+        ระบบจะดึงรายการผลงานจากโปรไฟล์ Google Scholar ของอาจารย์ทุกคน แล้วเพิ่มผลงานใหม่ให้อัตโนมัติ (รับงานทุก 5 นาที ใช้เวลาประมาณ 5–10 นาที)
+      </p>
       <details className="scholar-fallback">
         <summary>วิธีสำรอง: นำเข้าทีละคนด้วยการวางรายการเอง (ใช้เมื่อ Scholar บล็อกระบบ)</summary>
         {children}

@@ -732,3 +732,38 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 .admin-box .table-wrap { background: var(--panel); }
 @media (max-width: 720px) { .admin-box { padding: 2px 12px 14px; margin: 20px 0; } }
 @media print { .admin-box { background: none; border-color: #999; border-left-color: #555; } }
+
+/* (i) after the admin page title: the explanation shows on hover, tap or keyboard (src/InfoTip.tsx). */
+.info-tip { position: relative; display: inline-block; vertical-align: middle; }
+.info-tip-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--accent); cursor: help;
+}
+.info-tip-btn:hover, .info-tip-btn[aria-expanded='true'] { background: var(--accent-light); }
+.info-tip-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+/* Starts flush under the icon (padding, no margin) so the pointer can move onto it without closing it. */
+.info-tip-pop {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%); z-index: 40; padding-top: 6px;
+  width: min(34rem, calc(100vw - 32px));
+}
+.info-tip-pop[hidden] { display: none; }
+.explain-pop {
+  display: block; padding: 14px 18px; background: var(--panel); color: var(--fg); text-align: left;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);
+  font: 400 0.9rem/1.6 var(--font-body); letter-spacing: 0; text-transform: none;
+}
+.explain-pop-title { display: block; font-weight: 700; margin-bottom: 6px; }
+.explain-pop .explain-list { display: grid; gap: 8px; padding: 0; font-size: 0.9rem; }
+.explain-pop .explain-item { display: list-item; list-style: disc; margin-left: 1.2em; }
+@media (max-width: 720px) {
+  /* On a phone the box spans the heading's full width instead of centring on the icon, which ran off-screen. */
+  .section-head h1:has(.info-tip) { position: relative; }
+  .info-tip { position: static; }
+  .info-tip-pop { left: 0; right: 0; width: auto; transform: none; }
+}
+
+/* "อัปเดตจาก Google Scholar" on the Google Scholar row of แหล่งข้อมูล */
+.source-list dt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.admin-grid .panel .btn.source-action { margin-top: 0; }
+.scholar-update { margin: 0; gap: 10px; }
+.scholar-update h3 { margin: 0; }

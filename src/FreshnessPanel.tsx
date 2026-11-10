@@ -1,6 +1,6 @@
 // The "แหล่งข้อมูล" list on the admin page: last answer and row count per source. The times come from the bundle; the form's
 // time is read from status.json on the site, because a build triggered by a push did not fetch it.
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Freshness } from './types'
 import { DISPLAY_ORDER, SOURCE_TH, ageTh, sourceAges, type SourceAge, type SourceKey } from './freshness'
 
@@ -21,7 +21,7 @@ async function fetchPublishedFreshness(): Promise<Freshness | null> {
 
 /** One list for the admin page's "แหล่งข้อมูล": per source, when it last answered and how many rows it gave.
  *  The site build has no rows of its own, so it shows the time only. */
-export function FreshnessList({ ages, counts = {} }: { ages: SourceAge[]; counts?: SourceCounts }) {
+export function FreshnessList({ ages, counts = {}, actions = {} }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>> }) {
   const stale = ages.filter((a) => a.stale)
   const rows = DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)).filter((a): a is SourceAge => !!a)
   return (
@@ -31,7 +31,10 @@ export function FreshnessList({ ages, counts = {} }: { ages: SourceAge[]; counts
           const n = counts[a.key]
           return (
             <div key={a.key} className={a.stale ? 'fresh-stale' : undefined}>
-              <dt>{SOURCE_TH[a.key]}</dt>
+              <dt>
+                {SOURCE_TH[a.key]}
+                {actions[a.key]}
+              </dt>
               <dd>
                 <span className="fresh-when">
                   อัปเดตล่าสุด {a.at ? new Date(a.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '–'}{' '}
@@ -55,7 +58,7 @@ export function FreshnessList({ ages, counts = {} }: { ages: SourceAge[]; counts
   )
 }
 
-export function FreshnessPanel({ builtAt, freshness, counts }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts }) {
+export function FreshnessPanel({ builtAt, freshness, counts, actions }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>> }) {
   const [published, setPublished] = useState<Freshness | null>(null)
   useEffect(() => {
     let live = true
@@ -70,5 +73,5 @@ export function FreshnessPanel({ builtAt, freshness, counts }: { builtAt: string
     scholar: freshness?.scholar ?? null,
     forms: freshness?.forms ?? published?.forms ?? null,
   }
-  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} />
+  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} />
 }

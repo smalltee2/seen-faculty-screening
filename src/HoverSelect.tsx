@@ -23,16 +23,21 @@ export function HoverSelect({ id, label, value, options, onChange }: { id: strin
   const labelId = useId()
   const current = Math.max(0, options.findIndex((o) => o.value === value))
 
+  // `isOpen` mirrors `open` at once: a hover and a click can arrive before React applies the hover's update.
+  const isOpen = useRef(false)
   const show = (byHover: boolean) => {
     window.clearTimeout(closeTimer.current)
-    if (!open) {
+    if (!isOpen.current) {
       setActive(current)
       openedByHover.current = byHover
     }
+    isOpen.current = true
     setOpen(true)
   }
   const hide = () => {
     window.clearTimeout(closeTimer.current)
+    isOpen.current = false
+    openedByHover.current = false
     setOpen(false)
   }
   const pick = (i: number) => {
@@ -87,7 +92,7 @@ export function HoverSelect({ id, label, value, options, onChange }: { id: strin
       onPointerLeave={(e) => {
         if (e.pointerType !== 'mouse') return
         window.clearTimeout(closeTimer.current)
-        closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS)
+        closeTimer.current = window.setTimeout(hide, CLOSE_DELAY_MS)
       }}
     >
       <span className="control-label" id={labelId}>
@@ -106,11 +111,11 @@ export function HoverSelect({ id, label, value, options, onChange }: { id: strin
         aria-activedescendant={open ? `${id}-opt-${active}` : undefined}
         onClick={() => {
           // The mouse already opened it on hover: a click keeps it open instead of closing it again.
-          if (open && openedByHover.current) {
+          if (isOpen.current && openedByHover.current) {
             openedByHover.current = false
             return
           }
-          if (open) hide()
+          if (isOpen.current) hide()
           else show(false)
         }}
         onKeyDown={onKey}
