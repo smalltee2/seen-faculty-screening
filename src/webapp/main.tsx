@@ -7,8 +7,10 @@ import '../styles.css'
 import '../theme-academic.css'
 import './webapp.css'
 import { WebApp } from './WebApp'
+import { lockZoom } from './zoomLock'
 
 initTci(raw as unknown as DataBundle)
+lockZoom()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

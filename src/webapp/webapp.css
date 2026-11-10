@@ -253,3 +253,11 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-title p { display: none; }
   .app-top-tools .hover-select-button { padding: 0 6px; font-size: 0.75rem; }
 }
+
+/* ── Phones: fixed scale (Tum, 2026-11-11) ──
+   Only scrolling gestures are allowed, so pinch and double-tap do not zoom (with the viewport tag and
+   src/webapp/zoomLock.ts). Text boxes use 16 px text, because iPhone zooms into smaller ones on focus. */
+@media (max-width: 760px) {
+  html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  .app input, .app select, .app textarea { font-size: 16px; }
+}
