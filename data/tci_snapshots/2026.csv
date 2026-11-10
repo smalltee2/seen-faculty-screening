@@ -724,7 +724,7 @@ id,name_eng,name_local,abbrev_name,issn,eissn,tci_tier,status,main_area
 724,Sukhothai Thammathirat Open University Journal,วารสารสุโขทัยธรรมาธิราช,STOUJournal,0857-6955,2697-374X,2,active,social_sciences
 725,"Journal of Research Unit on Science, Technology and Environment for Learning",วารสารหน่วยวิจัยวิทยาศาสตร์ เทคโนโลยี และสิ่งแวดล้อมเพื่อการเรียนรู้,J. Res. Unit Sci.Technol. Environ. Learning,,3057-1154,2,active,life_sciences
 726,T.L.A. Bulletin,วารสารห้องสมุด,TLA,,3027-6969,1,active,social_sciences
-727,Hatyai Academic Journal,วารสารหาดใหญ่วิชาการ,HAJ,,2651-1614,1,active,social_sciences
+727,Hatyai Academic Journal,วารสารหาดใหญ่วิชาการ,HAJ,,2651-1614,1,inactive,social_sciences
 728,Environmental Health Journal,วารสารอนามัยสิ่งแวดล้อม,,0857-0965,,none,ceased,
 729,Journal of Letters,วารสารอักษรศาสตร์,JL,,3088-1498,2,active,social_sciences
 730,"Journal of the Faculty of Arts, Silpakorn University",วารสารอักษรศาสตร์ มหาวิทยาลัยศิลปากร,JASU,0857-2038,2672-9709,none,inactive,social_sciences
@@ -948,7 +948,7 @@ id,name_eng,name_local,abbrev_name,issn,eissn,tci_tier,status,main_area
 11346,RMUTL Engineering Journal,วารสารวิศวกรรมศาสตร์ มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา,RMUTL.Eng.J.,3027-7426,3027-7434,1,active,physical_sciences
 11347,Journal of Arts and Science Chaiyaphum Rajabhat University,วารสารวิชาการศิลปศาสตร์และวิทยาศาสตร์ มหาวิทยาลัยราชภัฏชัยภูมิ,Jas.cpru.,2408-0993,2730-1486,2,active,social_sciences
 11348,CMU Journal of Education,ศึกษาศาสตร์สาร มหาวิทยาลัยเชียงใหม่,CMU J. Edu.,2586-9043,2586-825X,none,inactive,
-11349,CUAST Journal,วารสารวิชาการ ปขมท.,CUAST J.,1686-7777,,2,active,social_sciences
+11349,CUAST Journal,วารสารวิชาการ ปขมท.,CUAST J.,,3125-9669,2,active,social_sciences
 11350,Journal of Roi Kaensarn Academi,,JRKA,,2697-5033,none,inactive,social_sciences
 11351,Ramkhamhaeng University Journal: The Graduate School (Educational Technology),วารสารบัณฑิตวิทยาลัย มหาวิทยาลัยรามคำแหง ฉบับเทคโนโลยีการศึกษา,,,3088-1889,3,active,social_sciences
 11352,Ramkhamhaeng University Journal: The Graduate School,วารสารรามคำแหง ฉบับบัณฑิตวิทยาลัย,,,3088-1722,3,active,social_sciences
@@ -1444,7 +1444,7 @@ id,name_eng,name_local,abbrev_name,issn,eissn,tci_tier,status,main_area
 11984,Journal of Social Religion and Culture,วารสารสังคมศึกษาศาสนาและวัฒนธรรม,jsrc,,2822-1117,2,active,social_sciences
 11985,Journal of Education Buriram Rajabhat University,วารสารครุศาสตร์ มหาวิทยาลัยราชภัฏบุรีรัมย์,BRUJE,2773-979X,2773-966X,2,active,social_sciences
 11986,Depatment of Health Service Support Journal,วารสารวิชาการกรมสนับสนุนบริการสุขภาพ,jdhss,,2822-1109,2,active,health_sciences
-11987,"Journal of Sports Science and Health Innovation, Rajabhat University Group of Thailand",วารสารวิทยาศาสตร์การกีฬาและนวัตกรรมสุขภาพ กลุ่มมหาวิทยาลัยราชภัฏแห่งประเทศไทย,,,2821-9511,2,active,health_sciences
+11987,"Journal of Sports Science and Health Innovation, Rajabhat University Group of Thailand",วารสารวิทยาศาสตร์การกีฬาและนวัตกรรมสุขภาพ กลุ่มมหาวิทยาลัยราชภัฏแห่งประเทศไทย,,,2821-9511,2,inactive,health_sciences
 11988,Science and Technology Journal of Sisaket Rajabhat University,วารสารวิทยาศาสตร์และเทคโนโลยี มหาวิทยาลัยราชภัฏศรีสะเกษ,STJS,2730-3977,2773-9309,none,inactive,life_sciences
 11989,International Journal of Educational Communications and Technology,,Int J Edu Comm Tech,,2774-1184,2,active,social_sciences
 11990,YASOTHON MEDICAL JOURNAL,ยโสธรเวชสาร,YMJ,2985-0525,2985-1114,2,active,health_sciences
@@ -1664,3 +1664,5 @@ id,name_eng,name_local,abbrev_name,issn,eissn,tci_tier,status,main_area
 12215,Medical Journal of Sakon Nakhon Hospital,วารสารการแพทย์โรงพยาบาลสกลนคร,Med J sakon Nakhon Hosp,,3088-280X,2,name_changed,health_sciences
 12216,Journal of Education-Health and Environmental Management,วารสารการศึกษา-สุขภาพและการจัดการสิ่งแวดล้อม,ehm,3088-358X,3088-392X,3,name_changed,health_sciences
 12217,Communication and Media in Asia Pacific,,CMAP,,2630-0621,1,name_changed,social_sciences
+12218,Journal of Applied Sport Science and Integrative Well-Being,,,,3125-9685,2,name_changed,health_sciences
+12219,"Journal of Administration, Organization, and Development (JAOD)",,JAOD,,3125-9677,1,name_changed,social_sciences
