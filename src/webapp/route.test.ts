@@ -19,3 +19,9 @@ describe('parseWebAppHash', () => {
     expect(parseWebAppHash('')).toEqual({ page: 'overview' })
   })
 })
+
+describe('sign-in page', () => {
+  it('#/login is its own page', () => {
+    expect(parseWebAppHash('#/login')).toEqual({ page: 'login' })
+  })
+})

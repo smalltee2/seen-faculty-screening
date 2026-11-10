@@ -1,6 +1,8 @@
 // "ตรวจสอบคุณสมบัติของฉัน" is a tab of the main site (#/me, src/pages/MyPage.tsx). The login
 // e-mail (apps-script/Code.gs) links to /me/#login=<code>; this writes dist/me/index.html,
 // a small page that forwards to ../#/me/login=<code>, so links in e-mails already sent keep working.
+// It forwards to the page the link was requested from (localStorage seen-login-return, written by
+// src/emailLogin.tsx: sfs.html or sfs_webapp.html), else to sfs.html (2026-11-11).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,10 +12,10 @@ mkdirSync(join(DIST, 'me'), { recursive: true })
 writeFileSync(
   join(DIST, 'me/index.html'),
   `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>ตรวจสอบคุณสมบัติของฉัน</title>
-<script>var m=location.hash.match(/^#login=([0-9a-f]+)$/);location.replace('../sfs.html#/me'+(m?'/login='+m[1]:''));</script></head>
+<script>var m=location.hash.match(/^#login=([0-9a-f]+)$/),p='sfs.html';try{var r=localStorage.getItem('seen-login-return');if(r==='sfs.html'||r==='sfs_webapp.html')p=r}catch(e){}location.replace('../'+p+'#/me'+(m?'/login='+m[1]:''));</script></head>
 <body><p><a href="../sfs.html#/me">ไปที่ ตรวจสอบคุณสมบัติของฉัน</a></p></body></html>\n`,
 )
-console.log('[personal] dist/me/index.html forwards to #/me')
+console.log('[personal] dist/me/index.html forwards to #/me on sfs.html or sfs_webapp.html (whichever asked for the link)')
 
 // The site's address is …/seen-faculty-screening/sfs.html (Tum, 2026-11-08): the page for real use,
 // whose data-years makes the year menu offer only the current and the next year (src/App.tsx →

@@ -35,6 +35,21 @@ export async function api(body: Record<string, unknown>, delays: number[] = RETR
 }
 export const loginConfigured = API !== ''
 
+/** The login e-mail links to …/me/#login=<code> (apps-script/Code.gs), and /me/ forwards to the app.
+ *  The page the link was requested from is remembered here, so /me/ (scripts/build-personal.mjs)
+ *  sends the lecturer back to it: sfs_webapp.html or sfs.html (Tum, 2026-11-11). A link opened in
+ *  another browser has nothing stored and opens sfs.html. */
+export const LOGIN_RETURN_KEY = 'seen-login-return'
+export const LOGIN_RETURN_PAGES = ['sfs.html', 'sfs_webapp.html']
+export function rememberLoginReturn(path = window.location.pathname) {
+  const page = path.split('/').pop() ?? ''
+  try {
+    localStorage.setItem(LOGIN_RETURN_KEY, LOGIN_RETURN_PAGES.includes(page) ? page : 'sfs.html')
+  } catch {
+    /* storage unavailable: /me/ falls back to sfs.html */
+  }
+}
+
 export const sessionStore = {
   get(): string {
     try {
@@ -159,6 +174,7 @@ export function EmailLogin({ notice, eyebrow = 'สำหรับอาจา�
     setBusy(true)
     setError('')
     try {
+      rememberLoginReturn()
       const r = await api({ action: 'request', email: email.trim(), remember })
       if (r.ok) setSent(true)
       else setError(errorText(r.error))

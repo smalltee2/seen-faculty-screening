@@ -4,6 +4,8 @@
 //
 // Who sees what is the same as on sfs.html: ภาพรวม and ของฉัน are open; อาจารย์ needs an admin
 // passcode (level 1 or 2); the inbox, form works, sources, outlook and history need level 2.
+// The menu lists only what the visitor may open (Tum, 2026-11-11): a lecturer sees the two open
+// pages, level 1 adds อาจารย์, level 2 sees everything. Admins sign in at #/login.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
@@ -32,7 +34,7 @@ const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeS
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 const BACHELOR_ANNOUNCEMENT_URL = 'https://www.ops.go.th/th/role/edu-standard/item/6942-2022-07-22-03-17-22'
 
-type Page = 'overview' | 'me' | 'lecturers' | 'person' | 'inbox' | 'forms' | 'outlook' | 'sources' | 'history'
+type Page = 'overview' | 'me' | 'lecturers' | 'person' | 'inbox' | 'forms' | 'outlook' | 'sources' | 'history' | 'login'
 type Route = { page: Page; id?: string; query?: URLSearchParams; login?: string }
 
 /** Hash routes; the overview, lecturer and person links are the same as on sfs.html. */
@@ -53,7 +55,7 @@ export function parseWebAppHash(hash: string): Route {
   if (h === 'admin/history') return { page: 'history' }
   if (h === 'admin/outlook') return { page: 'outlook' }
   const plain = h as Page
-  return ['inbox', 'forms', 'outlook', 'sources', 'history'].includes(plain) ? { page: plain } : { page: 'overview' }
+  return ['inbox', 'forms', 'outlook', 'sources', 'history', 'login'].includes(plain) ? { page: plain } : { page: 'overview' }
 }
 
 /** Pages and the admin level each needs (0 = open to everyone). */
@@ -72,15 +74,6 @@ function Icon({ d }: { d: string }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d={d} />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg className="app-nav-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="ต้องใช้รหัสผู้ดูแล" role="img">
-      <rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor" />
-      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   )
 }
@@ -132,12 +125,17 @@ export function WebApp() {
     return qs ? `#/lecturers?${qs}` : '#/lecturers'
   }
 
+  const visibleNav = NAV.filter((n) => level >= n.level)
   const active: Page = route.page === 'person' ? 'lecturers' : route.page
-  const current = NAV.find((n) => n.page === active)!
+  const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
   const title = route.page === 'person' ? (person ? displayName(person.person) : 'ไม่พบอาจารย์') : current.th
-  const need = route.page === 'person' ? 1 : current.level
+  const need = route.page === 'person' || route.page === 'login' ? 1 : current.level
   const allowed = level >= need
+  // Signed in at #/login: go on to the first admin page of that level.
+  useEffect(() => {
+    if (route.page === 'login' && admin) window.location.hash = admin.level === 2 ? '#/inbox' : '#/lecturers'
+  }, [route.page, admin])
   const q = route.query
   const approvalKey = admin?.level === 2 ? admin.approvalKey : undefined
 
@@ -152,14 +150,13 @@ export function WebApp() {
           <span>ระบบตรวจสอบคุณสมบัติอาจารย์</span>
         </a>
         <nav className="app-nav">
-          {NAV.map((n) => (
+          {visibleNav.map((n) => (
             <a key={n.page} href={n.page === 'overview' ? '#/' : `#/${n.page}`} className={`app-nav-link${n.level > 0 ? ' app-nav-admin' : ''}`} aria-current={active === n.page ? 'page' : undefined}>
               {n.icon}
               <span className="app-nav-label">{n.th}</span>
               <span className="app-nav-short" aria-hidden="true">
                 {n.short}
               </span>
-              {level < n.level && <LockIcon />}
               {n.page === 'inbox' && level === 2 && waiting > 0 && (
                 <span className="app-badge" aria-label={`${waiting} งานค้าง`}>
                   {waiting}
@@ -177,7 +174,7 @@ export function WebApp() {
               </button>
             </>
           ) : (
-            <a className="btn btn-small" href="#/lecturers">
+            <a className="btn btn-small" href="#/login">
               เข้าสู่ระบบผู้ดูแล
             </a>
           )}
@@ -216,6 +213,18 @@ export function WebApp() {
               onChange={(v) => setSettings({ ...settings, year: Number(v) })}
             />
             <ThemeToggle />
+            {/* Phones have no side-menu footer, so sign-in and sign-out sit here (CSS shows it ≤760 px). */}
+            {admin && lock ? (
+              <button type="button" className="btn btn-small app-top-admin" onClick={lock}>
+                ออกจากระบบ
+              </button>
+            ) : (
+              !admin && (
+                <a className="btn btn-small app-top-admin" href="#/login">
+                  ผู้ดูแล
+                </a>
+              )
+            )}
           </div>
         </header>
 
@@ -232,7 +241,7 @@ export function WebApp() {
           {!allowed ? (
             <AdminGateForm
               data={data}
-              title={title}
+              title={route.page === 'login' ? 'เข้าสู่ระบบผู้ดูแล' : title}
               needLevel={need === 2 ? 2 : 1}
               note={need === 2 && admin?.level === 1 ? 'หน้านี้สำหรับผู้ดูแลระดับ 2 กรุณาใส่รหัสผู้ดูแลระดับ 2' : undefined}
               onUnlocked={setAdmin}
