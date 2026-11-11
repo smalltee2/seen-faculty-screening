@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
+import { newWorks } from './new-works.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CONFIG = {
@@ -297,6 +298,6 @@ function freshness() {
 mkdirSync(dirname(CONFIG.out), { recursive: true })
 writeFileSync(
   CONFIG.out,
-  JSON.stringify({ builtAt: new Date().toISOString(), freshness: freshness(), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, formCancelled: [...formCancelled], crossref, programmes, quartiles }, null, 1),
+  JSON.stringify({ builtAt: new Date().toISOString(), freshness: freshness(), newWorks: newWorks(ROOT), sources: publicSources(), faculty, publications, overrides, tci, scopusJournals, conferences, conferenceScreening, formCancelled: [...formCancelled], crossref, programmes, quartiles }, null, 1),
 )
 log(`${faculty.length} lecturers, ${publications.length} publication rows, ${overrides.length} overrides, ${tci.length} TCI journals, ${scopusJournals.length} Scopus journals, ${conferences.length} conferences (screening ${conferenceScreening}), ${crossref.length} Crossref records (${biblioOverrides.length} hand overrides), ${programmes.length} programmes, ${quartiles.length} journal-year quartiles -> src/generated/data.json`)

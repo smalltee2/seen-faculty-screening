@@ -25,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: scripts/new-works.mjs reads the last 7 days of data commits to list the
+          # works new in each source (the "ใหม่" badges on the admin page).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -66,6 +66,8 @@ export interface Freshness {
 }
 
 export interface DataBundle {
+  /** Works new in each source in the last 7 days (scripts/new-works.mjs), newest first. */
+  newWorks?: Partial<Record<'openalex' | 'scopus' | 'forms' | 'scholar', NewWork[]>>
   builtAt: string
   freshness?: Freshness
   sources: {
@@ -194,4 +196,16 @@ export interface Pub extends RawPub {
   override: Override | null
   /** Conference screening result; only set for proceedings. */
   conference?: import('./conferences').ConferenceMatch
+}
+
+/** One row that came into a data source recently (scripts/new-works.mjs). */
+export interface NewWork {
+  /** When the data refresh that brought it ran (ISO time). */
+  at: string
+  /** Lecturer (name_en). */
+  key: string
+  title: string
+  year: string
+  venue: string
+  doi: string
 }

@@ -12,7 +12,7 @@ describe('FreshnessList', () => {
   const rows = html.split('<dt>').slice(1).map((r) => r.slice(0, r.indexOf('</dd>')))
 
   it('one row per source in display order, each with its time and its row count', () => {
-    expect(rows.map((r) => r.slice(0, r.indexOf(' (')))).toEqual(['OpenAlex', 'Scopus', 'แบบฟอร์มผู้ดูแล', 'Google Scholar', 'การสร้างเว็บ'])
+    expect(rows.map((r) => r.replace(/<[^>]+>/g, '')).map((r) => r.slice(0, r.indexOf(' (')))).toEqual(['OpenAlex', 'Scopus', 'แบบฟอร์มผู้ดูแล', 'Google Scholar', 'การสร้างเว็บ'])
     expect(rows[0]).toContain('อัปเดตล่าสุด')
     expect(rows[0]).toContain('3 ชั่วโมงที่แล้ว')
     expect(rows[0]).toContain('จำนวน 441 รายการ')
@@ -31,5 +31,20 @@ describe('FreshnessList', () => {
   it('there is no separate heading for the times', () => {
     expect(html).not.toContain('ข้อมูลล่าสุดของแต่ละแหล่ง')
     expect(html.match(/<dl/g)).toHaveLength(1)
+  })
+})
+
+describe('FreshnessList new works', () => {
+  const ages = sourceAges(h(1), { scopus: h(3), openalex: h(3), scholar: h(50), forms: h(1) }, now)
+  const nw = { openalex: [1, 2, 3].map((i) => ({ at: '2026-11-11T00:21:02Z', key: `L${i}`, title: 'Duck bone biochar', year: '2026', venue: 'IJMS', doi: '10.3390/ijms27219991' })) }
+  const html = renderToStaticMarkup(<FreshnessList ages={ages} newWorks={nw} nameOf={(k) => `ชื่อ ${k}`} />)
+  it('shows "ใหม่ N" after the source with new works, counting works, not rows', () => {
+    expect(html.match(/class="new-badge"[^>]*>ใหม่ 1</g)).toHaveLength(1)
+    expect(html.split('<dt>')[1]).toContain('new-badge')
+    expect(html.split('<dt>')[2]).not.toContain('new-badge')
+  })
+  it('keeps the list closed until the badge is pressed', () => {
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).not.toContain('class="new-works"')
   })
 })

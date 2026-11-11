@@ -1,7 +1,8 @@
 // The "แหล่งข้อมูล" list on the admin page: last answer and row count per source. The times come from the bundle; the form's
 // time is read from status.json on the site, because a build triggered by a push did not fetch it.
 import { useEffect, useState, type ReactNode } from 'react'
-import type { Freshness } from './types'
+import type { Freshness, NewWork } from './types'
+import { groupNewWorks } from './newWorks'
 import { DISPLAY_ORDER, SOURCE_TH, ageTh, sourceAges, type SourceAge, type SourceKey } from './freshness'
 
 /** Rows each source contributed to the bundle (before duplicates are merged). */
@@ -21,8 +22,12 @@ async function fetchPublishedFreshness(): Promise<Freshness | null> {
 
 /** One list for the admin page's "แหล่งข้อมูล": per source, when it last answered and how many rows it gave.
  *  The site build has no rows of its own, so it shows the time only. */
-export function FreshnessList({ ages, counts = {}, actions = {} }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>> }) {
+/** Works new in each source (data.newWorks) and how to show a lecturer's name. */
+export type NewWorksBySource = Partial<Record<SourceKey, NewWork[]>>
+
+export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, nameOf = (k) => k }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string }) {
   const stale = ages.filter((a) => a.stale)
+  const [open, setOpen] = useState<SourceKey | null>(null)
   const rows = DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)).filter((a): a is SourceAge => !!a)
   return (
     <div className="freshness">
@@ -32,7 +37,21 @@ export function FreshnessList({ ages, counts = {}, actions = {} }: { ages: Sourc
           return (
             <div key={a.key} className={a.stale ? 'fresh-stale' : undefined}>
               <dt>
-                {SOURCE_TH[a.key]}
+                <span className="source-name">
+                  {SOURCE_TH[a.key]}
+                  {/* New works in the last 7 days (Tum, 2026-11-11): a badge after the name; it opens the list. */}
+                  {groupNewWorks(newWorks[a.key]).length > 0 && (
+                    <button
+                      type="button"
+                      className="new-badge"
+                      aria-expanded={open === a.key}
+                      aria-controls={`new-${a.key}`}
+                      onClick={() => setOpen(open === a.key ? null : a.key)}
+                    >
+                      ใหม่ {groupNewWorks(newWorks[a.key]).length}
+                    </button>
+                  )}
+                </span>
                 {actions[a.key]}
               </dt>
               <dd>
@@ -43,6 +62,7 @@ export function FreshnessList({ ages, counts = {}, actions = {} }: { ages: Sourc
                 </span>
                 {n !== undefined && <span className="fresh-count mono">จำนวน {n} รายการ</span>}
               </dd>
+              {open === a.key && <NewWorksList id={`new-${a.key}`} groups={groupNewWorks(newWorks[a.key])} nameOf={nameOf} />}
             </div>
           )
         })}
@@ -58,7 +78,45 @@ export function FreshnessList({ ages, counts = {}, actions = {} }: { ages: Sourc
   )
 }
 
-export function FreshnessPanel({ builtAt, freshness, counts, actions }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>> }) {
+const day = (iso: string) => new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+
+/** What came into a source in the last 7 days, and for whom. */
+function NewWorksList({ id, groups, nameOf }: { id: string; groups: ReturnType<typeof groupNewWorks>; nameOf: (k: string) => string }) {
+  return (
+    <div id={id} className="new-works">
+      <p className="new-works-head">ผลงานที่เข้ามาใหม่ใน 7 วันที่ผ่านมา · {groups.length} เรื่อง</p>
+      <ul>
+        {groups.map((g) => (
+          <li key={`${g.doi}|${g.title}`}>
+            <span className="new-works-title">
+              {g.doi ? (
+                <a href={`https://doi.org/${g.doi}`} target="_blank" rel="noreferrer">
+                  {g.title} ↗
+                </a>
+              ) : (
+                g.title
+              )}
+            </span>
+            <span className="muted small">
+              {[g.year, g.venue].filter(Boolean).join(' · ')}
+            </span>
+            <span className="new-works-people">
+              {g.keys.map((k, i) => (
+                <span key={k}>
+                  {i > 0 && ', '}
+                  <a href={`#/person/${encodeURIComponent(k)}`}>{nameOf(k)}</a>
+                </span>
+              ))}
+            </span>
+            <span className="muted small">เข้ามาเมื่อ {day(g.at)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+export function FreshnessPanel({ builtAt, freshness, counts, actions, newWorks, nameOf }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string }) {
   const [published, setPublished] = useState<Freshness | null>(null)
   useEffect(() => {
     let live = true
@@ -73,5 +131,5 @@ export function FreshnessPanel({ builtAt, freshness, counts, actions }: { builtA
     scholar: freshness?.scholar ?? null,
     forms: freshness?.forms ?? published?.forms ?? null,
   }
-  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} />
+  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} newWorks={newWorks} nameOf={nameOf} />
 }

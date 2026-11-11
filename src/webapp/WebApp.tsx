@@ -410,6 +410,8 @@ export function WebApp() {
                         scholar: data.publications.filter((p) => (p.source ?? 'scholar') === 'scholar').length,
                       }}
                       actions={{ scholar: <ScholarButton scholar={scholar} /> }}
+                      newWorks={data.newWorks}
+                      nameOf={(k) => { const f = data.faculty.find((x) => x.nameEn === k); return f ? displayName(f) : k }}
                     />
                     <p className="note">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้{LEVEL_TH[2]}กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>
                   </section>
