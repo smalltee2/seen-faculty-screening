@@ -113,14 +113,19 @@ jobs:
       # A second copy of the site on Cloudflare Pages (https://seen-education-service.pages.dev), served at
       # the root, so it is built again with SITE_BASE=/. Skipped until the two CLOUDFLARE_* secrets are set.
       # wrangler runs outside the repository so it does not try to set the project up as a Worker.
+      # continue-on-error: a failed Cloudflare build or upload shows as a warning and must not stop
+      # the GitHub Pages deploy below.
       - name: Build for Cloudflare Pages (root path)
+        id: cfbuild
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        continue-on-error: true
         env:
           SITE_BASE: /
           PERSONAL_SALT: ${{ secrets.PERSONAL_SALT }}
         run: npm run build
       - name: Deploy to Cloudflare Pages
-        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        if: steps.cfbuild.outcome == 'success'
+        continue-on-error: true
         run: |
           cd "$RUNNER_TEMP"
           npx -y wrangler@4.160.1 pages deploy "$GITHUB_WORKSPACE/dist" --project-name seen-education-service --branch main --commit-dirty=true
