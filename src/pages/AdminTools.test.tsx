@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { preparePubs } from '../classify'
 import data from '../generated/data.json'
 import type { HistoryEntry } from '../history'
-import { outlook } from '../outlook'
+import { leavingWorks, outlook } from '../outlook'
 import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { SHOWN_ROLES } from '../ui'
@@ -26,15 +26,26 @@ describe('admin views', () => {
 describe('OutlookPage (bundled data)', () => {
   const html = renderToStaticMarkup(<OutlookPage results={results} settings={S} />)
   const rows = outlook(results, S, 2, SHOWN_ROLES)
-  it('states the assumption and both years', () => {
-    expect(html).toContain('สมมติว่าไม่มีผลงานใหม่เพิ่ม')
-    expect(html).toContain(String(toBE(2027)))
-    expect(html).toContain(String(toBE(2028)))
+  it('states the assumption and offers both years', () => {
+    expect(html).toContain('สมมติไม่มีผลงานใหม่')
+    for (const y of [2027, 2028]) {
+      const n = rows.filter((r) => r.firstYear === y).length
+      expect(html).toContain(`เริ่มไม่ผ่านปี พ.ศ. ${toBE(y)} (${n} คน)`)
+    }
   })
-  it('lists every lecturer the outlook finds', () => {
-    for (const r of rows) expect(html).toContain(`#/person/${encodeURIComponent(r.result.person.nameEn)}`)
-    const y1 = rows.filter((r) => r.firstYear === 2027).length
-    expect(html).toContain(`<b>${y1}</b> คน เริ่มไม่ผ่านในปี พ.ศ. ${toBE(2027)}`)
+  it('shows the first year by default, every lecturer of that year and no one else', () => {
+    for (const r of rows) {
+      const link = `#/person/${encodeURIComponent(r.result.person.nameEn)}`
+      if (r.firstYear === 2027) expect(html).toContain(link)
+      else expect(html).not.toContain(link)
+    }
+  })
+  it('lists each expiring work once per lecturer', () => {
+    for (const r of rows.filter((x) => x.firstYear === 2027)) {
+      const titles = r.roles.flatMap((o) => o.leaving.map((w) => w.titleNorm))
+      expect(leavingWorks(r.roles)).toHaveLength(new Set(titles).size)
+    }
+    expect(html.split('<td class="small" rowSpan').length - 1).toBe(rows.filter((x) => x.firstYear === 2027).length)
   })
 })
 
