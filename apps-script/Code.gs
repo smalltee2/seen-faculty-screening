@@ -306,7 +306,11 @@ function requestLink(body) {
   }
   var code = randomToken();
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
-  var link = siteOf(body.site) + 'me/#login=' + code;
+  var site = siteOf(body.site);
+  var link = site + 'me/#login=' + code;
+  // Which site the link goes to, for the log: "sent" = the page named a known site, "default" = it
+  // named none or an unknown one (an old copy of the page still open in a browser, for example).
+  var siteNote = 'link to ' + site.replace(/^https:\/\//, '').split('/')[0] + (body.site === site ? ' (sent)' : ' (default)');
   var name = user ? user.name_th || user.name_en : admin.name || email;
   // The code is stored only once its e-mail has gone out. A refused send (daily quota, a bounced
   // address) is logged and answered like any other request, so the answer still does not reveal
@@ -318,7 +322,7 @@ function requestLink(body) {
     return { ok: true };
   }
   sheet('tokens').appendRow([email, sha256(code), expires, '', body.remember ? 'yes' : 'no', new Date()]);
-  log('request', email, true, '');
+  log('request', email, true, siteNote);
   return { ok: true };
 }
 
