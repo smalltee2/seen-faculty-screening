@@ -428,3 +428,19 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   }
   .app-nav-more { position: relative; }
 }
+
+/* ── Desktop: smaller logo and name, and the page title in line with them (Tum, 2026-11-11) ──
+   The brand block in the side menu and the top bar share one height (--app-head-h), so the page
+   title ("ภาพรวม" …) sits level with the logo and name and both bottom borders form one line. */
+@media (min-width: 1101px) {
+  .app { --app-head-h: 132px; }
+  .app-side { padding-top: 0; }
+  .app-brand {
+    height: var(--app-head-h); box-sizing: border-box; justify-content: center; gap: 8px;
+    padding: 10px 10px 12px; margin: 0 -12px; padding-left: 22px; padding-right: 22px;
+  }
+  .app-brand img { width: 160px; }
+  .app-brand span { font-size: 1rem; line-height: 1.35; }
+  .app-top { min-height: var(--app-head-h); box-sizing: border-box; align-items: center; padding-top: 12px; padding-bottom: 12px; }
+  .app-title h1 { font-size: 1.6rem; }
+}
