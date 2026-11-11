@@ -507,3 +507,17 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .app-window-chip { background: color-mix(in srgb, var(--rule-line) 12%, var(--panel)); color: var(--accent); }
 /* Desktop: the stripe runs on under the logo, so it reads as one line across the window. */
 @media (min-width: 1101px) { .app-brand { border-bottom: 3px solid var(--rule-line); } }
+
+/* Trial background pattern for the top bar (?topbg=…, src/webapp/topPatterns.ts): drawn on the right,
+   faded out towards the title so the text stays clear; the light or dark version follows the theme. */
+.app-top-pattern {
+  position: absolute; inset: 0 0 3px 0; pointer-events: none; z-index: 0;
+  background-image: var(--pat-light); background-repeat: no-repeat; background-position: right center; background-size: auto 100%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 25%, #000 65%); mask-image: linear-gradient(to right, transparent 0%, transparent 25%, #000 65%);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .app-top-pattern { background-image: var(--pat-dark); } }
+:root[data-theme='dark'] .app-top-pattern { background-image: var(--pat-dark); }
+.app-top > .app-title, .app-top > .app-top-tools { position: relative; z-index: 1; }
+@media (max-width: 760px) {
+  .app-top-pattern { -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 35%, #000 85%); mask-image: linear-gradient(to right, transparent 0%, transparent 35%, #000 85%); }
+}

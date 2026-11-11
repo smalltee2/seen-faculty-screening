@@ -7,7 +7,7 @@
 // outlook and history need level 2.
 // The menu lists only what the visitor may open (Tum, 2026-11-11): a lecturer sees the two open
 // pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
@@ -28,6 +28,7 @@ import { conferenceSubmissions } from '../submissions'
 import { outlook } from '../outlook'
 import { groupNewWorks, newWorkId, unseen } from '../newWorks'
 import { useSeenNew } from './seenNew'
+import { PATTERNS, patternUrl, type PatternId } from './topPatterns'
 import { SHOWN_ROLES, displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
@@ -116,6 +117,12 @@ export function WebApp() {
 
   // The year menu offers this year and next year, as on sfs.html; the page always opens on this year.
   const scrolled = useScrolled()
+  // Trial of a background pattern in the top bar (Tum, 2026-11-11): sfs_webapp.html?topbg=leaves …
+  // shows it for that visit only; without the parameter the bar stays plain.
+  const topBg = useMemo(() => {
+    const v = new URLSearchParams(window.location.search).get('topbg')
+    return PATTERNS.some((p) => p.id === v) ? (v as PatternId) : null
+  }, [])
   const [settings, setSettings] = useState<Settings>({ year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' })
   const site = useSiteData()
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, site.pubs, settings)), [site.pubs, settings])
@@ -330,6 +337,13 @@ export function WebApp() {
             appear only once the page is scrolled. A small trail above the title, the 5-year window
             as a chip, and the menus as round chips. */}
         <header className={`app-top no-print${scrolled ? ' app-top-scrolled' : ''}${route.page === 'lecturers' && level === 2 && programmes.length > 0 ? ' app-top-many' : ''}`}>
+          {topBg && (
+            <div
+              className="app-top-pattern"
+              aria-hidden="true"
+              style={{ '--pat-light': patternUrl(topBg, false), '--pat-dark': patternUrl(topBg, true) } as CSSProperties}
+            />
+          )}
           <div className="app-title">
             <p className="app-crumb">
               {route.page === 'person' ? (
