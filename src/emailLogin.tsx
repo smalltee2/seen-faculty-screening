@@ -46,7 +46,9 @@ export const loginConfigured = API !== ''
 export const LOGIN_RETURN_KEY = 'seen-login-return'
 export const LOGIN_RETURN_PAGES = ['sfs.html', 'sfs_webapp.html']
 export function rememberLoginReturn(path = window.location.pathname) {
-  const page = path.split('/').pop() ?? ''
+  // A host that serves pages without the extension (Cloudflare Pages: …/sfs_webapp) names the same page.
+  const last = path.split('/').pop() ?? ''
+  const page = last !== '' && !last.includes('.') ? `${last}.html` : last
   try {
     localStorage.setItem(LOGIN_RETURN_KEY, LOGIN_RETURN_PAGES.includes(page) ? page : 'sfs.html')
   } catch {

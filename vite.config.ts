@@ -42,8 +42,13 @@ function versionFile(): Plugin {
 // Login backend URL (Apps Script web app) from data/sources.json → import.meta.env.VITE_LOGIN_API.
 const sources = JSON.parse(readFileSync('data/sources.json', 'utf8')) as { loginApiUrl?: string }
 
+// The path the site is served under. GitHub Pages serves it under the repository name; a host that
+// serves it at the root (Cloudflare Pages) builds with SITE_BASE=/.
+const base = process.env.SITE_BASE || '/seen-faculty-screening/'
+if (!base.startsWith('/') || !base.endsWith('/')) throw new Error(`SITE_BASE must start and end with "/": ${base}`)
+
 export default defineConfig({
-  base: '/seen-faculty-screening/',
+  base,
   define: { 'import.meta.env.VITE_LOGIN_API': JSON.stringify(sources.loginApiUrl ?? '') },
   plugins: [react(), versionFile()],
   // Embed the SEEN logo and favicon (under 8 KB) so standalone/index.html works offline.

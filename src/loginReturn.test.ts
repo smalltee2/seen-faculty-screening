@@ -26,6 +26,13 @@ describe('login link returns to the page that asked for it', () => {
     expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs_webapp.html')
     rememberLoginReturn('/seen-faculty-screening/sfs.html')
     expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs.html')
+    // Cloudflare Pages serves the pages without ".html".
+    rememberLoginReturn('/sfs_webapp')
+    expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs_webapp.html')
+    rememberLoginReturn('/sfs')
+    expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs.html')
+    rememberLoginReturn('/other')
+    expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs.html')
     rememberLoginReturn('/seen-faculty-screening/')
     expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs.html')
   })
