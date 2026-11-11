@@ -12,7 +12,7 @@ export type SourceKey = keyof Freshness | 'build'
 
 export const SOURCE_TH: Record<SourceKey, string> = {
   build: 'การสร้างเว็บ (GitHub Actions)',
-  scopus: 'Scopus (ทุกวัน, iMac 07:30)',
+  scopus: 'Scopus (ทุกวัน, 07:30)',
   openalex: 'OpenAlex (ทุกวัน 03:00)',
   forms: 'แบบฟอร์มผู้ดูแล (Google Form ทุกชั่วโมง)',
   scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',

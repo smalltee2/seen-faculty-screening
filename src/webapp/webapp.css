@@ -35,10 +35,6 @@ body { background: var(--bg); }
 .app-nav-link[aria-current='page']::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .app-nav-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .app-nav-short { display: none; }
-.app-badge {
-  margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center;
-  background: var(--ember); color: var(--on-ember); font: 700 0.75rem/1 var(--font-body);
-}
 .app-side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
 .app-side-foot .btn { align-self: flex-start; }
 .app-top-admin { display: none; }
@@ -170,7 +166,6 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-brand { padding: 4px 0 12px; align-items: center; }
   .app-brand img { width: 48px; }
   .app-nav-link { justify-content: center; padding: 10px; }
-  .app-badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; }
   .app-side-foot .btn, .app-side-foot .level-badge { display: none; }
   .app-nav-tab { left: 72px; }
 }
@@ -192,7 +187,6 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-icon-side { display: none; }
   .app-icon-phone { display: inline-flex; }
   .app-nav-short { display: block; max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: anywhere; }
-  .app-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; margin: 0; font-size: 0.68rem; }
   .app-top { padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
   .app-title h1 { font-size: 1.15rem; }
   .app-update { margin: 10px 16px 0; }
@@ -277,7 +271,6 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-nav-link[aria-current='page'] .app-nav-short { font-weight: 700; }
   .app-icon-phone svg { width: 28px; height: 28px; }
   .app-nav-short { line-height: 1.2; white-space: nowrap; overflow-wrap: normal; max-width: none; }
-  .app-badge { top: 1px; left: calc(50% + 8px); min-width: 20px; height: 20px; font-size: 0.72rem; }
   .app-toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 360px) {
@@ -406,3 +399,32 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .app .chart .row-total-ok { fill: var(--met); }
 .app .chart .row-total-risk { fill: var(--rev); }
 .app .chart .row-total-fail { fill: var(--not); }
+
+/* ── Counts beside menu items, like an inbox's unread count (Tum, 2026-11-11) ──
+   Side menu: a plain number at the right, orange = needs attention, green = new this week.
+   Icon-only menu (tablet) and phone bar: a small bubble on the icon. */
+.app-count { margin-left: auto; padding-left: 8px; font: 700 0.85rem/1 var(--font-body); font-variant-numeric: tabular-nums; }
+.app-count-alert { color: var(--ember); }
+.app-count-info { color: var(--met); }
+.app-nav-link[aria-current='page'] .app-count-info { color: var(--accent); }
+.app-count-dot { display: none; }
+.app-more-link .app-count { font-size: 0.95rem; }
+@media (max-width: 1100px) {
+  .app-count {
+    position: absolute; top: 2px; right: 4px; margin: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.68rem; color: #fff;
+    box-shadow: 0 0 0 2px var(--panel);
+  }
+  .app-count-alert { background: var(--ember); color: var(--on-ember); }
+  .app-count-info { background: var(--met-mark); color: #fff; }
+  .app-nav-link[aria-current='page'] .app-count-info { color: #fff; }
+  .app-more-link .app-count { position: static; margin-left: auto; min-width: 24px; height: 24px; border-radius: 12px; font-size: 0.8rem; box-shadow: none; }
+}
+@media (max-width: 760px) {
+  .app-count { top: 2px; right: auto; left: calc(50% + 6px); min-width: 20px; height: 20px; font-size: 0.72rem; }
+  .app-nav-more .app-count-dot {
+    display: block; position: absolute; top: 8px; left: calc(50% + 10px); width: 9px; height: 9px; border-radius: 50%;
+    background: var(--ember); box-shadow: 0 0 0 2px var(--panel);
+  }
+  .app-nav-more { position: relative; }
+}

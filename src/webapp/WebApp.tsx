@@ -25,7 +25,9 @@ import { FormWorks, ScholarButton, ScholarImport, ScholarStatus, useScholarJob }
 import { FreshnessPanel } from '../FreshnessPanel'
 import { StackedChartsContext } from '../charts'
 import { conferenceSubmissions } from '../submissions'
-import { displayName } from '../ui'
+import { outlook } from '../outlook'
+import { groupNewWorks } from '../newWorks'
+import { SHOWN_ROLES, displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
 import { inboxItems } from './inboxItems'
@@ -132,6 +134,32 @@ export function WebApp() {
   )
   const items = useMemo(() => inboxItems(site.pubs, pendingPubs, site.submissions), [site.pubs, pendingPubs, site.submissions])
   const waiting = items.filter((i) => i.status === 'pending').length
+  // Counts beside the menu items, like an inbox's unread count (Tum, 2026-11-11). Orange = needs
+  // attention, green = new since the last week. Only pages the visitor may open are listed anyway.
+  const notFullyMet = useMemo(() => results.filter((r) => !SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length, [results])
+  const atRisk = useMemo(() => (level === 2 ? outlook(results, settings, 2, SHOWN_ROLES).length : 0), [results, settings, level])
+  const newCount = (src: 'openalex' | 'scopus' | 'forms' | 'scholar') => groupNewWorks(data.newWorks?.[src]).length
+  const newInSources = newCount('openalex') + newCount('scopus') + newCount('forms') + newCount('scholar')
+  const navCounts: Partial<Record<Page, { n: number; tone: 'alert' | 'info'; label: string }>> = {
+    lecturers: { n: notFullyMet, tone: 'alert', label: `อาจารย์ที่ยังไม่ผ่านบางหน้าที่ ${notFullyMet} คน` },
+    inbox: { n: waiting, tone: 'alert', label: `งานรอดำเนินการ ${waiting} รายการ` },
+    forms: { n: newCount('forms'), tone: 'info', label: `ผลงานใหม่จากแบบฟอร์มใน 7 วัน ${newCount('forms')} เรื่อง` },
+    outlook: { n: atRisk, tone: 'alert', label: `อาจารย์ที่อาจไม่ผ่านใน 1–2 ปี ${atRisk} คน` },
+    sources: { n: newInSources, tone: 'info', label: `ผลงานใหม่ใน 7 วัน ${newInSources} เรื่อง` },
+  }
+  const countOf = (p: Page) => {
+    const c = navCounts[p]
+    return c && c.n > 0 ? c : null
+  }
+  const navCount = (page: Page) => {
+    const c = countOf(page)
+    return c ? (
+      <span className={`app-count app-count-${c.tone}`} title={c.label}>
+        <span aria-hidden="true">{c.n}</span>
+        <span className="sr-only">{c.label}</span>
+      </span>
+    ) : null
+  }
   const [show, setShow] = useState<InboxShow>('pending')
   // Side menu shown or hidden (Tum, 2026-11-11), kept per browser.
   const [nav, setNav] = useStoredChoice('seen-webapp-nav', 'shown', ['shown', 'hidden'] as const)
@@ -204,11 +232,7 @@ export function WebApp() {
               <span className="app-nav-short" aria-hidden="true">
                 {n.short}
               </span>
-              {n.page === 'inbox' && level === 2 && waiting > 0 && (
-                <span className="app-badge" aria-label={`${waiting} งานค้าง`}>
-                  {waiting}
-                </span>
-              )}
+              {navCount(n.page)}
             </a>
           ))}
           {extraNav.length > 0 && (
@@ -229,6 +253,7 @@ export function WebApp() {
                 </svg>
               </span>
               <span className="app-nav-short">เพิ่มเติม</span>
+              {extraNav.some((n) => countOf(n.page)) && <span className="app-count-dot" aria-label="มีรายการใหม่หรือคงค้างในเมนูเพิ่มเติม" />}
             </button>
           )}
         </nav>
@@ -265,6 +290,7 @@ export function WebApp() {
                 <a key={n.page} href={`#/${n.page}`} className="app-more-link" aria-current={active === n.page ? 'page' : undefined}>
                   <SeenIcon name={n.page} style="solid" size={26} />
                   <span>{n.th}</span>
+                  {navCount(n.page)}
                 </a>
               ))}
             </nav>
