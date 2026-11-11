@@ -29,7 +29,6 @@ import { outlook } from '../outlook'
 import { groupNewWorks, newWorkId, unseen } from '../newWorks'
 import { useSeenNew } from './seenNew'
 import { PATTERNS, patternUrl, type PatternId } from './topPatterns'
-import { APP_THEMES, APP_THEME_IDS, ThemePicker, themeUrl, type AppThemeId } from './appThemes'
 import { SHOWN_ROLES, displayName, lecturersReturn } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
@@ -192,9 +191,6 @@ export function WebApp() {
   const [show, setShow] = useState<InboxShow>('pending')
   // Side menu shown or hidden (Tum, 2026-11-11), kept per browser.
   const [nav, setNav] = useStoredChoice('seen-webapp-nav', 'shown', ['shown', 'hidden'] as const)
-  // Picture theme, as in Gmail (Tum, 2026-11-11); remembered in this browser, none by default.
-  const [themeId, setThemeId] = useStoredChoice<AppThemeId>('seen-webapp-theme', 'none', APP_THEME_IDS)
-  const picTheme = APP_THEMES.find((t) => t.id === themeId)
   const [kind, setKind] = useState<InboxKind>('all')
   const scholar = useScholarJob(admin?.level === 2 ? admin.approvalKey : undefined)
 
@@ -251,10 +247,7 @@ export function WebApp() {
   const approvalKey = admin?.level === 2 ? admin.approvalKey : undefined
 
   return (
-    <div
-      className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}${picTheme ? ` app-pictured app-pictured-${picTheme.tone}` : ''}`}
-      style={picTheme ? ({ '--app-picture': themeUrl(picTheme) } as CSSProperties) : undefined}
-    >
+    <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}`}>
       <a className="skip-link" href="#app-main">
         ข้ามไปที่เนื้อหา
       </a>
@@ -416,7 +409,6 @@ export function WebApp() {
                 )
               )}
             </div>
-            <ThemePicker value={themeId} onChange={setThemeId} />
             <ThemeToggle />
             {/* Phones show sign-in and sign-out as an icon here instead (CSS shows it ≤760 px). */}
             {admin && lock ? (
