@@ -87,6 +87,8 @@ export function WebApp() {
     const on = () => {
       setRoute(parseWebAppHash(window.location.hash))
       window.scrollTo(0, 0)
+      // On desktop the content card scrolls by itself (Gmail-like layout); start each page at its top.
+      document.getElementById('app-main')?.scrollTo(0, 0)
     }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
@@ -493,19 +495,19 @@ export function WebApp() {
               )}
             </>
           )}
+          {/* Inside the content card, so on desktop it scrolls with the page content. */}
+          <footer className="app-footer">
+            แหล่งเกณฑ์: ประกาศ กมอ. พ.ศ. 2565 · ปริญญาตรี ข้อ 10.1{' '}
+            <a href={BACHELOR_ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
+              ฉบับปริญญาตรี ↗
+            </a>{' '}
+            · บัณฑิตศึกษา ข้อ 9.3–9.4{' '}
+            <a href={ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
+              ฉบับบัณฑิตศึกษา (PDF) ↗
+            </a>
+          </footer>
         </main>
         </StackedChartsContext.Provider>
-
-        <footer className="app-footer">
-          แหล่งเกณฑ์: ประกาศ กมอ. พ.ศ. 2565 · ปริญญาตรี ข้อ 10.1{' '}
-          <a href={BACHELOR_ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
-            ฉบับปริญญาตรี ↗
-          </a>{' '}
-          · บัณฑิตศึกษา ข้อ 9.3–9.4{' '}
-          <a href={ANNOUNCEMENT_URL} target="_blank" rel="noreferrer">
-            ฉบับบัณฑิตศึกษา (PDF) ↗
-          </a>
-        </footer>
       </div>
     </div>
   )

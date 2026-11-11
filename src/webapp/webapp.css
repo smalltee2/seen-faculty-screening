@@ -495,18 +495,6 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-top.app-top-many .app-top-tools .hover-select:first-child .hover-select-button { width: 100%; justify-content: space-between; }
 }
 
-/* ── Top bar, style C (Tum, 2026-11-11, trying C after A) ──
-   A white bar like the side menu, closed by a thin stripe in the faculty colours (green 4/5,
-   orange 1/5) instead of a tinted band. Chips and trail stay as in A; a soft shadow once scrolled. */
-.app-top, .app-top.app-top-scrolled { background: var(--panel); backdrop-filter: none; border-bottom-color: transparent; }
-.app-top::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; pointer-events: none;
-  background: linear-gradient(to right, var(--rule-line) 0 80%, var(--rule) 80% 100%);
-}
-.app-top.app-top-scrolled { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
-.app-window-chip { background: color-mix(in srgb, var(--rule-line) 12%, var(--panel)); color: var(--accent); }
-/* Desktop: the stripe runs on under the logo, so it reads as one line across the window. */
-@media (min-width: 1101px) { .app-brand { border-bottom: 3px solid var(--rule-line); } }
 
 /* Trial background pattern for the top bar (?topbg=…, src/webapp/topPatterns.ts): drawn on the right,
    faded out towards the title so the text stays clear; the light or dark version follows the theme. */
@@ -520,4 +508,51 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 .app-top > .app-title, .app-top > .app-top-tools { position: relative; z-index: 1; }
 @media (max-width: 760px) {
   .app-top-pattern { -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 35%, #000 85%); mask-image: linear-gradient(to right, transparent 0%, transparent 35%, #000 85%); }
+}
+
+/* ── Gmail-like shell (Tum, 2026-11-11), computers and tablets ──
+   Menu, logo and top bar share one canvas with no lines between them; the page content is a large
+   rounded card that scrolls inside itself, so the menu and top bar stay put. Menu items are pills
+   rounded on the right. Phones keep their own layout. */
+:root { --app-canvas: #e9ece5; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --app-canvas: #0f100d; } }
+:root[data-theme='dark'] { --app-canvas: #0f100d; }
+@media (min-width: 761px) {
+  body { background: var(--app-canvas); }
+  .app { height: 100vh; height: 100dvh; overflow: hidden; background: var(--app-canvas); }
+  .app-side { background: transparent; border-right: 0; }
+  .app-brand { border-bottom: 0; }
+  .app-side-foot { border-top: 0; }
+  .app-main { height: 100vh; height: 100dvh; display: flex; flex-direction: column; min-height: 0; }
+  .app-top, .app-top.app-top-scrolled {
+    position: relative; flex: none; background: transparent; border-bottom-color: transparent; box-shadow: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .app-update { flex: none; }
+  .app-content {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    margin: 0 16px 16px 0; border-radius: 22px; background: var(--bg);
+    display: flex; flex-direction: column;
+    /* Positioned, so absolutely placed helpers inside (screen-reader captions) stay in the card and
+       do not stretch the window, which must not scroll. */
+    position: relative;
+  }
+  /* Children keep their natural height (a flex column would shrink them to the card and let the
+     content spill out, which broke the inbox's sticky detail); the footer takes the space left. */
+  .app-content > * { flex-shrink: 0; }
+  .app-content > .app-footer { margin-top: auto; }
+  .app-nav-hidden .app-content { margin-left: 16px; }
+  /* Menu items as pills rounded on the right, reaching the left edge (Gmail). */
+  .app-nav-link { margin-left: -12px; padding-left: 24px; border-radius: 0 999px 999px 0; }
+  .app-nav-link[aria-current='page']::before { display: none; }
+  .app-nav-link[aria-current='page'] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  /* The inbox lives inside the scrolling card now: its sticky parts stick to the card's top. */
+  .app-page-inbox { padding: 0; }
+  .inbox { min-height: 100%; }
+  .inbox-tools { top: 0; }
+  .inbox-detail { top: 0; max-height: calc(100vh - var(--app-head-h, 82px) - 16px); }
+}
+@media print {
+  .app, .app-main { height: auto; overflow: visible; }
+  .app-content { overflow: visible; margin: 0; border-radius: 0; }
 }
