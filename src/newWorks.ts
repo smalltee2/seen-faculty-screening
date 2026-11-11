@@ -29,3 +29,9 @@ export function groupNewWorks(rows: NewWork[] = []): NewWorkGroup[] {
   }
   return [...groups.values()].sort((a, b) => b.at.localeCompare(a.at) || a.title.localeCompare(b.title))
 }
+
+/** A work's id for "already opened" (the DOI, or else the title), the same key the grouping uses. */
+export const newWorkId = (g: Pick<NewWorkGroup, 'doi' | 'title'>) => (g.doi ? `doi:${g.doi.toLowerCase()}` : `t:${norm(g.title)}`)
+
+/** Works not opened yet. */
+export const unseen = (groups: NewWorkGroup[], seen: ReadonlySet<string>) => groups.filter((g) => !seen.has(newWorkId(g)))

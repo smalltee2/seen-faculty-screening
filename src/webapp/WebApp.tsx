@@ -26,7 +26,8 @@ import { FreshnessPanel } from '../FreshnessPanel'
 import { StackedChartsContext } from '../charts'
 import { conferenceSubmissions } from '../submissions'
 import { outlook } from '../outlook'
-import { groupNewWorks } from '../newWorks'
+import { groupNewWorks, newWorkId, unseen } from '../newWorks'
+import { useSeenNew } from './seenNew'
 import { SHOWN_ROLES, displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
@@ -138,14 +139,23 @@ export function WebApp() {
   // attention, green = new since the last week. Only pages the visitor may open are listed anyway.
   const notFullyMet = useMemo(() => results.filter((r) => !SHOWN_ROLES.every((x) => r.roles[x.id].status === 'met')).length, [results])
   const atRisk = useMemo(() => (level === 2 ? outlook(results, settings, 2, SHOWN_ROLES).length : 0), [results, settings, level])
-  const newCount = (src: 'openalex' | 'scopus' | 'forms' | 'scholar') => groupNewWorks(data.newWorks?.[src]).length
-  const newInSources = newCount('openalex') + newCount('scopus') + newCount('forms') + newCount('scholar')
+  // Green counts are works not opened yet in this browser (Tum: "หายเมื่อเปิดดู"); opening a source's
+  // list in แหล่งข้อมูl, or the form-works page, marks them as seen.
+  const NEW_SRC = ['openalex', 'scopus', 'forms', 'scholar'] as const
+  const newIds = useMemo(() => NEW_SRC.flatMap((src) => groupNewWorks(data.newWorks?.[src]).map(newWorkId)), [])
+  const [seenNew, markSeen] = useSeenNew(newIds)
+  const newCount = (src: (typeof NEW_SRC)[number]) => unseen(groupNewWorks(data.newWorks?.[src]), seenNew).length
+  const newInSources = new Set(NEW_SRC.flatMap((src) => unseen(groupNewWorks(data.newWorks?.[src]), seenNew).map(newWorkId))).size
+  useEffect(() => {
+    if (route.page === 'forms') markSeen(groupNewWorks(data.newWorks?.forms).map(newWorkId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.page])
   const navCounts: Partial<Record<Page, { n: number; tone: 'alert' | 'info'; label: string }>> = {
     lecturers: { n: notFullyMet, tone: 'alert', label: `อาจารย์ที่ยังไม่ผ่านบางหน้าที่ ${notFullyMet} คน` },
     inbox: { n: waiting, tone: 'alert', label: `งานรอดำเนินการ ${waiting} รายการ` },
-    forms: { n: newCount('forms'), tone: 'info', label: `ผลงานใหม่จากแบบฟอร์มใน 7 วัน ${newCount('forms')} เรื่อง` },
+    forms: { n: newCount('forms'), tone: 'info', label: `ผลงานใหม่จากแบบฟอร์มที่ยังไม่ได้เปิดดู ${newCount('forms')} เรื่อง` },
     outlook: { n: atRisk, tone: 'alert', label: `อาจารย์ที่อาจไม่ผ่านใน 1–2 ปี ${atRisk} คน` },
-    sources: { n: newInSources, tone: 'info', label: `ผลงานใหม่ใน 7 วัน ${newInSources} เรื่อง` },
+    sources: { n: newInSources, tone: 'info', label: `ผลงานใหม่ที่ยังไม่ได้เปิดดู ${newInSources} เรื่อง` },
   }
   const countOf = (p: Page) => {
     const c = navCounts[p]
@@ -437,6 +447,8 @@ export function WebApp() {
                       }}
                       actions={{ scholar: <ScholarButton scholar={scholar} /> }}
                       newWorks={data.newWorks}
+                      seen={seenNew}
+                      onOpen={(src) => markSeen(groupNewWorks(data.newWorks?.[src as (typeof NEW_SRC)[number]]).map(newWorkId))}
                       nameOf={(k) => { const f = data.faculty.find((x) => x.nameEn === k); return f ? displayName(f) : k }}
                     />
                     <p className="note">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้{LEVEL_TH[2]}กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>

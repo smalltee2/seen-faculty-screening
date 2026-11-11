@@ -41,3 +41,13 @@ describe('firstSeen (scripts/new-works.mjs)', () => {
     expect(firstSeen(baseline, [{ at: 'd1', rows: [...baseline, ...many] }], [...baseline, ...many], 'now', 4)).toHaveLength(4)
   })
 })
+
+import { newWorkId, unseen } from './newWorks'
+describe('unseen', () => {
+  it('drops works already opened, by DOI or by title', () => {
+    const g = groupNewWorks([w('A', 'Duck bone', 't1', '10.1/X'), w('B', 'Other paper', 't2')])
+    expect(unseen(g, new Set([newWorkId({ doi: '10.1/x', title: '' })])).map((x) => x.title)).toEqual(['Other paper'])
+    expect(unseen(g, new Set([newWorkId({ doi: '', title: 'other  PAPER' })])).map((x) => x.title)).toEqual(['Duck bone'])
+    expect(unseen(g, new Set())).toHaveLength(2)
+  })
+})

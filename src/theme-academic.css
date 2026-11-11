@@ -776,6 +776,10 @@ h1.person-name { font-size: clamp(1.12rem, 0.98rem + 0.4vw, 1.38rem); line-heigh
 }
 .new-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; }
 .new-badge:hover { background: var(--ember-hover); }
+/* Already opened in this browser: kept, but quiet */
+.new-badge-seen { background: var(--bg-secondary, var(--sub-panel)); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.new-badge-seen:hover { background: var(--panel-hover); }
+.new-badge-seen::before { opacity: 0.4; }
 .new-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .new-badge[aria-expanded='true'] { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-ember) 55%, transparent); }
 .source-list > div { flex-wrap: wrap; }

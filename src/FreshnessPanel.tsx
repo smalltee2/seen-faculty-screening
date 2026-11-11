@@ -2,7 +2,7 @@
 // time is read from status.json on the site, because a build triggered by a push did not fetch it.
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Freshness, NewWork } from './types'
-import { groupNewWorks } from './newWorks'
+import { groupNewWorks, unseen } from './newWorks'
 import { DISPLAY_ORDER, SOURCE_TH, ageTh, sourceAges, type SourceAge, type SourceKey } from './freshness'
 
 /** Rows each source contributed to the bundle (before duplicates are merged). */
@@ -25,7 +25,8 @@ async function fetchPublishedFreshness(): Promise<Freshness | null> {
 /** Works new in each source (data.newWorks) and how to show a lecturer's name. */
 export type NewWorksBySource = Partial<Record<SourceKey, NewWork[]>>
 
-export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, nameOf = (k) => k }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string }) {
+/** `seen`/`onOpen` (sfs_webapp.html): works already opened in this browser, and a call when a list is opened. */
+export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, nameOf = (k) => k, seen, onOpen }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string; seen?: ReadonlySet<string>; onOpen?: (source: SourceKey) => void }) {
   const stale = ages.filter((a) => a.stale)
   const [open, setOpen] = useState<SourceKey | null>(null)
   const rows = DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)).filter((a): a is SourceAge => !!a)
@@ -43,10 +44,14 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
                   {groupNewWorks(newWorks[a.key]).length > 0 && (
                     <button
                       type="button"
-                      className="new-badge"
+                      // Grey once every work in it was opened in this browser; it stays for the 7 days so the list can be read again.
+                      className={`new-badge${seen && unseen(groupNewWorks(newWorks[a.key]), seen).length === 0 ? ' new-badge-seen' : ''}`}
                       aria-expanded={open === a.key}
                       aria-controls={`new-${a.key}`}
-                      onClick={() => setOpen(open === a.key ? null : a.key)}
+                      onClick={() => {
+                        if (open !== a.key) onOpen?.(a.key)
+                        setOpen(open === a.key ? null : a.key)
+                      }}
                     >
                       ใหม่ {groupNewWorks(newWorks[a.key]).length}
                     </button>
@@ -116,7 +121,7 @@ function NewWorksList({ id, groups, nameOf }: { id: string; groups: ReturnType<t
   )
 }
 
-export function FreshnessPanel({ builtAt, freshness, counts, actions, newWorks, nameOf }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string }) {
+export function FreshnessPanel({ builtAt, freshness, counts, actions, newWorks, nameOf, seen, onOpen }: { builtAt: string; freshness?: Freshness; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string; seen?: ReadonlySet<string>; onOpen?: (source: SourceKey) => void }) {
   const [published, setPublished] = useState<Freshness | null>(null)
   useEffect(() => {
     let live = true
@@ -131,5 +136,5 @@ export function FreshnessPanel({ builtAt, freshness, counts, actions, newWorks, 
     scholar: freshness?.scholar ?? null,
     forms: freshness?.forms ?? published?.forms ?? null,
   }
-  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} newWorks={newWorks} nameOf={nameOf} />
+  return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} newWorks={newWorks} nameOf={nameOf} seen={seen} onOpen={onOpen} />
 }

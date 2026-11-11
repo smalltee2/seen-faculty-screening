@@ -48,3 +48,14 @@ describe('FreshnessList new works', () => {
     expect(html).not.toContain('class="new-works"')
   })
 })
+
+describe('FreshnessList opened works', () => {
+  const ages = sourceAges(h(1), { scopus: h(3), openalex: h(3), scholar: h(50), forms: h(1) }, now)
+  const nw = { openalex: [{ at: '2026-11-11T00:21:02Z', key: 'L1', title: 'Duck bone', year: '2026', venue: 'IJMS', doi: '10.3390/x' }] }
+  it('greys the badge once every work in it was opened, and keeps it', () => {
+    const opened = renderToStaticMarkup(<FreshnessList ages={ages} newWorks={nw} seen={new Set(['doi:10.3390/x'])} />)
+    expect(opened).toContain('new-badge new-badge-seen')
+    const fresh = renderToStaticMarkup(<FreshnessList ages={ages} newWorks={nw} seen={new Set()} />)
+    expect(fresh).not.toContain('new-badge-seen')
+  })
+})
