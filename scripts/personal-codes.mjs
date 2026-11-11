@@ -12,7 +12,7 @@ import { parseCsv } from './csv.mjs'
 import { personalCode, personalFolder, readSalt } from './personal-token.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const BASE = process.env.PERSONAL_BASE_URL ?? 'https://smalltee2.github.io/seen-faculty-screening/'
+const BASE = process.env.PERSONAL_BASE_URL ?? 'https://seen-education-service.pages.dev/'
 const salt = readSalt()
 if (!salt) {
   console.error('No salt: set PERSONAL_SALT or run scripts/personal-salt.sh once on this Mac.')

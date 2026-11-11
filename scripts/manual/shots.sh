@@ -3,7 +3,7 @@
 # Usage: scripts/manual/shots.sh [base-url]   (default: the live site)
 # Output: docs/manual/shots/*.png (1400 px wide desktop views)
 set -eu
-BASE="${1:-https://smalltee2.github.io/seen-faculty-screening/}"
+BASE="${1:-https://seen-education-service.pages.dev/}"
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 OUT="$(cd "$(dirname "$0")/../.." && pwd)/docs/manual/shots"
 mkdir -p "$OUT"

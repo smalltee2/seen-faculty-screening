@@ -19,7 +19,9 @@
  * Deploy: Deploy → New deployment → Web app, "Execute as: Me", "Who has access: Anyone".
  * The site calls doPost with a text/plain JSON body (no CORS preflight).
  */
-var SITE = 'https://smalltee2.github.io/seen-faculty-screening/';
+// The main address since 2026-11-12 (Cloudflare Pages). The same build is also published at
+// https://smalltee2.github.io/seen-faculty-screening/ (GitHub Pages).
+var SITE = 'https://seen-education-service.pages.dev/';
 // This web app's own URL (data/sources.json loginApiUrl), used in the รับทราบ link; a constant so
 // the script needs no extra permission to read its deployment.
 var APP_URL = 'https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec';
