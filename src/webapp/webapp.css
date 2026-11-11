@@ -585,3 +585,11 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-title-row { gap: 2px 8px; }
   .app-title-row .app-window-chip { flex: none; }
 }
+
+/* Larger 5-year chip beside the title (Tum, 2026-11-11; was 0.75 rem). */
+.app-title-row .app-window-chip { font-size: 0.95rem; padding: 3px 14px; }
+@media (max-width: 760px) { .app-title-row .app-window-chip { font-size: 0.85rem; padding: 1px 10px; } }
+/* Phones: the title column is narrow beside the year menu, so the chip drops the word "ช่วงผลงาน"
+   (the full wording stays in its tooltip) instead of running under the menu. */
+@media (max-width: 760px) { .app-window-word { display: none; } }
+.app-window-word { margin-right: 0.3em; } /* the chip is a flex box, so a plain space would collapse */

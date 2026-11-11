@@ -347,7 +347,7 @@ export function WebApp() {
             <div className="app-title-row">
               <h1>{title}</h1>
               <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี ค.ศ. ${settings.year - 4}–${settings.year}`}>
-                ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+                <span className="app-window-word">ช่วงผลงาน</span>พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
               </span>
             </div>
           </div>
