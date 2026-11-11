@@ -32,6 +32,17 @@ function siteOf(v) {
   for (var i = 0; i < SITES.length; i++) if (s === SITES[i]) return SITES[i];
   return SITE;
 }
+/** The site with this number in SITES (the `s` of a รับทราบ link), otherwise the main address. */
+function siteAt(v) {
+  var i = /^[0-9]$/.test(String(v == null ? '' : v)) ? Number(v) : 0;
+  return SITES[i] || SITE;
+}
+/** For the log: which site a link goes to. "sent" = the page named a known site, "default" = it named
+ *  none or an unknown one (an old copy of the page still open in a browser, for example). */
+function siteNote(sent) {
+  var site = siteOf(sent);
+  return 'link to ' + site.replace(/^https:\/\//, '').split('/')[0] + (sent === site ? ' (sent)' : ' (default)');
+}
 // This web app's own URL (data/sources.json loginApiUrl), used in the รับทราบ link; a constant so
 // the script needs no extra permission to read its deployment.
 var APP_URL = 'https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec';
@@ -97,12 +108,12 @@ function setup() {
 
 function doGet(e) {
   var ack = e && e.parameter && e.parameter.ack;
-  if (ack) return ackPage(String(ack));
+  if (ack) return ackPage(String(ack), siteAt(e.parameter.s));
   return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'seen-login' })).setMimeType(ContentService.MimeType.JSON);
 }
 
 /** The lecturer clicked the รับทราบ link in a reminder: record the time (once) and show a small page. */
-function ackPage(token) {
+function ackPage(token, site) {
   var lock = LockService.getScriptLock();
   var title = 'ไม่พบลิงก์นี้';
   var text = 'ลิงก์ยืนยันการรับทราบไม่ถูกต้อง หรือถูกลบไปแล้ว';
@@ -131,7 +142,7 @@ function ackPage(token) {
     '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
     '<title>' + title + '</title><style>body{font-family:Sarabun,"Noto Sans Thai",system-ui,sans-serif;background:#efebe2;color:#2c2a25;margin:0;padding:40px 16px}' +
     '.card{max-width:520px;margin:0 auto;background:#fff;border:1px solid #d8d2c6;border-left:5px solid #1d5c33;border-radius:12px;padding:24px 28px}h1{font-size:1.3rem;margin:0 0 10px;color:#1d5c33}p{line-height:1.7;margin:0 0 12px}a{color:#1d5c33}</style></head>' +
-    '<body><div class="card"><h1>' + title + '</h1><p>' + text + '</p><p><a href="' + SITE + '#/me">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์ →</a></p></div></body></html>';
+    '<body><div class="card"><h1>' + title + '</h1><p>' + text + '</p><p><a href="' + (site || SITE) + '#/me">ไปที่ระบบตรวจสอบคุณสมบัติอาจารย์ →</a></p></div></body></html>';
   return HtmlService.createHtmlOutput(html).setTitle(title);
 }
 
@@ -308,9 +319,6 @@ function requestLink(body) {
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
   var site = siteOf(body.site);
   var link = site + 'me/#login=' + code;
-  // Which site the link goes to, for the log: "sent" = the page named a known site, "default" = it
-  // named none or an unknown one (an old copy of the page still open in a browser, for example).
-  var siteNote = 'link to ' + site.replace(/^https:\/\//, '').split('/')[0] + (body.site === site ? ' (sent)' : ' (default)');
   var name = user ? user.name_th || user.name_en : admin.name || email;
   // The code is stored only once its e-mail has gone out. A refused send (daily quota, a bounced
   // address) is logged and answered like any other request, so the answer still does not reveal
@@ -322,7 +330,7 @@ function requestLink(body) {
     return { ok: true };
   }
   sheet('tokens').appendRow([email, sha256(code), expires, '', body.remember ? 'yes' : 'no', new Date()]);
-  log('request', email, true, siteNote);
+  log('request', email, true, siteNote(body.site));
   return { ok: true };
 }
 
@@ -590,30 +598,33 @@ function notifyLecturer(body) {
   });
   if (recent.length) return { ok: false, error: 'notified_recently' };
   var ackToken = randomToken();
-  var ackUrl = APP_URL + '?ack=' + ackToken;
+  // The reminder's links go to the site the admin sent it from (Tum, 2026-11-12); the รับทราบ link
+  // carries that site's number so its page links back to the same site.
+  var site = siteOf(body.site);
+  var ackUrl = APP_URL + '?ack=' + ackToken + (site === SITE ? '' : '&s=' + SITES.indexOf(site));
   // The sheet must exist before the mail goes: a reminder that cannot be recorded would escape
   // the cooldown and the daily cap.
   var sh = sheet('notices');
   if (!sh) return { ok: false, error: 'not_configured' };
   try {
-    sendNoticeMail(email, subject, text, ackUrl);
+    sendNoticeMail(email, subject, text, ackUrl, site);
   } catch (err) {
     log('notify', auth.who, false, nameEn + ' ' + kind + ' mail failed: ' + String(err && err.message ? err.message : err));
     return { ok: false, error: 'mail_failed' };
   }
   sh.appendRow([new Date(), asText(nameEn), kind, auth.who, cell(subject, 200), sha256(ackToken), '']);
-  log('notify', auth.who, true, nameEn + ' ' + kind);
+  log('notify', auth.who, true, nameEn + ' ' + kind + ' · ' + siteNote(body.site));
   return { ok: true };
 }
 
-function sendNoticeMail(email, subject, text, ackUrl) {
+function sendNoticeMail(email, subject, text, ackUrl, site) {
   MailApp.sendEmail({
     to: email,
     subject: subject,
     body: text + '\n\n' +
       'เมื่อได้รับอีเมลนี้แล้ว กรุณากดลิงก์ต่อไปนี้เพื่อยืนยันการรับทราบ (กดได้ครั้งเดียว):\n' + ackUrl + '\n\n' +
       '— ระบบตรวจสอบคุณสมบัติอาจารย์ คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา\n' +
-      'ดูข้อมูลของท่านและเพิ่มผลงานได้ที่ ' + SITE + '#/me',
+      'ดูข้อมูลของท่านและเพิ่มผลงานได้ที่ ' + (site || SITE) + '#/me',
     name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',
     noReply: true,
   });

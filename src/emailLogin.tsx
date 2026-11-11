@@ -24,7 +24,7 @@ export async function api(body: Record<string, unknown>, delays: number[] = RETR
   const retries = READ_ACTIONS.has(String(body.action)) ? delays : []
   for (let i = 0; ; i++) {
     try {
-      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ site: siteAddress(), ...body }), redirect: 'follow' })
       if (!res.ok) return { ok: false, error: `http_${res.status}` }
       const r = (await res.json()) as ApiOk | ApiErr
       // The backend no longer knows the session this call carried (expired, or signed out in another
@@ -56,10 +56,11 @@ export function rememberLoginReturn(path = window.location.pathname) {
   }
 }
 
-/** This copy of the site (origin and base path), sent with a login request so the link in the
- *  e-mail comes back here. The backend only accepts the addresses it knows (SITES in Code.gs). */
-export function siteAddress(origin = window.location.origin, base = import.meta.env.BASE_URL) {
-  return `${origin}${base}`
+/** This copy of the site (origin and base path), sent with every request so the links in the e-mails
+ *  the backend sends (login link, reminder) come back here. The backend only accepts the addresses it
+ *  knows (SITES in Code.gs). Empty outside a browser. */
+export function siteAddress(origin = typeof window === 'undefined' ? '' : window.location.origin, base = import.meta.env.BASE_URL) {
+  return origin ? `${origin}${base}` : ''
 }
 
 export const sessionStore = {
@@ -210,7 +211,7 @@ export function EmailLogin({ notice, eyebrow = 'สำหรับอาจา�
     setError('')
     try {
       rememberLoginReturn()
-      const r = await api({ action: 'request', email: email.trim(), remember, site: siteAddress() })
+      const r = await api({ action: 'request', email: email.trim(), remember })
       if (r.ok) setSent(true)
       else setError(errorText(r.error))
     } catch {
