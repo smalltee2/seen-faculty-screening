@@ -556,3 +556,35 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app, .app-main { height: auto; overflow: visible; }
   .app-content { overflow: visible; margin: 0; border-radius: 0; }
 }
+
+/* ── Header refinements (Tum, 2026-11-11) ──
+   No trail above the title; the 5-year chip sits beside the title on one line. Sign-in status,
+   sign-out and the data time sit after the year menu. With one title line the header is shorter:
+   logo 130 px and the system name on one line, brand and top bar both 96 px tall on computers. */
+.app-crumb { font-size: 0.8rem; color: var(--muted); text-decoration: none; }
+.app-crumb:hover { color: var(--accent); }
+.app-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-width: 0; }
+.app-title-row h1 { margin: 0; }
+.app-title-row .app-window-chip { margin-top: 0; }
+.app-top-account { display: flex; align-items: center; gap: 8px; padding-left: 12px; margin-left: 4px; border-left: 1px solid var(--line); }
+.app-top-account .level-badge { white-space: nowrap; }
+.app-top-account .btn { white-space: nowrap; }
+.app-updated { display: flex; flex-direction: column; line-height: 1.25; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.app-updated time { color: var(--fg); font-weight: 500; }
+@media (min-width: 1101px) {
+  .app { --app-head-h: 96px; }
+  .app-brand { gap: 4px; padding-top: 4px; padding-bottom: 4px; }
+  .app-brand img { width: 130px; }
+  .app-brand span { font-size: 0.95rem; white-space: nowrap; }
+  .app-brand span br { display: none; }
+  .app-title h1 { font-size: 1.5rem; }
+  .app-top { padding-top: 8px; padding-bottom: 8px; }
+}
+/* Narrower screens: drop the data time, then the level name (the sign-out button stays). */
+@media (max-width: 1280px) { .app-updated { display: none; } }
+@media (max-width: 1100px) { .app-top-account .level-badge { display: none; } }
+@media (max-width: 760px) {
+  .app-top-account { display: none; }
+  .app-title-row { gap: 2px 8px; }
+  .app-title-row .app-window-chip { flex: none; }
+}

@@ -277,21 +277,6 @@ export function WebApp() {
             </button>
           )}
         </nav>
-        <div className="app-side-foot">
-          {admin && lock ? (
-            <>
-              <span className={`level-badge level-badge-${admin.level}`}>{LEVEL_TH[admin.level]}</span>
-              <button type="button" className="btn btn-small" onClick={lock}>
-                ออกจากระบบผู้ดูแล
-              </button>
-            </>
-          ) : (
-            <a className="btn btn-small" href="#/login">
-              เข้าสู่ระบบผู้ดูแล
-            </a>
-          )}
-          <span className="muted small">ข้อมูลล่าสุด {UPDATED_AT} น.</span>
-        </div>
       </aside>
       {moreOpen && extraNav.length > 0 && (
         <>
@@ -347,19 +332,18 @@ export function WebApp() {
             />
           )}
           <div className="app-title">
-            <p className="app-crumb">
-              {route.page === 'person' ? (
-                <a href="#/lecturers">ผลงานอาจารย์ ›</a>
-              ) : need > 0 ? (
-                'ผู้ดูแล ›'
-              ) : (
-                'ระบบตรวจสอบคุณสมบัติอาจารย์ ›'
-              )}
-            </p>
-            <h1>{title}</h1>
-            <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี ค.ศ. ${settings.year - 4}–${settings.year}`}>
-              ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
-            </span>
+            {/* Trail removed (Tum, 2026-11-11); a lecturer's page keeps a link back to the list. */}
+            {route.page === 'person' && (
+              <a className="app-crumb" href="#/lecturers">
+                ‹ ผลงานอาจารย์
+              </a>
+            )}
+            <div className="app-title-row">
+              <h1>{title}</h1>
+              <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี ค.ศ. ${settings.year - 4}–${settings.year}`}>
+                ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+              </span>
+            </div>
           </div>
           <div className="app-top-tools">
             {route.page === 'lecturers' && level === 2 && programmes.length > 0 && (
@@ -378,8 +362,29 @@ export function WebApp() {
               options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: `พ.ศ. ${toBE(y)}` }))}
               onChange={(v) => setSettings({ ...settings, year: Number(v) })}
             />
+            {/* Sign-in status, sign-out and the data time, moved from the side menu (Tum, 2026-11-11). */}
+            <div className="app-top-account">
+              {admin && lock ? (
+                <>
+                  <span className={`level-badge level-badge-${admin.level}`}>{LEVEL_TH[admin.level]}</span>
+                  <button type="button" className="btn btn-small" onClick={lock}>
+                    ออกจากระบบผู้ดูแล
+                  </button>
+                </>
+              ) : (
+                !admin && (
+                  <a className="btn btn-small" href="#/login">
+                    เข้าสู่ระบบผู้ดูแล
+                  </a>
+                )
+              )}
+              <span className="app-updated">
+                <span>ข้อมูลล่าสุด</span>
+                <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
+              </span>
+            </div>
             <ThemeToggle />
-            {/* Phones have no side-menu footer, so sign-in and sign-out sit here (CSS shows it ≤760 px). */}
+            {/* Phones show sign-in and sign-out as an icon here instead (CSS shows it ≤760 px). */}
             {admin && lock ? (
               <button type="button" className="icon-btn app-top-admin" onClick={lock} aria-label="ออกจากระบบผู้ดูแล" title="ออกจากระบบผู้ดูแล">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
