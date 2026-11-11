@@ -23,6 +23,7 @@ import { MyPage } from '../pages/MyPage'
 import { HistoryPage, OutlookPage } from '../pages/AdminTools'
 import { FormWorks, ScholarButton, ScholarImport, ScholarStatus, useScholarJob } from '../pages/AdminPage'
 import { FreshnessPanel } from '../FreshnessPanel'
+import { StackedChartsContext } from '../charts'
 import { conferenceSubmissions } from '../submissions'
 import { displayName } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
@@ -347,6 +348,7 @@ export function WebApp() {
           </div>
         )}
 
+        <StackedChartsContext.Provider value>
         <main id="app-main" className={`app-content app-page-${allowed ? route.page : 'gate'}`} tabIndex={-1}>
           {!allowed ? (
             <AdminGateForm
@@ -430,6 +432,7 @@ export function WebApp() {
             </>
           )}
         </main>
+        </StackedChartsContext.Provider>
 
         <footer className="app-footer">
           แหล่งเกณฑ์: ประกาศ กมอ. พ.ศ. 2565 · ปริญญาตรี ข้อ 10.1{' '}

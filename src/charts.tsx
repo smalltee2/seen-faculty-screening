@@ -1,7 +1,7 @@
 // Hand-built SVG charts (no chart library). Colours come from CSS tokens
 // --c-journal / --c-proceeding / --c-poster, validated for colour-blind
 // separation in light and dark themes.
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup, GROUP_SHORT } from './ui'
@@ -306,10 +306,15 @@ export function outputRows(results: PersonResult[], settings: Settings, group: L
 /** Segment labels of each chart view (for the CSV header). */
 export const outputSegments = (view: OutputsView) => OUTPUT_SEGS[view].map((s) => ({ key: s.key, th: s.th }))
 
+/** sfs_webapp.html turns this on (src/webapp/WebApp.tsx) to get the two-line phone layout of the
+ *  per-lecturer chart; sfs.html keeps its single-line chart. */
+export const StackedChartsContext = createContext(false)
+
 /** One chart per level group: `group` picks the duties (10.1.x or 9.3–9.4) and the threshold line. */
 export function LecturerOutputs({ results, settings, group, view }: { results: PersonResult[]; settings: Settings; group: LevelGroup; view: OutputsView }) {
   const { show, hide, el } = useTip()
   const [ref, width] = useWidth(1000)
+  const stackedLayout = useContext(StackedChartsContext)
   const roles = SHOWN_ROLES.filter((role) => levelGroup(role.level) === group)
   const threshold = group === 'ba' ? 1 : 3
   const lvl = GROUP_SHORT[group]
@@ -321,15 +326,19 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
   // Pill-and-bubble style (Tum's reference, 2026-11-07): thick round-ended bars, the total in a
   // speech bubble at the bar end, soft shading at 0.
   const uid = useId().replace(/:/g, '')
-  const rowH = narrow ? 30 : 34
+  // Phones (Tum, 2026-11-11: "ดูยาก"): each lecturer takes two lines - the full name with the
+  // total on the right, then a bar across the whole width - instead of a name column that left
+  // short bars and cut names.
+  const stacked = narrow && stackedLayout
+  const rowH = stacked ? 50 : 34
   const rankW = 8 // rank numbers removed (Tum, 2026-11-07); small left margin only
-  const nameW = Math.round(Math.min(230, Math.max(110, W * 0.3)))
-  const m = { t: 24, r: narrow ? 40 : 150, b: 26, l: rankW + nameW }
+  const nameW = stacked ? W - 70 : Math.round(Math.min(230, Math.max(110, W * 0.3)))
+  const m = stacked ? { t: 30, r: 14, b: 8, l: 14 } : { t: 24, r: 150, b: 26, l: rankW + nameW }
   const maxChars = Math.floor(nameW / 7)
   const H = m.t + m.b + rows.length * rowH
   const iw = W - m.l - m.r
   const sx = (v: number) => m.l + (v / max) * iw
-  const bh = narrow ? 14 : 18
+  const bh = stacked ? 12 : 18
   const bubbles: ReactNode[] = [] // drawn after the threshold line so it never covers a total
   const tone = (x: { failed: number; review: number; risk: unknown[] }) => (x.failed > 0 ? 'fail' : x.review > 0 || x.risk.length > 0 ? 'risk' : 'ok')
 
@@ -352,7 +361,9 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`จำนวนผลงานในช่วง 5 ปีของอาจารย์แต่ละคน (${group === 'ba' ? 'ระดับปริญญาตรี' : 'ระดับบัณฑิตศึกษา'})`}>
-        {ticks(max).map((t) => (
+        {/* Stacked rows: no grid or axis - the total is printed on every row, and lines through the
+            names made them hard to read. */}
+        {!stacked && ticks(max).map((t) => (
           <g key={t}>
             <line className="grid" x1={sx(t)} x2={sx(t)} y1={m.t - 6} y2={H - m.b} />
             <text className="axis" x={sx(t)} y={H - m.b + 16} textAnchor="middle">
@@ -361,7 +372,8 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
           </g>
         ))}
         {rows.map((x, i) => {
-          const y = m.t + i * rowH + (rowH - bh) / 2
+          // Stacked rows put the bar on the row's second line, under the name.
+          const y = stacked ? m.t + i * rowH + 27 : m.t + i * rowH + (rowH - bh) / 2
           const segs = [...segDefs.map((s) => ({ v: x[s.key], cls: s.cls })), { v: x.maybe, cls: 'maybe' }]
           let acc = 0
           const total = x.research + x.other
@@ -371,8 +383,14 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               {(x.failed > 0 || x.review > 0 || x.risk.length > 0) && (
                 <rect className={x.failed > 0 ? 'fail-frame' : 'risk-frame'} x={4} y={m.t + i * rowH + 1} width={W - 8} height={rowH - 2} rx={6} />
               )}
+              {stacked && (
+                <text className={`row-total row-total-${tone(x)}`} x={W - m.r} y={m.t + i * rowH + 19} textAnchor="end">
+                  {`${total}${x.maybe ? `+${x.maybe}?` : ''}`}
+                  <tspan className="row-total-unit"> เรื่อง</tspan>
+                </text>
+              )}
               <a href={`#/person/${encodeURIComponent(x.r.person.nameEn)}`}>
-                <text className="row-label" x={m.l - 10} y={y + bh - 4} textAnchor="end">
+                <text className="row-label" x={stacked ? m.l : m.l - 10} y={stacked ? m.t + i * rowH + 19 : y + bh - 4} textAnchor={stacked ? 'start' : 'end'}>
                   {(() => {
                     // Narrow screens drop the title (รศ.ดร.) so the name itself fits.
                     const label = narrow ? x.r.person.nameTh || x.name : x.name
@@ -395,7 +413,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                 })}
                 <rect className="pill-gloss" x={sx(0)} y={y} width={iw} height={bh / 2} />
               </g>
-              {void (() => {
+              {!stacked && void (() => {
                 const label = `${total}${x.maybe ? `+${x.maybe}?` : ''}`
                 const bwid = 14 + label.length * (narrow ? 7 : 8)
                 const bx = Math.max(sx(acc), sx(0) + bh / 2) + 10
@@ -476,17 +494,32 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
             <stop offset="1" className="shade-1" />
           </linearGradient>
         </defs>
-        <rect x={sx(0)} y={m.t - 6} width={Math.min(56, iw * 0.07)} height={H - m.b - m.t + 6} fill={`url(#${uid}-shade)`} pointerEvents="none" />
-        {/* Threshold drawn over the bars (with a surface halo) so it stays visible across them */}
+        {!stacked && <rect x={sx(0)} y={m.t - 6} width={Math.min(56, iw * 0.07)} height={H - m.b - m.t + 6} fill={`url(#${uid}-shade)`} pointerEvents="none" />}
+        {/* Threshold drawn over the bars (with a surface halo) so it stays visible across them;
+            stacked rows get a short mark on each bar instead of a line through the names. */}
         <g className="rule-group">
-          <line className="rule-halo" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
-          <line className="rule" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
+          {stacked ? (
+            rows.map((_, i) => {
+              const y = m.t + i * rowH + 27
+              return (
+                <g key={i}>
+                  <line className="rule-halo" x1={sx(threshold)} x2={sx(threshold)} y1={y - 4} y2={y + bh + 4} />
+                  <line className="rule" x1={sx(threshold)} x2={sx(threshold)} y1={y - 4} y2={y + bh + 4} />
+                </g>
+              )
+            })
+          ) : (
+            <>
+              <line className="rule-halo" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
+              <line className="rule" x1={sx(threshold)} x2={sx(threshold)} y1={m.t - 14} y2={H - m.b} />
+            </>
+          )}
           <text className="rule-label" x={sx(threshold) + 6} y={m.t - 5}>
             เกณฑ์ ≥ {threshold} เรื่อง
           </text>
         </g>
         {bubbles}
-        <line className="baseline" x1={m.l} x2={m.l} y1={m.t - 6} y2={H - m.b} />
+        {!stacked && <line className="baseline" x1={m.l} x2={m.l} y1={m.t - 6} y2={H - m.b} />}
       </svg>
       {el}
     </figure>
