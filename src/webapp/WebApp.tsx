@@ -277,6 +277,12 @@ export function WebApp() {
             </button>
           )}
         </nav>
+        {/* The data time stays at the foot of the side menu (Tum, 2026-11-11). */}
+        <div className="app-side-foot">
+          <span className="muted small">
+            ข้อมูลล่าสุด <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
+          </span>
+        </div>
       </aside>
       {moreOpen && extraNav.length > 0 && (
         <>
@@ -362,7 +368,7 @@ export function WebApp() {
               options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: `พ.ศ. ${toBE(y)}` }))}
               onChange={(v) => setSettings({ ...settings, year: Number(v) })}
             />
-            {/* Sign-in status, sign-out and the data time, moved from the side menu (Tum, 2026-11-11). */}
+            {/* Sign-in status and sign-out, moved from the side menu (Tum, 2026-11-11). */}
             <div className="app-top-account">
               {admin && lock ? (
                 <>
@@ -378,10 +384,6 @@ export function WebApp() {
                   </a>
                 )
               )}
-              <span className="app-updated">
-                <span>ข้อมูลล่าสุด</span>
-                <time dateTime={data.builtAt}>{UPDATED_AT} น.</time>
-              </span>
             </div>
             <ThemeToggle />
             {/* Phones show sign-in and sign-out as an icon here instead (CSS shows it ≤760 px). */}
