@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { evaluatePerson, type Settings } from './rules'
-import { outlook, outlookFor } from './outlook'
+import { leavingWorks, outlook, outlookFor } from './outlook'
 import type { Faculty, Pub } from './types'
 
 const S: Settings = { year: 2026, countPosters: false, strict: true }
@@ -87,5 +87,17 @@ describe('outlook', () => {
     expect(list.map((x) => x.result.person.nameEn)).toEqual(['B', 'A'])
     expect(list[0].firstYear).toBe(2027)
     expect(list[1].firstYear).toBe(2028)
+  })
+})
+
+describe('leavingWorks', () => {
+  it('lists a work counted for several duties once, oldest first', () => {
+    const a = pub(2022, { titleNorm: 'same' })
+    const b = pub(2021, { titleNorm: 'same' }) // same title, other source row
+    const c = pub(2021, { titleNorm: 'other' })
+    expect(leavingWorks([{ leaving: [a, c] }, { leaving: [b, a] }]).map((w) => w.titleNorm)).toEqual(['other', 'same'])
+  })
+  it('is empty when nothing leaves', () => {
+    expect(leavingWorks([{ leaving: [] }])).toEqual([])
   })
 })

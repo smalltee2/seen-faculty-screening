@@ -79,3 +79,19 @@ export function outlook(results: PersonResult[], s: Settings, horizon = 2, roles
         a.result.person.nameEn.localeCompare(b.result.person.nameEn),
     )
 }
+
+/** The works leaving the window across all of a lecturer's duties, each once (Tum, 2026-11-11: a
+ *  work counted for several duties was listed under each). Same work = same normalised title;
+ *  oldest first, in the order the duties list them. */
+export function leavingWorks(roles: Pick<OutlookRole, 'leaving'>[]): Pub[] {
+  const seen = new Set<string>()
+  const out: Pub[] = []
+  for (const r of roles)
+    for (const w of r.leaving) {
+      const k = w.titleNorm || w.id
+      if (seen.has(k)) continue
+      seen.add(k)
+      out.push(w)
+    }
+  return out.sort((a, b) => (a.year ?? 0) - (b.year ?? 0))
+}

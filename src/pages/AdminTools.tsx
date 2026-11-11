@@ -6,7 +6,7 @@ import { api, errorText, sessionStore } from '../emailLogin'
 import type { FormCancelItem } from '../formCancel'
 import { KIND_TH, buildHistory, fetchDecisionLog, type DecisionLogItem, type HistoryEntry, type HistoryKind } from '../history'
 import type { Notice } from '../notify'
-import { outlook } from '../outlook'
+import { leavingWorks, outlook } from '../outlook'
 import { toBE, type PersonResult, type Settings } from '../rules'
 import type { Submission } from '../submissions'
 import type { Faculty } from '../types'
@@ -170,8 +170,12 @@ export function HistoryPage({ confItems, formCancels, submissions, notices, facu
 // ───────────────────────── 2. Outlook ─────────────────────────
 
 export function OutlookPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
-  const rows = useMemo(() => outlook(results, settings, 2, SHOWN_ROLES), [results, settings])
-  const y1 = rows.filter((r) => r.firstYear === settings.year + 1).length
+  const all = useMemo(() => outlook(results, settings, 2, SHOWN_ROLES), [results, settings])
+  // One evaluation year at a time (Tum, 2026-11-11): lecturers who first stop meeting a duty that year.
+  const years = [settings.year + 1, settings.year + 2]
+  const [year, setYear] = useState(years[0])
+  const shown = years.includes(year) ? year : years[0]
+  const rows = all.filter((r) => r.firstYear === shown)
   return (
     <>
       <div className="section-head">
@@ -181,16 +185,20 @@ export function OutlookPage({ results, settings }: { results: PersonResult[]; se
           </h1>
         </div>
       </div>
-      <p className="note">
-        อาจารย์ที่ผ่านเกณฑ์ในปี พ.ศ. {toBE(settings.year)} แต่จะไม่ผ่านในปีถัดไปเมื่อผลงานเก่าพ้นช่วง 5 ปี คำนวณโดย<b>สมมติว่าไม่มีผลงานใหม่เพิ่ม</b>
-        และใช้เกณฑ์ชุดเดียวกับหน้าข้อมูลอาจารย์ · "ต้องเพิ่ม" คือจำนวนผลงานขั้นต่ำที่ต้องมีเพิ่มในช่วงประเมินของปีนั้น
+      <p className="note outlook-note">
+        อาจารย์ที่ผ่านเกณฑ์ปี พ.ศ. {toBE(settings.year)} แต่จะไม่ผ่านเมื่อผลงานเก่าพ้นช่วง 5 ปี (<b>สมมติไม่มีผลงานใหม่</b> เกณฑ์เดียวกับหน้าข้อมูลอาจารย์)
+        · "ต้องเพิ่ม" = จำนวนผลงานขั้นต่ำที่ต้องเพิ่มในปีนั้น
       </p>
-      <div className="tool-counts">
-        <span className="tool-count"><b>{y1}</b> คน เริ่มไม่ผ่านในปี พ.ศ. {toBE(settings.year + 1)}</span>
-        <span className="tool-count"><b>{rows.length - y1}</b> คน เริ่มไม่ผ่านในปี พ.ศ. {toBE(settings.year + 2)}</span>
+      <div className="register-tools no-print">
+        <Segmented
+          label="ปีที่เริ่มไม่ผ่าน"
+          value={String(shown)}
+          onChange={(v) => setYear(Number(v))}
+          options={years.map((y) => ({ id: String(y), label: `เริ่มไม่ผ่านปี พ.ศ. ${toBE(y)} (${all.filter((r) => r.firstYear === y).length} คน)` }))}
+        />
       </div>
       {rows.length === 0 ? (
-        <p className="note">ไม่มีอาจารย์ที่จะหลุดเกณฑ์ใน 2 ปีข้างหน้า</p>
+        <p className="note">ไม่มีอาจารย์ที่จะเริ่มไม่ผ่านเกณฑ์ในปี พ.ศ. {toBE(shown)}</p>
       ) : (
         <div className="table-wrap">
           <table className="data">
@@ -223,15 +231,17 @@ export function OutlookPage({ results, settings }: { results: PersonResult[]; se
                       )}
                       {o.path === 'new_grad' && <div className="muted small">ปีนี้ผ่านด้วยข้อยกเว้นผู้สำเร็จการศึกษาใหม่ ซึ่งหมดอายุในปีนั้น</div>}
                     </td>
-                    <td className="small">
-                      {o.leaving.length === 0
-                        ? '—'
-                        : o.leaving.map((w) => (
-                            <div key={w.id}>
-                              {w.title} <span className="muted">({w.year})</span>
-                            </div>
-                          ))}
-                    </td>
+                    {i === 0 && (
+                      <td className="small" rowSpan={p.roles.length}>
+                        {leavingWorks(p.roles).length === 0
+                          ? '—'
+                          : leavingWorks(p.roles).map((w) => (
+                              <div key={w.id}>
+                                {w.title} <span className="muted">({w.year})</span>
+                              </div>
+                            ))}
+                      </td>
+                    )}
                   </tr>
                 )),
               )}

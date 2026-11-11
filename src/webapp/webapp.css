@@ -604,3 +604,8 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-brand img { width: 150px; }
   .app-brand span { font-size: 1.1rem; line-height: 1.25; }
 }
+
+/* Outlook page note on one line on computers (Tum, 2026-11-11; wording shortened to fit at 1440 px). */
+/* Only where the line fits; narrower content areas wrap as before. */
+.app-content { container-type: inline-size; }
+@container (min-width: 1040px) { .app .outlook-note { white-space: nowrap; max-width: none; } }
