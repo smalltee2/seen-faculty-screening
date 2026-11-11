@@ -12,16 +12,18 @@ body { background: var(--bg); }
 .app-icon { display: inline-flex; flex: none; }
 .app-icon-phone { display: none; }
 .app-nav-link[aria-current='page'] { --icon-cut: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
-.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
+.app { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
 
 /* ── Side menu ── */
 .app-side {
   position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 18px;
   padding: 18px 12px; background: var(--panel); border-right: 1px solid var(--line);
+  overflow-y: auto; overscroll-behavior: contain;
 }
-.app-brand { display: flex; flex-direction: column; gap: 8px; padding: 4px 10px 14px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; }
-.app-brand img { width: 120px; height: auto; }
-.app-brand span { font: 600 0.86rem/1.35 var(--font-body); }
+.app-brand { display: flex; flex-direction: column; gap: 10px; padding: 6px 10px 16px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; }
+/* Larger faculty logo and system name on desktop (Tum, 2026-11-11; were 120 px and 0.86 rem). */
+.app-brand img { width: 210px; max-width: 100%; height: auto; }
+.app-brand span { font: 700 1.14rem/1.35 var(--font-display); color: var(--accent); text-wrap: balance; }
 .app-nav { display: flex; flex-direction: column; gap: 2px; }
 .app-nav-link {
   position: relative; display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 8px 12px;
@@ -124,7 +126,7 @@ body { background: var(--bg); }
 .app.app-nav-hidden { grid-template-columns: minmax(0, 1fr); }
 .app.app-nav-hidden .app-side { display: none; }
 .app-nav-tab {
-  position: fixed; top: 50%; left: 248px; z-index: 40; transform: translateY(-50%);
+  position: fixed; top: 50%; left: 272px; z-index: 40; transform: translateY(-50%);
   display: flex; align-items: center; justify-content: center; width: 28px; height: 60px; padding: 0;
   border: 1px solid var(--line); border-left: 0; border-radius: 0 12px 12px 0; background: var(--panel); color: var(--accent);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06); cursor: pointer;
@@ -165,6 +167,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 @media (max-width: 1100px) and (min-width: 761px) {
   .app { grid-template-columns: 72px minmax(0, 1fr); }
   .app-brand span, .app-nav-label, .app-side-foot .muted { display: none; }
+  .app-brand { padding: 4px 0 12px; align-items: center; }
   .app-brand img { width: 48px; }
   .app-nav-link { justify-content: center; padding: 10px; }
   .app-badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; }
