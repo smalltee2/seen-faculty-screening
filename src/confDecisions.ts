@@ -4,6 +4,7 @@
 // conference over data/conferences.csv, and the hourly job writes the same into that file.
 import { api } from './emailLogin'
 import type { ConferenceEntry } from './types'
+import { byWhenAsc } from './when'
 
 export type ConfDecision = 'count' | 'no_count' | 'clear'
 export interface ConfDecisionItem {
@@ -15,12 +16,13 @@ export interface ConfDecisionItem {
   name: string
 }
 
-export async function fetchConfDecisions(): Promise<ConfDecisionItem[]> {
+/** The decisions; null when the list could not be read (a caller keeps the list it has). */
+export async function fetchConfDecisions(): Promise<ConfDecisionItem[] | null> {
   try {
     const r = await api({ action: 'confList' })
-    return r.ok && Array.isArray(r.items) ? (r.items as ConfDecisionItem[]) : []
+    return r.ok && Array.isArray(r.items) ? (r.items as ConfDecisionItem[]) : null
   } catch {
-    return []
+    return null
   }
 }
 
@@ -49,17 +51,18 @@ const blank = (key: string, name: string): ConferenceEntry => ({
 export function applyConfDecisions(entries: ConferenceEntry[], items: ConfDecisionItem[]): ConferenceEntry[] {
   if (!items.length) return entries
   const latest = new Map<string, ConfDecisionItem>()
-  for (const it of [...items].sort((a, b) => a.at.localeCompare(b.at))) latest.set(it.key, it)
+  for (const it of [...items].sort((a, b) => byWhenAsc(a.at, b.at))) latest.set(it.key, it)
+  const inRegister = new Set<string>()
   const out = entries.map((e) => {
     const d = latest.get(e.key)
     if (!d) return e
-    latest.delete(e.key)
+    inRegister.add(e.key)
     return d.decision === 'clear'
       ? { ...e, decision: '' as const, decidedBy: '', decidedAt: '', decisionNote: '' }
       : { ...e, decision: d.decision, decidedBy: d.by, decidedAt: d.at, decisionNote: d.note }
   })
   for (const d of latest.values()) {
-    if (d.decision === 'clear') continue
+    if (d.decision === 'clear' || inRegister.has(d.key)) continue
     out.push({ ...blank(d.key, d.name), decision: d.decision, decidedBy: d.by, decidedAt: d.at, decisionNote: d.note })
   }
   return out

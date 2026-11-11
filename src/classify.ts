@@ -10,6 +10,15 @@ export function normalizeTitle(title: string): string {
   return title.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
 }
 
+/** A DOI as a comparison key: no resolver prefix ("https://doi.org/", "doi:"), lower case. '' when there is none. */
+export function normDoi(doi: string | null | undefined): string {
+  return String(doi ?? '')
+    .trim()
+    .replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '')
+    .replace(/^doi:\s*/i, '')
+    .toLowerCase()
+}
+
 /** Scholar inserts spaces between Thai syllables ("บัณฑิต วิทยาลัย"); join them so Thai keywords match. */
 function joinThai(s: string): string {
   return s.normalize('NFKC').replace(/(?<=[\u0E00-\u0E7F])\s+(?=[\u0E00-\u0E7F])/g, '')
@@ -196,7 +205,7 @@ function richness(p: RawPub): number {
   // exclusion (book chapter, erratum, retracted) keeps its priority. (2026-11-07)
   const weak = t.type === 'unknown' || (t.type === 'exclude' && /repository/.test(t.reason))
   const rank = weak ? 1 : (SOURCE_RANK[p.source ?? 'scholar'] ?? 1)
-  return rank * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(p.cites, 99)
+  return rank * 1e7 + typeScore * 1e6 + (hasVolumeOrPages(p.venue) ? 1e5 : 0) + Math.min(p.venue.length, 900) * 100 + Math.min(Number(p.cites) || 0, 99)
 }
 
 const TRUNCATED = /(…|\.\.\.)\s*$/
@@ -220,7 +229,8 @@ export function dedupe(rows: RawPub[]): { row: RawPub; duplicates: number; membe
   const norms = rows.map((r) => normalizeTitle(r.title))
   rows.forEach((r, i) => {
     const keys = [`t\u0000${r.key}\u0000${norms[i]}`]
-    if (r.doi) keys.push(`d\u0000${r.key}\u0000${r.doi.toLowerCase()}`)
+    const doi = normDoi(r.doi)
+    if (doi) keys.push(`d\u0000${r.key}\u0000${doi}`)
     for (const k of keys) {
       const j = seen.get(k)
       if (j === undefined) seen.set(k, i)

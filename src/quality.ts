@@ -11,6 +11,7 @@ export function buildQuartileIndex(rows: [string, number, number][]): QuartileIn
   const idx: QuartileIndex = new Map()
   for (const [issn, year, q] of rows) {
     const k = normIssn(issn)
+    if (!k) continue
     if (!idx.has(k)) idx.set(k, [])
     idx.get(k)!.push({ year, q })
   }
@@ -25,7 +26,7 @@ export function buildQuartileIndex(rows: [string, number, number][]): QuartileIn
 export function quartileOf(pub: Pick<Pub, 'issn' | 'year'>, idx: QuartileIndex): number | null {
   const years = (pub.issn ?? '')
     .split(';')
-    .map((i) => idx.get(normIssn(i)))
+    .map((i) => (normIssn(i) ? idx.get(normIssn(i)) : undefined))
     .find((v) => v && v.length)
   if (!years) return null
   if (pub.year === null) return years[years.length - 1].q

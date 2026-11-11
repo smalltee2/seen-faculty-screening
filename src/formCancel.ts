@@ -5,6 +5,7 @@
 import { normalizeTitle } from './classify'
 import { api } from './emailLogin'
 import type { RawPub } from './types'
+import { byWhenAsc } from './when'
 
 export interface FormCancelItem {
   at: string
@@ -29,7 +30,7 @@ export const formKey = (nameEn: string, titleNorm: string) => `${nameEn}|${title
 /** Latest press per work; only works whose latest press is "cancel". */
 export function cancelledForms(items: FormCancelItem[]): Map<string, FormCancelItem> {
   const latest = new Map<string, FormCancelItem>()
-  for (const it of [...items].sort((a, b) => a.at.localeCompare(b.at))) latest.set(formKey(it.nameEn, it.titleNorm), it)
+  for (const it of [...items].sort((a, b) => byWhenAsc(a.at, b.at))) latest.set(formKey(it.nameEn, it.titleNorm), it)
   return new Map([...latest].filter(([, it]) => it.action === 'cancel'))
 }
 

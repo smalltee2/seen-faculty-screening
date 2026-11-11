@@ -26,9 +26,12 @@ export function conferenceGroups(pubs: Pub[], pendingPubs: Pub[], minYear: numbe
   for (const p of pubs) add(p, false)
   for (const p of pendingPubs) add(p, true)
   return [...groups.values()].sort(
-    (a, b) => VERDICT_ORDER[a.match.verdict] - VERDICT_ORDER[b.match.verdict] || (b.pubs[0].year ?? 0) - (a.pubs[0].year ?? 0),
+    (a, b) => VERDICT_ORDER[a.match.verdict] - VERDICT_ORDER[b.match.verdict] || latestYear(b) - latestYear(a),
   )
 }
+
+/** The newest year among a conference's works (the rows come in no fixed order). */
+const latestYear = (g: ConfGroup) => Math.max(0, ...g.pubs.map((p) => p.year ?? 0))
 
 /** Conferences no admin has decided yet (นับ/ไม่นับ). A decision cleared again ("clear") counts as undecided. */
 export function undecidedGroups(groups: ConfGroup[]): ConfGroup[] {

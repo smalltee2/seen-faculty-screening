@@ -7,7 +7,7 @@
 // Three-valued logic: each publication counts "yes", "maybe" (uncertain
 // classification) or "no". A rule is met when the certain counts satisfy it,
 // not met when even the possible counts fail, and needs review otherwise.
-import { truncatedStem } from './classify'
+import { normDoi, truncatedStem } from './classify'
 import type { Faculty, Pub, Rank } from './types'
 
 export type Status = 'met' | 'not_met' | 'needs_review'
@@ -354,7 +354,7 @@ export function countedWorks(results: PersonResult[], s: Settings): Pub[] {
   for (const r of results)
     for (const pub of r.pubs) {
       if (evaluatePub(pub, r.person, s).eligible !== 'yes') continue
-      const doi = pub.doi?.trim().toLowerCase() || ''
+      const doi = normDoi(pub.doi)
       const stem = truncatedStem(pub.title)
       const known =
         byTitle.has(pub.titleNorm) ||

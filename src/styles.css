@@ -104,6 +104,7 @@
   }
 }
 :root[data-theme='dark'] {
+  --on-ember: #1f130b;
   --bg: #111511;
   --panel: #192019;
   --panel-hover: #222b22;
@@ -233,7 +234,7 @@ code { font-family: var(--font-data); font-size: 0.85em; background: var(--sub-p
   transition: background 0.15s ease, color 0.15s ease;
 }
 .seg a:hover, .seg button:hover { color: var(--fg); text-decoration: none; }
-.seg a[aria-current='page'], .seg button[aria-selected='true'] {
+.seg a[aria-current='page'], .seg button[aria-selected='true'], .seg button[aria-pressed='true'] {
   background: var(--panel); color: var(--fg); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 .seg-small a, .seg-small button { padding: 5px 11px; font-size: 0.8rem; }
@@ -1029,7 +1030,7 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 }
 /* Touch screens: tap targets at least 44px tall. */
 @media (pointer: coarse) {
-  .tabsbar a, .btn, .controls select, .admin-view select, .segmented button, .seg button { min-height: 44px; }
+  .tabsbar a, .btn, .controls select, .admin-view select, .seg button { min-height: 44px; }
   .footer a { display: inline-block; padding-block: 10px; }
 }
 
@@ -1039,9 +1040,6 @@ h1 { font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.9rem); }
 .fresh-stale dt, .fresh-flag { color: var(--rev); }
 
 /* Back-office pages (src/pages/AdminTools.tsx) */
-.tool-counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
-.tool-count { display: inline-flex; align-items: baseline; gap: 6px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; text-decoration: none; }
-.tool-count b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 
 /* Drop-downs that open on hover (src/HoverSelect.tsx), used in the controls bar. */
 .hover-select { position: relative; }

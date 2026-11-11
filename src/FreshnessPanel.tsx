@@ -61,7 +61,7 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
               </dt>
               <dd>
                 <span className="fresh-when">
-                  อัปเดตล่าสุด {a.at ? new Date(a.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '–'}{' '}
+                  อัปเดตล่าสุด {a.at ? new Date(a.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }) : '–'}{' '}
                   <span className="muted small">({ageTh(a.hours)})</span>
                   {a.stale && <strong className="fresh-flag"> ค้างเกิน 2 วัน</strong>}
                 </span>
@@ -83,7 +83,7 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
   )
 }
 
-const day = (iso: string) => new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+const day = (iso: string) => new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' })
 
 /** What came into a source in the last 7 days, and for whom. */
 function NewWorksList({ id, groups, nameOf }: { id: string; groups: ReturnType<typeof groupNewWorks>; nameOf: (k: string) => string }) {

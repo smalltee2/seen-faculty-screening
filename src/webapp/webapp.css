@@ -209,7 +209,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 
 /* Inbox fixes after the browser check: the status tabs wrap instead of being clipped, and the detail
    stays in view (below the sticky top bar) while the list scrolls. */
-.inbox-tools .seg, .inbox-tools .segmented { flex-wrap: wrap; max-width: 100%; overflow: visible; }
+.inbox-tools .seg { flex-wrap: wrap; max-width: 100%; overflow: visible; }
 @media (min-width: 761px) {
   .inbox-detail { position: sticky; top: 74px; align-self: start; max-height: calc(100vh - 74px); overflow-y: auto; }
 }
@@ -552,9 +552,15 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .inbox-tools { top: 0; }
   .inbox-detail { top: 0; max-height: calc(100vh - var(--app-head-h, 82px) - 16px); }
 }
+/* Tablet: the side menu shows icons only, so the Gmail pills above go back to centred squares. */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .app-nav-link { margin-left: 0; padding: 10px; border-radius: 12px; }
+}
 @media print {
   .app, .app-main { height: auto; overflow: visible; }
   .app-content { overflow: visible; margin: 0; border-radius: 0; }
+  /* The whole detail prints, not the part that fits the screen. */
+  .inbox-detail { position: static; max-height: none; overflow: visible; }
 }
 
 /* ── Header refinements (Tum, 2026-11-11) ──
@@ -647,7 +653,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   /* Menu items on a light veil for dark pictures, a dark ink for light ones. */
   .app-pictured-dark .app-nav-link, .app-pictured-dark .app-side-foot, .app-pictured-dark .app-side-foot .muted,
   .app-pictured-dark .app-title h1, .app-pictured-dark .app-crumb { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }
-  .app-pictured-light .app-nav-link, .app-pictured-light .app-side-foot .muted,
+  .app-pictured-light .app-nav-link, .app-pictured-light .app-side-foot, .app-pictured-light .app-side-foot .muted,
   .app-pictured-light .app-title h1, .app-pictured-light .app-crumb { color: #1f2a22; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7); }
   /* A faint veil behind the menu column keeps its text clear on busy pictures (autumn leaves). */
   .app-pictured-dark .app-side { background: linear-gradient(to right, rgba(10, 8, 6, 0.42), rgba(10, 8, 6, 0.18)); }

@@ -14,7 +14,7 @@ const SRC = join(ROOT, 'data/tci_journals.csv')
 const OUT = join(ROOT, 'data/tci_snapshots/2025.csv')
 
 const page = async (slug) => {
-  const res = await fetch('https://tci-thailand.org/backend/content/fetch_content_from_slug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }) })
+  const res = await fetch('https://tci-thailand.org/backend/content/fetch_content_from_slug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }), signal: AbortSignal.timeout(120000) })
   if (!res.ok) throw new Error(`TCI HTTP ${res.status}`)
   return (await res.json()).content.content_th
 }
@@ -40,10 +40,12 @@ const list = rows.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h
 const byIssn = new Map()
 const byName = new Map()
 for (const j of list) {
-  for (const i of [j.issn, j.eissn]) if (i) byIssn.set(normIssn(i), j)
-  for (const n of [j.name_eng, j.name_local]) if (n) byName.set(normName(n), j)
+  for (const i of [j.issn, j.eissn]) if (normIssn(i)) byIssn.set(normIssn(i), j)
+  for (const n of [j.name_eng, j.name_local]) if (normName(n)) byName.set(normName(n), j)
 }
-const find = (th, en, issn, eissn) => byIssn.get(normIssn(issn)) ?? byIssn.get(normIssn(eissn)) ?? byName.get(normName(en)) ?? byName.get(normName(th))
+// An empty ISSN or name is no key: it must never match a journal.
+const at = (map, k) => (k ? map.get(k) : undefined)
+const find = (th, en, issn, eissn) => at(byIssn, normIssn(issn)) ?? at(byIssn, normIssn(eissn)) ?? at(byName, normName(en)) ?? at(byName, normName(th))
 
 const moves = [] // [journal, tierIn2025]
 let unmatched = 0

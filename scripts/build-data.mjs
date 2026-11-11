@@ -28,11 +28,13 @@ const errors = []
 const fail = (msg) => errors.push(msg)
 
 function parseTsv(text) {
+  // Each row keeps its line number in the file, so a message still points at the right line after
+  // a blank line.
   return text
     .replace(/^﻿/, '')
     .split(/\r?\n/)
-    .filter((l) => l.trim() !== '')
-    .map((l) => l.split('\t'))
+    .map((l, i) => Object.assign(l.split('\t'), { line: i + 1 }))
+    .filter((r) => r.join('').trim() !== '')
 }
 
 function toRecords(rows, required, file) {
@@ -41,7 +43,7 @@ function toRecords(rows, required, file) {
   const missing = required.filter((c) => !header.includes(c))
   if (missing.length) { fail(`${file}: missing column(s) ${missing.join(', ')}; found ${header.join(', ')}`); return [] }
   return rows.slice(1).map((r, i) => {
-    const rec = { _line: i + 2 }
+    const rec = { _line: r.line ?? i + 2 }
     header.forEach((h, j) => { rec[h] = (r[j] ?? '').trim() })
     return rec
   })
@@ -151,7 +153,7 @@ const publications = SOURCES.flatMap((src) => {
 if (formDropped) log(`${formDropped} admin-form row(s) cancelled on the site (data/form_cancels.tsv) left out`)
 
 const unknownKeys = [...new Set(publications.map((p) => p.key).filter((k) => !names.has(k)))]
-if (unknownKeys.length) warn(`publications.tsv keys not in faculty.csv (rows ignored by the site): ${unknownKeys.join('; ')}`)
+if (unknownKeys.length) warn(`publication keys not in faculty.csv, in any source file (rows ignored by the site): ${unknownKeys.join('; ')}`)
 const noPubs = faculty.filter((f) => !publications.some((p) => p.key === f.nameEn)).map((f) => f.nameEn)
 if (noPubs.length) warn(`lecturers with no rows in publications.tsv: ${noPubs.join('; ')}`)
 

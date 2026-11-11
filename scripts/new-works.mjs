@@ -14,8 +14,15 @@ export const NEW_CAP = 200
  *  a lecturer added with their whole record, a re-import), not new works: its rows count as old. */
 export const BULK_ROWS = 50
 
-/** Same normalisation as the site's dedupe key: lower case, letters and digits only. */
-export const normTitle = (t) => String(t ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+/** Same normalisation as the site's dedupe key (src/classify.ts normalizeTitle): NFKC, lower case,
+ *  letters, combining marks and digits. Marks stay, so two Thai titles that differ only in vowels or
+ *  tone marks are two works. */
+export const normTitle = (t) => String(t ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
+/** A commit time as UTC ISO text, so times written with different offsets sort and compare as times. */
+export const utcIso = (at) => {
+  const t = Date.parse(String(at ?? ''))
+  return Number.isNaN(t) ? String(at ?? '') : new Date(t).toISOString()
+}
 const rowId = (r) => `${r.key}|${normTitle(r.title)}`
 
 /** Rows of a TSV text as objects (header row first). */
@@ -53,13 +60,19 @@ export function firstSeen(baseline, versions, current, now, bulk = BULK_ROWS) {
     }
     for (const r of v.rows) people.add(r.key)
   }
+  // Rows not committed yet (a refresh still in the working tree) go through the same two rules as a
+  // commit, so a bulk load or a new lecturer's record is not listed as new works until it is pushed.
+  const pending = [...new Map(current.map((r) => [rowId(r), r])).entries()].filter(([id]) => !seen.has(id))
+  const pendingBulk = pending.length > bulk
+  for (const [id, r] of pending) seen.set(id, pendingBulk || !people.has(r.key) ? null : now)
   const out = []
   const done = new Set()
   for (const r of current) {
+    if (!r.key || !normTitle(r.title)) continue // a broken line (no lecturer or no title) is not a work
     const id = rowId(r)
     if (done.has(id)) continue
     done.add(id)
-    const at = seen.has(id) ? seen.get(id) : now
+    const at = seen.get(id)
     if (at) out.push({ ...r, at })
   }
   return out
@@ -76,7 +89,7 @@ export function newRowsInFile(root, rel, days = NEW_DAYS, nowMs = Date.now()) {
   try {
     commits = git(root, ['log', `--since=${since}`, '--reverse', '--format=%H %cI', '--', rel]).split('\n').filter(Boolean).map((l) => {
       const [hash, at] = l.split(' ')
-      return { hash, at }
+      return { hash, at: utcIso(at) }
     })
     base = git(root, ['log', '-1', `--before=${since}`, '--format=%H', '--', rel]).trim()
   } catch {
@@ -113,7 +126,7 @@ export function newWorks(root, nowMs = Date.now()) {
   const out = {}
   for (const [source, files] of Object.entries(NEW_SOURCES)) {
     const rows = files.flatMap((rel) => newRowsInFile(root, rel, NEW_DAYS, nowMs))
-    rows.sort((a, b) => b.at.localeCompare(a.at))
+    rows.sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     out[source] = rows.slice(0, NEW_CAP).map((r) => ({ at: r.at, key: r.key, title: r.title, year: r.year, venue: r.venue, doi: r.doi ?? '' }))
   }
   return out

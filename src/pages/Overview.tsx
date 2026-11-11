@@ -33,7 +33,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
         <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์</h1>
         <p>
           ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร และ proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด ·
-          พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH')}
+          พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' })}
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             </div>
           ))}
           <p className="legend bar-legend">
-            <span className="dot dot-met" /> ผ่าน <span className="dot dot-not" /> ไม่ผ่าน · ตัวเลข = ผ่าน / ทั้งหมด
+            <span className="dot dot-met" /> ผ่าน <span className="dot dot-review" /> รอตรวจสอบ <span className="dot dot-not" /> ไม่ผ่าน · ตัวเลข = ผ่าน / ทั้งหมด
           </p>
         </section>
 

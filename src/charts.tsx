@@ -432,7 +432,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               {/* On narrow screens the row frame and bubble colour carry the status; the text would overlap the bubble. */}
               {narrow ? null : x.failed > 0 ? (
                 <text className="fail-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                  {narrow ? `✗ ${x.failed}` : `✗ ไม่ผ่าน (${lvl}) ${x.failed}/${roles.length} หน้าที่`}
+                  {`✗ ไม่ผ่าน (${lvl}) ${x.failed}/${roles.length} หน้าที่`}
                 </text>
               ) : x.review > 0 ? (
                 <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
@@ -441,7 +441,7 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
               ) : (
                 x.risk.length > 0 && (
                   <text className="risk-label" x={W - 12} y={y + bh - 2} textAnchor="end">
-                    {narrow ? '⚠︎' : `⚠︎ ปีหน้าอาจไม่ผ่าน (${lvl})`}
+                    {`⚠︎ ปีหน้าอาจไม่ผ่าน (${lvl})`}
                   </text>
                 )
               )}
@@ -563,6 +563,7 @@ const SLICE_FILL: Record<string, string> = { all: 'var(--pie-1)', some: 'var(--p
  *  Drawn back-to-front (painter's order) on a tilted ellipse; smaller slices are raised. */
 export function ReadinessPie({ results, compact = false }: { results: PersonResult[]; compact?: boolean }) {
   const [ref, width] = useWidth(420)
+  const shadowId = `pie-shadow-${useId().replace(/:/g, '')}` // unique: two pies can be on one page
   const groups = readinessGroups(results)
   const total = results.length || 1
   const W = Math.max(260, width)
@@ -603,19 +604,19 @@ export function ReadinessPie({ results, compact = false }: { results: PersonResu
       <div className="pie-stage" ref={ref as React.RefObject<HTMLDivElement>}>
         <svg className="pie-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="สัดส่วนอาจารย์ตามผลการประเมิน">
           <defs>
-            <filter id="pie-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <filter id={shadowId} x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur stdDeviation="8" />
             </filter>
           </defs>
-          <ellipse cx={cx + 8} cy={cy + base + 6} rx={R * 1.02} ry={R * tilt * 0.95} className="pie-floor" filter="url(#pie-shadow)" />
+          <ellipse cx={cx + 8} cy={cy + base + 6} rx={R * 1.02} ry={R * tilt * 0.95} className="pie-floor" filter={`url(#${shadowId})`} />
           {order.map((sl) => {
             const { a0, a1, h, fill } = sl
             const full = a1 - a0 >= Math.PI * 2 - 1e-6
             // Front part of the outer wall lies where sin(angle) > 0 (0..π).
             const f0 = Math.max(a0, 0)
             const f1 = Math.min(a1, Math.PI)
-            const wraps = a1 > Math.PI * 2 ? [Math.max(a0, Math.PI * 2), Math.min(a1, Math.PI * 3)] : null
-            const walls = [[f0, f1], wraps].filter((w): w is number[] => !!w && w[1] > w[0])
+            // Angles run from -π/2 to 3π/2, so no slice reaches the front a second time.
+            const walls = [[f0, f1]].filter((w) => w[1] > w[0])
             return (
               <g key={sl.g.key}>
                 {!full &&

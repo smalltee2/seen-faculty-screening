@@ -14,7 +14,12 @@ const API = JSON.parse(readFileSync(join(ROOT, 'data/sources.json'), 'utf8')).lo
 const token = process.env.SCHOLAR_TOKEN ?? ''
 const call = async (body) => {
   const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow', signal: AbortSignal.timeout(60000) })
-  return res.json()
+  const answer = await res.text()
+  try {
+    return JSON.parse(answer)
+  } catch {
+    throw new Error(`backend answered HTTP ${res.status} without JSON`)
+  }
 }
 const update = (status, progress, message) => call({ action: 'scholarJobUpdate', step: 'update', token, status, progress, message }).catch(() => ({}))
 
@@ -38,7 +43,22 @@ if (cmd === 'waiting') {
     console.log(`failed\tเกิดข้อผิดพลาด: ${String(e.message).slice(0, 200)}`)
   }
 } else if (cmd === 'finish') {
-  await update(args[0], '', args.slice(1).join(' '))
+  // The closing step must reach the backend, or the job stays "running" on the admin page: try
+  // three times and say so when it still fails.
+  let last = ''
+  for (let i = 0; i < 3; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 5000 * i))
+    try {
+      const r = await call({ action: 'scholarJobUpdate', step: 'update', token, status: args[0], progress: '', message: args.slice(1).join(' ') })
+      if (r.ok) process.exit(0)
+      last = `refused: ${r.error ?? 'unknown'}`
+      break // a refusal (bad token, no job) does not change on a retry
+    } catch (e) {
+      last = String(e.message)
+    }
+  }
+  console.error(`finish ${args[0]} not recorded (${last})`)
+  process.exit(1)
 } else {
   console.error('usage: scholar-job.mjs waiting | run | finish <status> <message>')
   process.exit(64)

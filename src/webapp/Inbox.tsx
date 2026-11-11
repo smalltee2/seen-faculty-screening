@@ -1,7 +1,7 @@
 // "งานรอดำเนินการ" in the web app (sfs_webapp.html): a list on the left and the selected item on the
 // right, like a mail inbox. On a phone the list and the detail take turns (the detail has a back button).
 // The buttons are the site's own: ConfButtons (confDecide) and the approval table's "decide" call.
-import { useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { CONFERENCE_TAG } from '../conferences'
 import { api, errorText, sessionStore } from '../emailLogin'
 import { ConfButtons, LeafSpinner } from '../pages/AdminPage'
@@ -54,6 +54,9 @@ export function Inbox({
 }) {
   const box = useRef<HTMLDivElement>(null)
   const [listW, setListW] = useState(readListWidth)
+  // Leaving the page in the middle of a drag must not leave the whole site in "resizing" (no text selection).
+  const endDrag = useRef<(() => void) | null>(null)
+  useEffect(() => () => endDrag.current?.(), [])
   const maxList = () => Math.max(MIN_LIST, (box.current?.getBoundingClientRect().width ?? 1200) - MIN_DETAIL)
   const clamp = (w: number) => Math.round(Math.min(maxList(), Math.max(MIN_LIST, w)))
   const saveW = (w: number) => {
@@ -77,13 +80,18 @@ export function Inbox({
       last = clamp(ev.clientX - left)
       setListW(last)
     }
-    const up = () => {
+    const stop = () => {
       handle.removeEventListener('pointermove', move)
       handle.removeEventListener('pointerup', up)
       handle.removeEventListener('pointercancel', up)
       document.body.classList.remove('is-resizing')
+      endDrag.current = null
+    }
+    const up = () => {
+      stop()
       saveW(last)
     }
+    endDrag.current = stop
     handle.addEventListener('pointermove', move)
     handle.addEventListener('pointerup', up)
     handle.addEventListener('pointercancel', up)
@@ -171,9 +179,9 @@ export function Inbox({
               ‹ กลับไปที่รายการ
             </a>
             {selected.kind === 'conference' ? (
-              <ConfDetail item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onConfChanged} />
+              <ConfDetail key={selected.id} item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onConfChanged} />
             ) : (
-              <SubDetail item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onSubChanged} />
+              <SubDetail key={selected.id} item={selected} nameOf={nameOf} approvalKey={approvalKey} onChanged={onSubChanged} />
             )}
           </>
         ) : (
@@ -347,7 +355,7 @@ function SubDetail({ item, nameOf, approvalKey, onChanged }: { item: Extract<Inb
         </div>
         <div>
           <dt>DOI</dt>
-          <dd>{s.doi ? <a href={`https://doi.org/${s.doi}`} target="_blank" rel="noreferrer">{s.doi} ↗</a> : '—'}</dd>
+          <dd>{s.doi ? <a href={/^https?:/i.test(s.doi) ? s.doi : `https://doi.org/${s.doi}`} target="_blank" rel="noreferrer">{s.doi} ↗</a> : '—'}</dd>
         </div>
         {s.note && (
           <div>

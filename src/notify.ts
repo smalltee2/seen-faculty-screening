@@ -16,12 +16,13 @@ export interface Notice {
   ackAt?: string
 }
 
-export async function fetchNotices(): Promise<Notice[]> {
+/** The reminders sent; null when the list could not be read (a caller keeps the list it has). */
+export async function fetchNotices(): Promise<Notice[] | null> {
   try {
     const r = await api({ action: 'noticeList' })
-    return r.ok && Array.isArray(r.items) ? (r.items as Notice[]) : []
+    return r.ok && Array.isArray(r.items) ? (r.items as Notice[]) : null
   } catch {
-    return []
+    return null
   }
 }
 

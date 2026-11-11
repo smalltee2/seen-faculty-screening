@@ -3,6 +3,7 @@ export const NEW_DAYS: number
 export const NEW_CAP: number
 export const BULK_ROWS: number
 export function normTitle(t: string): string
+export function utcIso(at: string): string
 export function tsvRows(text: string): Record<string, string>[]
 export function firstSeen<R extends { key: string; title: string }>(
   baseline: R[],

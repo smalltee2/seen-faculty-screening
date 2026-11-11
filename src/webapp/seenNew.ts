@@ -19,14 +19,17 @@ export function useSeenNew(current: string[]): [ReadonlySet<string>, (ids: strin
   const [seen, setSeen] = useState<Set<string>>(read)
   const markSeen = (ids: string[]) => {
     const live = new Set(current)
-    const next = new Set([...seen, ...ids].filter((id) => live.has(id)))
-    if (next.size === seen.size && ids.every((id) => seen.has(id))) return
-    setSeen(next)
-    try {
-      localStorage.setItem(KEY, JSON.stringify([...next]))
-    } catch {
-      /* not remembered; the count clears again only for this visit */
-    }
+    // From the latest state, so two calls in one render (two lists opened together) both count.
+    setSeen((prev) => {
+      const next = new Set([...prev, ...ids].filter((id) => live.has(id)))
+      if (next.size === prev.size && [...next].every((id) => prev.has(id))) return prev
+      try {
+        localStorage.setItem(KEY, JSON.stringify([...next]))
+      } catch {
+        /* not remembered; the count clears again only for this visit */
+      }
+      return next
+    })
   }
   return [seen, markSeen]
 }

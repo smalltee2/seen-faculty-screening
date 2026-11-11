@@ -39,18 +39,22 @@ export const TYPE_TH: Record<WorkType, string> = {
   poster: 'โปสเตอร์/บทคัดย่อในงานประชุม',
 }
 
-/** The public list; [] when the backend is not set up or unreachable. */
-export async function fetchSubmissions(): Promise<Submission[]> {
+/** The public list; null when the backend is not set up or could not be read (so a caller that
+ *  already has a list keeps it instead of showing every work as gone). */
+export async function fetchSubmissions(): Promise<Submission[] | null> {
   try {
     const r = await api({ action: 'list' })
-    return r.ok && Array.isArray(r.items) ? (r.items as Submission[]) : []
+    return r.ok && Array.isArray(r.items) ? (r.items as Submission[]) : null
   } catch {
-    return []
+    return null
   }
 }
 
 const bareDoi = (v: string) => {
-  const d = v.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+  const d = v
+    .trim()
+    .replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '')
+    .replace(/^doi:\s*/i, '')
   return /^10\.\d{4,}\//.test(d) ? d : ''
 }
 

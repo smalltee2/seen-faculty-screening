@@ -28,6 +28,7 @@ var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 5;
 var MAX_REQUESTS_PER_HOUR_ALL = 60;
+var MAX_FAILED_LOGS_PER_HOUR = 200;
 var NOTICE_COOLDOWN_HOURS = 12;
 var NOTICE_HEAD = ['time', 'name_en', 'kind', 'by', 'subject', 'ack_hash', 'ack_at']; // one reminder per lecturer per kind within this window
 var MAX_NOTICES_PER_DAY = 60; // across all e-mails, so the mail quota cannot be drained
@@ -69,8 +70,12 @@ function setup() {
     else {
       // Columns added later (e.g. notices ack_hash/ack_at): extend the header row in place.
       var have = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+      // Rows are written by position, so a missing column goes to its own place; a place already
+      // holding another header is a sheet edited by hand and is reported, not overwritten.
       want[name].forEach(function (col, i) {
-        if (have.indexOf(col) < 0) sh.getRange(1, i + 1).setValue(col);
+        if (have.indexOf(col) >= 0) return;
+        if (String(have[i] || '').trim() !== '') throw new Error('Sheet "' + name + '": column ' + (i + 1) + ' is "' + have[i] + '", expected "' + col + '". Fix the header row by hand, then run setup again.');
+        sh.getRange(1, i + 1).setValue(col);
       });
     }
   });
@@ -87,11 +92,15 @@ function doGet(e) {
 /** The lecturer clicked the รับทราบ link in a reminder: record the time (once) and show a small page. */
 function ackPage(token) {
   var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
   var title = 'ไม่พบลิงก์นี้';
   var text = 'ลิงก์ยืนยันการรับทราบไม่ถูกต้อง หรือถูกลบไปแล้ว';
+  // A busy script answers with a page, not an uncaught error.
+  var locked = lock.tryLock(20000);
   try {
-    if (/^[0-9a-f]{32,64}$/.test(token)) {
+    if (!locked) {
+      title = 'ระบบกำลังทำรายการอื่นอยู่';
+      text = 'ยังไม่ได้บันทึกการรับทราบ กรุณากดลิงก์ในอีเมลอีกครั้งในอีกสักครู่';
+    } else if (/^[0-9a-f]{32,64}$/.test(token)) {
       var h = sha256(token);
       var n = rows('notices').filter(function (r) { return String(r.ack_hash) === h; })[0];
       if (n) {
@@ -104,7 +113,7 @@ function ackPage(token) {
       }
     }
   } finally {
-    lock.releaseLock();
+    if (locked) lock.releaseLock();
   }
   var html =
     '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -121,9 +130,22 @@ function doPost(e) {
   } catch (err) {
     return json({ ok: false, error: 'bad_request' });
   }
+  // Actions that only read a sheet do not wait for the lock: the site asks for several lists at
+  // once on every page load, and they would queue behind each other and behind a slow write.
+  if (READ_ONLY[String(body.action)] === true) return dispatch(body);
   var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  // tryLock, not waitLock: a timeout must reach the site as JSON, not as an uncaught error page.
+  if (!lock.tryLock(20000)) return json({ ok: false, error: 'server_busy' });
   try {
+    return dispatch(body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+var READ_ONLY = { me: true, list: true, confList: true, noticeList: true, scholarList: true, scholarJob: true, formCancelList: true, decisionLog: true };
+
+function dispatch(body) {
     switch (body.action) {
       case 'request':
         return json(requestLink(body));
@@ -170,9 +192,6 @@ function doPost(e) {
       default:
         return json({ ok: false, error: 'unknown_action' });
     }
-  } finally {
-    lock.releaseLock();
-  }
 }
 
 function json(obj) {
@@ -199,7 +218,17 @@ function rows(name) {
 
 function log(action, email, ok, note) {
   var sh = sheet('log');
-  if (sh) sh.appendRow([new Date(), action, cell(email, 200), ok ? 'yes' : 'no', cell(note, 300)]);
+  if (!sh) return;
+  if (!ok) {
+    // Failed attempts are kept up to MAX_FAILED_LOGS_PER_HOUR an hour, so a flood of bad requests
+    // (made-up addresses, guessed codes) cannot fill the sheet that every login reads.
+    var cache = CacheService.getScriptCache();
+    var hourKey = 'faillog:' + Math.floor(Date.now() / 3600000);
+    var n = Number(cache.get(hourKey)) || 0;
+    if (n >= MAX_FAILED_LOGS_PER_HOUR) return;
+    cache.put(hourKey, String(n + 1), 7200);
+  }
+  sh.appendRow([new Date(), action, cell(email, 200), ok ? 'yes' : 'no', cell(note, 300)]);
 }
 
 /** "active" column: anything but no / false / 0 / unchecked box counts as active. */
@@ -265,9 +294,23 @@ function requestLink(body) {
   }
   var code = randomToken();
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
-  sheet('tokens').appendRow([email, sha256(code), expires, '', body.remember ? 'yes' : 'no', new Date()]);
   var link = SITE + 'me/#login=' + code;
   var name = user ? user.name_th || user.name_en : admin.name || email;
+  // The code is stored only once its e-mail has gone out. A refused send (daily quota, a bounced
+  // address) is logged and answered like any other request, so the answer still does not reveal
+  // which addresses exist.
+  try {
+    sendLoginMail(email, name, link);
+  } catch (err) {
+    log('request', email, false, 'mail failed: ' + String(err && err.message ? err.message : err));
+    return { ok: true };
+  }
+  sheet('tokens').appendRow([email, sha256(code), expires, '', body.remember ? 'yes' : 'no', new Date()]);
+  log('request', email, true, '');
+  return { ok: true };
+}
+
+function sendLoginMail(email, name, link) {
   MailApp.sendEmail({
     to: email,
     subject: 'ลิงก์เข้าสู่ระบบ ข้อมูลคุณสมบัติของฉัน (SEEN)',
@@ -279,8 +322,6 @@ function requestLink(body) {
     name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',
     noReply: true,
   });
-  log('request', email, true, '');
-  return { ok: true };
 }
 
 /** Step 2: exchange the code from the e-mail link for a session. */
@@ -292,7 +333,8 @@ function verifyCode(body) {
   var tokens = rows('tokens');
   var t = null;
   for (var i = 0; i < tokens.length; i++) if (tokens[i].hash === h) t = tokens[i];
-  if (!t || t.used || new Date(t.expires).getTime() < now) {
+  // An unreadable expiry counts as expired (NaN < now is false).
+  if (!t || t.used || !(new Date(t.expires).getTime() > now)) {
     log('verify', t ? t.email : '', false, !t ? 'no such code' : t.used ? 'already used' : 'expired');
     return { ok: false, error: 'invalid_or_expired' };
   }
@@ -307,7 +349,7 @@ function verifyCode(body) {
   sheet('sessions').appendRow([email, sha256(session), expires, new Date()]);
   purgeExpired();
   log('verify', email, true, remember ? 'remember' : '');
-  return { ok: true, session: session, email: email, nameEn: user ? user.name_en : '', folder: user ? user.folder : '', isAdmin: !!admin, expires: expires.toISOString() };
+  return { ok: true, session: session, email: email, nameEn: user ? user.name_en : '', folder: user ? user.folder : '', isAdmin: !!admin, expires: expires.toISOString(), remember: remember };
 }
 
 /** Returning visit with a stored session. */
@@ -390,7 +432,7 @@ function submitWork(body) {
   if (recent >= MAX_SUBMISSIONS_PER_DAY) return { ok: false, error: 'rate_limit' };
   var id = 'w' + Utilities.getUuid().replace(/-/g, '').slice(0, 9); // letter first: Sheets keeps it as text
   sheet('submissions').appendRow([
-    id, email, user.name_en, year, cell(w.title, 600), cell(w.authors, 800), w.type, cell(w.venue, 300), cell(w.volume, 120),
+    id, email, user.name_en, year, cell(w.title, 600), cell(w.authors, 800), String(w.type), cell(w.venue, 300), cell(w.volume, 120),
     cell(w.doi, 300), w.research ? 'yes' : 'no', new Date(), 'pending', '', '', '',
   ]);
   log('submit', email, true, id);
@@ -401,7 +443,7 @@ function submitWork(body) {
 function listWorks() {
   var items = rows('submissions').map(function (r) {
     return {
-      id: String(r.id), nameEn: r.name_en, year: Number(r.year), title: String(r.title), authors: String(r.authors), type: r.type,
+      id: String(r.id), nameEn: r.name_en, year: Number(r.year), title: String(r.title), authors: String(r.authors), type: String(r.type),
       venue: String(r.venue), volume: String(r.volume), doi: String(r.doi), research: r.research === 'yes',
       created: r.created ? new Date(r.created).toISOString() : '', status: r.status || 'pending',
       decidedAt: r.decided_at ? new Date(r.decided_at).toISOString() : '', note: String(r.decision_note || ''),
@@ -459,7 +501,7 @@ function decideWork(body) {
   sh.getRange(r._row, col('decided_by')).setValue(status === 'pending' ? '' : email);
   sh.getRange(r._row, col('decided_at')).setValue(status === 'pending' ? '' : new Date());
   sh.getRange(r._row, col('decision_note')).setValue(cell(body.note, 300));
-  log('decide', email, true, body.id + ' ' + status);
+  log('decide', email, true, String(r.id) + ' ' + status);
   return { ok: true };
 }
 
@@ -468,11 +510,13 @@ function withdrawWork(body) {
   var s = findSession(body.session);
   if (!s) return { ok: false, error: 'no_session' };
   var email = normEmail(s.email);
+  // Same check as submitWork: a lecturer set inactive after signing in can no longer act.
+  if (!findUser(email)) return { ok: false, error: 'not_lecturer' };
   var r = rows('submissions').filter(function (x) { return String(x.id) === String(body.id); })[0];
   if (!r || normEmail(r.email) !== email) return { ok: false, error: 'not_found' };
   if (r.status !== 'pending') return { ok: false, error: 'not_pending' };
   sheet('submissions').getRange(r._row, SUB_HEAD.indexOf('status') + 1).setValue('withdrawn');
-  log('withdraw', email, true, body.id);
+  log('withdraw', email, true, String(r.id));
   return { ok: true };
 }
 
@@ -496,7 +540,7 @@ function confDecide(body) {
 /** Public list of conference decisions (oldest first). */
 function confList() {
   var sh = sheet('conf_decisions');
-  if (!sh) return { ok: true, items: [] };
+  if (!sh) return { ok: false, error: 'not_configured' };
   var items = rows('conf_decisions').map(function (r) {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')'; // no full e-mail addresses in the public list
@@ -510,7 +554,9 @@ function confList() {
 function notifyLecturer(body) {
   var auth = adminWho(body);
   if (auth.error) return { ok: false, error: auth.error };
-  var nameEn = cell(body.nameEn, 120);
+  // Plain text, not cell(): cell() adds the sheet's text marker (a leading apostrophe), and this
+  // name is compared with the users sheet below.
+  var nameEn = String(body.nameEn == null ? '' : body.nameEn).replace(/\s+/g, ' ').trim().slice(0, 120);
   var kind = oneOf(body.kind, ['fail', 'risk']) ? String(body.kind) : '';
   var subject = String(body.subject == null ? '' : body.subject).replace(/\s+/g, ' ').trim().slice(0, 200);
   var text = String(body.body == null ? '' : body.body).slice(0, 4000).trim();
@@ -529,6 +575,22 @@ function notifyLecturer(body) {
   if (recent.length) return { ok: false, error: 'notified_recently' };
   var ackToken = randomToken();
   var ackUrl = APP_URL + '?ack=' + ackToken;
+  // The sheet must exist before the mail goes: a reminder that cannot be recorded would escape
+  // the cooldown and the daily cap.
+  var sh = sheet('notices');
+  if (!sh) return { ok: false, error: 'not_configured' };
+  try {
+    sendNoticeMail(email, subject, text, ackUrl);
+  } catch (err) {
+    log('notify', auth.who, false, nameEn + ' ' + kind + ' mail failed: ' + String(err && err.message ? err.message : err));
+    return { ok: false, error: 'mail_failed' };
+  }
+  sh.appendRow([new Date(), asText(nameEn), kind, auth.who, cell(subject, 200), sha256(ackToken), '']);
+  log('notify', auth.who, true, nameEn + ' ' + kind);
+  return { ok: true };
+}
+
+function sendNoticeMail(email, subject, text, ackUrl) {
   MailApp.sendEmail({
     to: email,
     subject: subject,
@@ -539,16 +601,12 @@ function notifyLecturer(body) {
     name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',
     noReply: true,
   });
-  var sh = sheet('notices');
-  if (sh) sh.appendRow([new Date(), nameEn, kind, auth.who, cell(subject, 200), sha256(ackToken), '']);
-  log('notify', auth.who, true, nameEn + ' ' + kind);
-  return { ok: true };
 }
 
 /** Public list of reminders sent (no e-mail addresses): the site shows "แจ้งเตือนแล้วเมื่อ …". */
 function noticeList() {
   var sh = sheet('notices');
-  if (!sh) return { ok: true, items: [] };
+  if (!sh) return { ok: false, error: 'not_configured' };
   var items = rows('notices').map(function (r) {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
@@ -578,19 +636,20 @@ function scholarImport(body) {
   var auth = adminWho(body);
   if (auth.error) return { ok: false, error: auth.error };
   var nameEn = String(body.nameEn || '').trim();
-  var known = rows('users').some(function (u) { return String(u.name_en) === nameEn; });
+  var known = rows('users').some(function (u) { return String(u.name_en).trim() === nameEn; });
   if (!nameEn || !known) return { ok: false, error: 'bad_request' };
   var input = Array.isArray(body.rows) ? body.rows.slice(0, MAX_SCHOLAR_ROWS) : [];
   var thisYear = new Date().getFullYear();
   var sh = scholarSheet();
   var seen = {};
   rows('scholar_imports').forEach(function (r) {
-    if (String(r.name_en) === nameEn) seen[normTitle(r.title)] = true;
+    if (String(r.name_en).trim() === nameEn) seen[normTitle(r.title)] = true;
   });
   var batch = 'b' + Utilities.getUuid().replace(/-/g, '').slice(0, 9);
   var now = new Date();
   var out = [];
-  var skipped = 0;
+  // Rows beyond the cap are reported as skipped, not dropped without a word.
+  var skipped = Array.isArray(body.rows) ? Math.max(0, body.rows.length - MAX_SCHOLAR_ROWS) : 0;
   input.forEach(function (w) {
     var title = cell(w && w.title, 600);
     var k = normTitle(title);
@@ -610,7 +669,7 @@ function scholarImport(body) {
 
 /** Public list (no e-mail addresses), read by the site and the hourly data job. */
 function scholarList() {
-  if (!sheet('scholar_imports')) return { ok: true, items: [] };
+  if (!sheet('scholar_imports')) return { ok: false, error: 'not_configured' };
   var items = rows('scholar_imports').map(function (r) {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';
@@ -650,7 +709,9 @@ function formCancel(body) {
   if (auth.error) return { ok: false, error: auth.error };
   var nameEn = String(body.nameEn || '').trim();
   var title = cell(body.title, 600);
-  var k = normTitle(String(body.title || '')); // from the full title: the site and the build compare the whole title
+  // From the full title: the site and the build compare the whole title. A restore sends the key
+  // of the press it undoes (titleNorm), because the title kept in the sheet is cut at 600 characters.
+  var k = normTitle(String(body.titleNorm || body.title || ''));
   var action = oneOf(body.mode, ['cancel', 'restore']) ? String(body.mode) : '';
   if (!nameEn || !k || !action) return { ok: false, error: 'bad_request' };
   var sh = sheet('form_cancels');
@@ -665,7 +726,7 @@ function formCancel(body) {
 
 /** Public list of form cancellations (oldest first; no e-mail addresses). */
 function formCancelList() {
-  if (!sheet('form_cancels')) return { ok: true, items: [] };
+  if (!sheet('form_cancels')) return { ok: false, error: 'not_configured' };
   var items = rows('form_cancels').map(function (r) {
     var by = String(r.by);
     if (by.indexOf('@') >= 0) by = 'ผู้ดูแล (' + by.split('@')[0] + ')';

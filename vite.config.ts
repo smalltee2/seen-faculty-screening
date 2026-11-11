@@ -50,7 +50,8 @@ export default defineConfig({
   build: {
     assetsInlineLimit: 8192,
     // sfs_webapp.html: the web-app layout (src/webapp/, Tum 2026-11-11), next to sfs.html.
-    rollupOptions: { input: ['index.html', 'sfs_webapp.html'] },
+    // scripts/build-standalone.mjs sets SEEN_SINGLE_ENTRY: one page, so one JS bundle to inline.
+    rollupOptions: { input: process.env.SEEN_SINGLE_ENTRY ? ['index.html'] : ['index.html', 'sfs_webapp.html'] },
   },
   test: {
     environment: 'node',

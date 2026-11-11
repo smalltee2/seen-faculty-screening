@@ -7,7 +7,7 @@
 // outlook and history need level 2.
 // The menu lists only what the visitor may open (Tum, 2026-11-11): a lecturer sees the two open
 // pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
@@ -30,7 +30,7 @@ import { groupNewWorks, newWorkId, unseen } from '../newWorks'
 import { useSeenNew } from './seenNew'
 import { PATTERNS, patternUrl, type PatternId } from './topPatterns'
 import { APP_THEMES, APP_THEME_IDS, ThemePicker, themeUrl, type AppThemeId } from './appThemes'
-import { SHOWN_ROLES, displayName } from '../ui'
+import { SHOWN_ROLES, displayName, lecturersReturn } from '../ui'
 import seenLogo from '../assets/seen-logo.png'
 import { Inbox, type InboxKind, type InboxShow } from './Inbox'
 import { inboxItems } from './inboxItems'
@@ -52,12 +52,16 @@ type Route = { page: Page; id?: string; query?: URLSearchParams; login?: string 
 /** Hash routes; the overview, lecturer and person links are the same as on sfs.html. */
 export function parseWebAppHash(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '')
-  let h: string
+  // Only the path is decoded here; URLSearchParams decodes the query itself.
+  const cut = raw.indexOf('?')
+  const rawPath = cut < 0 ? raw : raw.slice(0, cut)
+  let path: string
   try {
-    h = decodeURIComponent(raw)
+    path = decodeURIComponent(rawPath)
   } catch {
-    h = raw // a truncated or malformed link falls through to the overview
+    path = rawPath // a truncated or malformed link falls through to the overview
   }
+  const h = cut < 0 ? path : `${path}${raw.slice(cut)}`
   if (h.startsWith('person/')) return { page: 'person', id: h.slice('person/'.length) }
   if (h.startsWith('inbox/')) return { page: 'inbox', id: h.slice('inbox/'.length) }
   if (h === 'lecturers' || h.startsWith('lecturers?')) return { page: 'lecturers', query: new URLSearchParams(h.slice('lecturers'.length + 1)) }
@@ -84,9 +88,13 @@ const NAV: { page: IconKey; th: string; short: string; level: 0 | 1 | 2 }[] = [
 
 export function WebApp() {
   const [route, setRoute] = useState<Route>(() => parseWebAppHash(window.location.hash))
+  // Counts navigations, so a link to #/lecturers always opens the page as the link says, even when
+  // the page (which rewrites its own address without a navigation) already shows another filter.
+  const [navTick, setNavTick] = useState(0)
   useEffect(() => {
     const on = () => {
       setRoute(parseWebAppHash(window.location.hash))
+      setNavTick((n) => n + 1)
       window.scrollTo(0, 0)
       // On desktop the content card scrolls by itself (Gmail-like layout); start each page at its top.
       document.getElementById('app-main')?.scrollTo(0, 0)
@@ -194,7 +202,10 @@ export function WebApp() {
   const progId = route.page === 'lecturers' && level === 2 ? route.query?.get('prog') ?? '' : ''
   const programme = programmes.find((p) => p.id === progId)
   const lecturersHash = (prog: string) => {
-    const q = new URLSearchParams(route.query)
+    // Read from the address, which LecturersPage keeps up to date without a navigation (the route
+    // only knows the filters the page was opened with).
+    const h = window.location.hash
+    const q = new URLSearchParams(h.startsWith('#/lecturers?') ? h.slice('#/lecturers?'.length) : '')
     if (prog) q.set('prog', prog)
     else q.delete('prog')
     const qs = q.toString()
@@ -208,9 +219,17 @@ export function WebApp() {
   const extraNav = visibleNav.length > PHONE_SLOTS ? visibleNav.slice(PHONE_SLOTS - 1) : []
   const [moreOpen, setMoreOpen] = useState(false)
   useEffect(() => setMoreOpen(false), [route])
+  const moreBtn = useRef<HTMLButtonElement>(null)
+  const moreSheet = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!moreOpen) return
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMoreOpen(false)
+    // Keyboard and screen readers: focus moves into the sheet, and back to its button on Escape.
+    moreSheet.current?.querySelector<HTMLElement>('button, a')?.focus()
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setMoreOpen(false)
+      moreBtn.current?.focus()
+    }
     document.addEventListener('keydown', esc)
     return () => document.removeEventListener('keydown', esc)
   }, [moreOpen])
@@ -222,7 +241,11 @@ export function WebApp() {
   const allowed = level >= need
   // Signed in at #/login: go on to the first admin page of that level.
   useEffect(() => {
-    if (route.page === 'login' && admin) window.location.hash = admin.level === 2 ? '#/inbox' : '#/lecturers'
+    if (route.page !== 'login' || !admin) return
+    // Replace #/login in the history, so Back does not land on it and bounce forward again.
+    const target = admin.level === 2 ? '#/inbox' : '#/lecturers'
+    history.replaceState(history.state, '', target)
+    setRoute(parseWebAppHash(target))
   }, [route.page, admin])
   const q = route.query
   const approvalKey = admin?.level === 2 ? admin.approvalKey : undefined
@@ -264,6 +287,7 @@ export function WebApp() {
           ))}
           {extraNav.length > 0 && (
             <button
+              ref={moreBtn}
               type="button"
               className="app-nav-link app-nav-more"
               aria-haspopup="dialog"
@@ -294,10 +318,10 @@ export function WebApp() {
       {moreOpen && extraNav.length > 0 && (
         <>
           <div className="app-more-backdrop" onClick={() => setMoreOpen(false)} />
-          <div id="app-more" className="app-more" role="dialog" aria-modal="true" aria-label="เมนูเพิ่มเติม">
+          <div id="app-more" ref={moreSheet} className="app-more" role="dialog" aria-modal="true" aria-label="เมนูเพิ่มเติม">
             <div className="app-more-head">
               <b>เมนูเพิ่มเติม</b>
-              <button type="button" className="icon-btn" aria-label="ปิดเมนูเพิ่มเติม" onClick={() => setMoreOpen(false)}>
+              <button type="button" className="icon-btn" aria-label="ปิดเมนูเพิ่มเติม" onClick={() => { setMoreOpen(false); moreBtn.current?.focus() }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M6 6l12 12M18 6 6 18" />
                 </svg>
@@ -347,7 +371,7 @@ export function WebApp() {
           <div className="app-title">
             {/* Trail removed (Tum, 2026-11-11); a lecturer's page keeps a link back to the list. */}
             {route.page === 'person' && (
-              <a className="app-crumb" href="#/lecturers">
+              <a className="app-crumb" href={lecturersReturn.hash}>
                 ‹ ผลงานอาจารย์
               </a>
             )}
@@ -416,7 +440,7 @@ export function WebApp() {
 
         {newerBuild && (
           <div className="update-banner app-update no-print" role="status">
-            <span>มีข้อมูลเวอร์ชันใหม่ ({new Date(newerBuild).toLocaleString('th-TH')})</span>
+            <span>มีข้อมูลเวอร์ชันใหม่ ({new Date(newerBuild).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })})</span>
             <button type="button" className="btn btn-primary btn-small" onClick={() => reloadForBuild(newerBuild)}>
               โหลดหน้าใหม่
             </button>
@@ -439,7 +463,7 @@ export function WebApp() {
               {route.page === 'me' && <MyPage approverTh={LEVEL_TH[2]} results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
               {route.page === 'lecturers' && (
                 <LecturersPage
-                  key={`${q?.toString() ?? ''}`}
+                  key={`${navTick}|${q?.toString() ?? ''}`}
                   results={programme ? results.filter((r) => programme.members.some((m) => m.nameEn === r.person.nameEn)) : results}
                   programme={programme}
                   settings={settings}
@@ -451,7 +475,7 @@ export function WebApp() {
                 />
               )}
               {route.page === 'person' && (
-                <PersonPage result={person} settings={settings} withdraw={approvalKey ? { approvalKey, submissions: site.submissions, onChanged: site.refreshSubmissions } : undefined} crossref={data.crossref} />
+                <PersonPage key={route.id} result={person} settings={settings} withdraw={approvalKey ? { approvalKey, submissions: site.submissions, onChanged: site.refreshSubmissions } : undefined} crossref={data.crossref} />
               )}
               {route.page === 'inbox' && (
                 <Inbox

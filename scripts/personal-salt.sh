@@ -1,7 +1,7 @@
 #!/bin/zsh
 # One-time setup of the secret salt behind the personal links (run by the admin on the Mac):
 # generates a random salt, stores it in the macOS Keychain (item "seen-personal-salt", used by
-# `npm run personal-links`) and as the GitHub Actions secret PERSONAL_SALT (used by the build).
+# `npm run personal-codes`) and as the GitHub Actions secret PERSONAL_SALT (used by the build).
 # Re-running with --rotate creates a new salt: every personal link changes and must be re-sent.
 set -eu
 REPO="smalltee2/seen-faculty-screening"

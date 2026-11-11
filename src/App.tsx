@@ -49,12 +49,17 @@ function lecturersHash(prog: string): string {
 
 function parseHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '')
-  let h: string
+  // Only the path is decoded here; URLSearchParams decodes the query itself (decoding it twice
+  // would turn an encoded "%26" or "+" inside a value into a separator).
+  const cut = raw.indexOf('?')
+  const rawPath = cut < 0 ? raw : raw.slice(0, cut)
+  let path: string
   try {
-    h = decodeURIComponent(raw)
+    path = decodeURIComponent(rawPath)
   } catch {
-    h = raw // a truncated or malformed link (e.g. "%E0") falls through to the overview
+    path = rawPath // a truncated or malformed link (e.g. "%E0") falls through to the overview
   }
+  const h = cut < 0 ? path : `${path}${raw.slice(cut)}`
   if (h.startsWith('person/')) return { page: 'person', key: h.slice('person/'.length) }
   if (h === 'lecturers' || h.startsWith('lecturers?')) {
     // #/lecturers?filter=not_met&scope=ba — preset filters from the overview summary links.
@@ -99,6 +104,9 @@ function loadSettings(): Settings {
 
 export function App() {
   const [route, setRoute] = useState<Route>(parseHash)
+  // Counts navigations, so a link to #/lecturers always opens the page as the link says, even when
+  // the page (which rewrites its own address without a navigation) already shows another filter.
+  const [navCount, setNavCount] = useState(0)
   const [settings, setSettings] = useState<Settings>(loadSettings)
   const { pubs, submissions, refreshSubmissions, scholarItems, refreshScholar, confItems, refreshConf, conferences, notices, refreshNotices, formCancels, refreshFormCancels, cancelled } = useSiteData()
   const scrolled = useScrolled()
@@ -114,6 +122,7 @@ export function App() {
   useEffect(() => {
     const on = () => {
       setRoute(parseHash())
+      setNavCount((n) => n + 1)
       window.scrollTo(0, 0)
     }
     window.addEventListener('hashchange', on)
@@ -188,7 +197,7 @@ export function App() {
       <div className="page">
         {newerBuild && (
           <div className="update-banner no-print" role="status">
-            <span>มีข้อมูลเวอร์ชันใหม่ ({new Date(newerBuild).toLocaleString('th-TH')})</span>
+            <span>มีข้อมูลเวอร์ชันใหม่ ({new Date(newerBuild).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })})</span>
             <button type="button" className="btn btn-primary" onClick={() => reloadForBuild(newerBuild)}>
               โหลดหน้าใหม่
             </button>
@@ -257,7 +266,7 @@ export function App() {
           )}
           {route.page === 'lecturers' && admin !== null && (
             <LecturersPage
-              key={`${route.filter}|${route.scope}|${route.view ?? ''}|${programme?.id ?? ''}`}
+              key={`${navCount}|${route.filter}|${route.scope}|${route.view ?? ''}|${programme?.id ?? ''}`}
               results={programme ? results.filter((r) => programme.members.some((m) => m.nameEn === r.person.nameEn)) : results}
               programme={programme}
               settings={settings}
@@ -294,6 +303,7 @@ export function App() {
           {route.page === 'admin' && admin !== null && admin.level === 2 && route.view === 'outlook' && <OutlookPage results={results} settings={settings} />}
           {route.page === 'person' && admin !== null && (
             <PersonPage
+              key={route.key}
               result={results.find((r) => r.person.nameEn === route.key)}
               settings={settings}
               withdraw={admin.level === 2 ? { approvalKey: admin.approvalKey, submissions, onChanged: refreshSubmissions } : undefined}

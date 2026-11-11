@@ -6,6 +6,7 @@ import { api } from './emailLogin'
 import { formKey, type FormCancelItem } from './formCancel'
 import type { Notice } from './notify'
 import { STATUS_TH, type Submission } from './submissions'
+import { byWhenAsc, byWhenDesc } from './when'
 
 /** A row of the backend's log sheet for works: who approved, rejected, reopened or withdrew which id. */
 export interface DecisionLogItem {
@@ -57,7 +58,7 @@ export const KIND_TH: Record<HistoryKind, string> = {
 
 const CONF_TH: Record<string, string> = { count: 'นับ', no_count: 'ไม่นับ', clear: 'ล้างการตัดสิน (ใช้ผลอัตโนมัติ)' }
 const DECIDE_TH: Record<string, string> = { approved: 'อนุมัติ', rejected: 'ไม่อนุมัติ', pending: 'ยกเลิกการตัดสิน (กลับเป็นรออนุมัติ)' }
-const byTime = <T extends { at: string }>(items: T[]) => [...items].sort((a, b) => a.at.localeCompare(b.at))
+const byTime = <T extends { at: string }>(items: T[]) => [...items].sort((a, b) => byWhenAsc(a.at, b.at))
 
 export function buildHistory(input: {
   confItems: ConfDecisionItem[]
@@ -149,5 +150,5 @@ export function buildHistory(input: {
   for (const n of input.notices)
     out.push({ at: n.at, kind: 'notice', by: n.by, action: n.kind === 'fail' ? 'ส่งอีเมลแจ้งไม่ผ่านเกณฑ์' : 'ส่งอีเมลแจ้งความเสี่ยงปีหน้า', target: nameOf(n.nameEn), note: n.ackAt ? 'อาจารย์กดรับทราบแล้ว' : '' })
 
-  return out.sort((a, b) => b.at.localeCompare(a.at))
+  return out.sort((a, b) => byWhenDesc(a.at, b.at))
 }

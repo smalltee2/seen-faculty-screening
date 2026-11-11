@@ -83,7 +83,8 @@ function readRegister(): ConferenceEntry[] {
 const csvField = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
 function writeRegister(entries: ConferenceEntry[]): void {
   const toRow = (e: ConferenceEntry) => [e.key, e.displayName, e.conferenceName, e.organiser, e.association, e.associationRole, e.field, e.relatedField, e.confidence, e.evidenceUrl, e.checkedAt, e.checkedBy, e.note, e.decision, e.decidedBy, e.decidedAt, e.decisionNote]
-  const lines = [COLS.join(','), ...entries.sort((a, b) => a.key.localeCompare(b.key)).map((e) => toRow(e).map(csvField).join(','))]
+  // A copy is sorted: the caller's list keeps its order.
+  const lines = [COLS.join(','), ...[...entries].sort((a, b) => a.key.localeCompare(b.key)).map((e) => toRow(e).map(csvField).join(','))]
   writeFileSync(REGISTER, lines.join('\n') + '\n')
 }
 
@@ -91,7 +92,8 @@ function writeRegister(entries: ConferenceEntry[]): void {
 function queue(pubs: Pub[], known: Set<string>): { key: string; pubs: Pub[] }[] {
   const groups = new Map<string, Pub[]>()
   // Only conferences that can still fall in an evaluation window (this year's and next year's).
-  const minYear = new Date().getFullYear() - 5
+  // The year in Thailand (UTC+7), like the site's evaluation year.
+  const minYear = new Date(Date.now() + 7 * 3600000).getUTCFullYear() - 5
   for (const p of pubs) {
     if ((p.type !== 'proceeding' && p.type !== 'poster') || (p.year ?? 0) < minYear) continue
     const k = conferenceKey(p)
@@ -131,7 +133,13 @@ function ask(key: string, pubs: Pub[]): Answer {
   const res = JSON.parse(out) as { is_error?: boolean; result?: string; structured_output?: Answer }
   if (res.is_error) throw new Error(`claude: ${res.result}`)
   if (!res.structured_output) throw new Error(`claude returned no structured output: ${String(res.result).slice(0, 200)}`)
-  return res.structured_output
+  // The register is checked by build-data, which stops on a value outside these lists; an answer
+  // that slipped past the schema must not be written.
+  const a = res.structured_output
+  for (const [field, allowed] of [['association_role', SCHEMA.properties.association_role.enum], ['related_field', SCHEMA.properties.related_field.enum], ['confidence', SCHEMA.properties.confidence.enum]] as const) {
+    if (!(allowed as readonly string[]).includes(a[field])) throw new Error(`claude answered ${field} "${a[field]}"`)
+  }
+  return a
 }
 
 /** Proceedings/posters lecturers added on "ตรวจสอบคุณสมบัติของฉัน" (pending or approved), read from the
@@ -140,7 +148,7 @@ async function submittedRows(data: DataBundle): Promise<RawPub[]> {
   const url = (data.sources as { loginApiUrl?: string }).loginApiUrl
   if (!url) return []
   try {
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow' })
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow', signal: AbortSignal.timeout(60000) })
     const js = (await res.json()) as { ok: boolean; items?: { id: string; nameEn: string; year: number; title: string; authors: string; type: string; venue: string; volume: string; status: string }[] }
     return (js.items ?? [])
       .filter((s) => (s.status === 'pending' || s.status === 'approved') && (s.type === 'proceeding' || s.type === 'poster'))
@@ -164,8 +172,16 @@ async function main(): Promise<void> {
   if (LIST_ONLY || !todo.length) return
 
   let n = 0
+  let failed = 0
+  let failedInARow = 0
   for (const t of todo) {
     if (n >= LIMIT) break
+    // Three lookups failing one after another is not three hard conferences: claude is signed out
+    // or offline. Stop instead of waiting out the rest of the queue.
+    if (failedInARow >= 3) {
+      console.log('[screen-conferences] three lookups failed in a row; stopping this run')
+      break
+    }
     n++
     const label = t.key.startsWith('work:') ? t.pubs[0].title : t.pubs[0].venue
     process.stdout.write(`[screen-conferences] ${n}/${Math.min(LIMIT, todo.length)} ${label.slice(0, 70)} … `)
@@ -178,9 +194,17 @@ async function main(): Promise<void> {
       })
       writeRegister(register) // save after each answer so an interrupted run keeps its work
       console.log(`${a.association_role} / ${a.related_field} / ${a.confidence}${a.association ? ` — ${a.association}` : ''}`)
+      failedInARow = 0
     } catch (e) {
+      failed++
+      failedInARow++
       console.log(`FAILED: ${(e as Error).message.split('\n')[0]}`)
     }
+  }
+  // The exit status tells the daily job's log that lookups failed (they are tried again next run).
+  if (failed) {
+    console.log(`[screen-conferences] ${failed} of ${n} lookup(s) failed`)
+    process.exitCode = 1
   }
 }
 

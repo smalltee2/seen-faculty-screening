@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ConferenceEntry, DataBundle, Pub, PubSource } from '../types'
 import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
@@ -11,6 +11,7 @@ import leafIcon from '../assets/leaf-spinner.png'
 import { FreshnessPanel } from '../FreshnessPanel'
 import { InfoTip } from '../InfoTip'
 import { conferenceGroups, undecidedGroups } from '../pending'
+import { byWhenDesc } from '../when'
 import { fetchScholarJob, newScholarRows, parseScholarTsv, scholarUrl, snippetFor, type ScholarImportItem, type ScholarJob } from '../scholarImport'
 
 export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = () => undefined, faculty, formUrl, onLock, submissions = [], onSubmissionsChanged = () => undefined, approvalKey, conferences = data.conferences ?? [], onConferencesChanged = () => undefined, formCancelled = [], onFormChanged = () => undefined }: { data: DataBundle; pubs: Pub[]; scholarItems?: ScholarImportItem[] | null; onScholarChanged?: () => void; faculty: Faculty[]; formUrl: string; onLock?: () => void; submissions?: Submission[]; onSubmissionsChanged?: () => unknown; approvalKey?: string; conferences?: ConferenceEntry[]; onConferencesChanged?: () => unknown; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
@@ -157,8 +158,8 @@ export function FormWorks({ pubs, faculty, formUrl, approvalKey, formCancelled =
                     <tr key={`${c.nameEn}|${c.titleNorm}`} className="greyed">
                       <td>{f ? displayName(f) : c.nameEn}</td>
                       <td><div className="pub-title">{c.title}</div></td>
-                      <td className="small muted">{c.at ? new Date(c.at).toLocaleDateString('th-TH') : '—'} · {c.by}</td>
-                      <td className="nowrap"><FormCancelButton nameEn={c.nameEn} title={c.title} action="restore" approvalKey={approvalKey} onChanged={onFormChanged} /></td>
+                      <td className="small muted">{c.at ? new Date(c.at).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : '—'} · {c.by}</td>
+                      <td className="nowrap"><FormCancelButton nameEn={c.nameEn} title={c.title} titleNorm={c.titleNorm} action="restore" approvalKey={approvalKey} onChanged={onFormChanged} /></td>
                     </tr>
                   )
                 })}
@@ -173,7 +174,7 @@ export function FormWorks({ pubs, faculty, formUrl, approvalKey, formCancelled =
 }
 
 /** "ยกเลิกผลงาน" / "คืนผลงาน" for one admin-form work (level-2 admin; src/formCancel.ts). */
-function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { nameEn: string; title: string; action: 'cancel' | 'restore'; approvalKey?: string; onChanged: () => unknown }) {
+function FormCancelButton({ nameEn, title, titleNorm, action, approvalKey, onChanged }: { nameEn: string; title: string; titleNorm?: string; action: 'cancel' | 'restore'; approvalKey?: string; onChanged: () => unknown }) {
   const { user } = useEmailUser()
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -183,7 +184,7 @@ function FormCancelButton({ nameEn, title, action, approvalKey, onChanged }: { n
     setBusy(true)
     setError('')
     try {
-      const r = await api({ action: 'formCancel', adminKey: approvalKey ?? '', session: sessionStore.get(), nameEn, title, mode: action })
+      const r = await api({ action: 'formCancel', adminKey: approvalKey ?? '', session: sessionStore.get(), nameEn, title, titleNorm: titleNorm ?? '', mode: action })
       if (r.ok) {
         await onChanged() // spinner stays until the table shows the change
         setConfirm(false)
@@ -429,7 +430,7 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
   const live = submissions.filter((s) => s.status !== 'withdrawn')
   const pending = live.filter((s) => s.status === 'pending')
   const decided = live.filter((s) => s.status !== 'pending')
-  const rows = (show === 'pending' ? pending : show === 'decided' ? decided : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || b.created.localeCompare(a.created))
+  const rows = (show === 'pending' ? pending : show === 'decided' ? decided : live).slice().sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || byWhenDesc(a.created, b.created))
   const canDecide = !!approvalKey || !!user?.isAdmin
   // Conference check for proceedings/posters, same register as below (src/conferences.ts).
   const confOf = new Map(conferenceSubmissions(submissions, conferences).map((x) => [x.sub.id, x.pub.conference]))
@@ -528,21 +529,21 @@ function ApproveWorks({ submissions, faculty, onChanged, approvalKey, conference
                   </td>
                   <td>
                     <span className={`sub-status sub-${s.status}`}>{STATUS_TH[s.status]}</span>
-                    <div className="muted small">ส่งเมื่อ {s.created ? new Date(s.created).toLocaleDateString('th-TH') : '—'}</div>
+                    <div className="muted small">ส่งเมื่อ {s.created ? new Date(s.created).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : '—'}</div>
                   </td>
                   <td className="nowrap">
                     {canDecide &&
                       (s.status === 'pending' ? (
                         <>
-                          <button type="button" className="btn btn-small btn-primary" disabled={busy === s.id} onClick={() => void decide(s.id, 'approved')}>
+                          <button type="button" className="btn btn-small btn-primary" disabled={!!busy} onClick={() => void decide(s.id, 'approved')}>
                             อนุมัติ
                           </button>{' '}
-                          <button type="button" className="btn btn-small" disabled={busy === s.id} onClick={() => void decide(s.id, 'rejected')}>
+                          <button type="button" className="btn btn-small" disabled={!!busy} onClick={() => void decide(s.id, 'rejected')}>
                             ไม่อนุมัติ
                           </button>
                         </>
                       ) : (
-                        <button type="button" className="btn btn-small" disabled={busy === s.id} onClick={() => void decide(s.id, 'pending')}>
+                        <button type="button" className="btn btn-small" disabled={!!busy} onClick={() => void decide(s.id, 'pending')}>
                           ยกเลิกการตัดสิน
                         </button>
                       ))}
@@ -632,9 +633,9 @@ export function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChange
       b.n++
       m.set(it.batch, b)
     }
-    return [...m.values()].sort((a, b) => b.at.localeCompare(a.at))
+    return [...m.values()].sort((a, b) => byWhenDesc(a.at, b.at))
   }, [items])
-  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
+  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }) : '—')
   const nameOf = (key: string) => {
     const f = faculty.find((x) => x.nameEn === key)
     return f ? displayName(f) : key
@@ -690,7 +691,7 @@ export function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChange
             {sorted.map((f) => (
               <option key={f.nameEn} value={f.nameEn} disabled={!f.scholarId}>
                 {displayName(f)}
-                {!f.scholarId ? ' (ไม่มีโปรไฟล์ Scholar)' : lastAt.has(f.nameEn) ? ` · นำเข้าล่าสุด ${new Date(lastAt.get(f.nameEn)!).toLocaleDateString('th-TH', { dateStyle: 'medium' })}` : ''}
+                {!f.scholarId ? ' (ไม่มีโปรไฟล์ Scholar)' : lastAt.has(f.nameEn) ? ` · นำเข้าล่าสุด ${new Date(lastAt.get(f.nameEn)!).toLocaleDateString('th-TH', { dateStyle: 'medium', timeZone: 'Asia/Bangkok' })}` : ''}
               </option>
             ))}
           </select>
@@ -730,8 +731,8 @@ export function ScholarImport({ faculty, pubs, raw, items, approvalKey, onChange
                   <tr><th>ปี</th><th>ชื่อเรื่อง</th><th>แหล่งตีพิมพ์</th></tr>
                 </thead>
                 <tbody>
-                  {fresh.map((r) => (
-                    <tr key={r.title}><td className="mono">{r.year ? toBE(r.year) : '—'}</td><td>{r.title}</td><td>{r.venue}</td></tr>
+                  {fresh.map((r, i) => (
+                    <tr key={`${i}|${r.title}`}><td className="mono">{r.year ? toBE(r.year) : '—'}</td><td>{r.title}</td><td>{r.venue}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -802,9 +803,15 @@ export function useScholarJob(approvalKey?: string) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const active = job?.status === 'requested' || job?.status === 'running'
+  // Answers are numbered: one that was asked for before a newer answer came in is dropped, so a slow
+  // poll cannot put an older state back over the answer to "start".
+  const asked = useRef(0)
   useEffect(() => {
     let stop = false
-    const tick = () => void fetchScholarJob().then((j) => !stop && setJob(j))
+    const tick = () => {
+      const n = ++asked.current
+      void fetchScholarJob().then((j) => !stop && n === asked.current && setJob(j))
+    }
     tick()
     const t = window.setInterval(tick, active ? 10000 : 60000)
     return () => {
@@ -820,7 +827,10 @@ export function useScholarJob(approvalKey?: string) {
     try {
       const r = await api({ action: 'scholarRequest', adminKey: approvalKey })
       const j = (r as { job?: ScholarJob }).job
-      if (j) setJob(j)
+      if (j) {
+        asked.current++ // a poll still on its way is older than this answer
+        setJob(j)
+      }
       if (!r.ok && r.error !== 'busy') setErr(errorText(r.error))
     } catch {
       setErr(errorText(''))
@@ -844,7 +854,7 @@ export function ScholarButton({ scholar }: { scholar: ScholarState }) {
 /** The panel beside the data sources: where the Google Scholar update stands, plus the manual fallback. */
 export function ScholarStatus({ scholar, children }: { scholar: ScholarState; children: React.ReactNode }) {
   const { job, err, waitingLong } = scholar
-  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '')
+  const when = (iso: string) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }) : '')
   return (
     <section className="panel scholar-update">
       <h3>สถานะการอัปเดต Google Scholar</h3>

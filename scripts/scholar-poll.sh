@@ -16,10 +16,25 @@ cd "$REPO" || { log "ERROR: $REPO missing; run install-scopus-daily.sh"; exit 1;
 API=$(/usr/bin/plutil -extract loginApiUrl raw -o - data/sources.json 2>/dev/null) || exit 0
 curl -sL --max-time 30 -H 'Content-Type: text/plain;charset=utf-8' -d '{"action":"scholarJob"}' "$API" | grep -q '"status":"requested"' || exit 0
 
-# One job at a time in this clone (shared with scopus-daily.sh); a lock older than 2 h is stale.
-if [[ -d "$LOCK" && -n "$(find "$LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]]; then rmdir "$LOCK"; fi
+# One job at a time in this clone (shared with scopus-daily.sh).
+# The lock is a directory holding the owner's process id. It is stale when that process is gone (a
+# run killed by sleep or shutdown), or, for a lock without an id, when it is older than 2 h.
+lock_stale() {
+  [[ -d "$LOCK" ]] || return 1
+  local pid=""
+  [[ -f "$LOCK/pid" ]] && pid=$(<"$LOCK/pid")
+  if [[ "$pid" == <-> ]]; then
+    # Alive and one of these two jobs: busy. A recycled process id belongs to something else.
+    ps -p "$pid" -o command= 2>/dev/null | grep -qE 'scholar-poll\.sh|scopus-daily\.sh' && return 1
+    return 0
+  fi
+  [[ -n "$(find "$LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]]
+}
+unlock() { rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null }
+lock_stale && unlock
 mkdir "$LOCK" 2>/dev/null || { log "Scholar: another job is running; will retry"; exit 0; }
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+print -r -- $$ > "$LOCK/pid"
+trap unlock EXIT
 
 TOKEN=$(security find-generic-password -s seen-scholar-token -w 2>/dev/null) || { log "ERROR: Scholar token not in Keychain"; exit 1; }
 git rebase --abort >/dev/null 2>&1 || true
@@ -29,18 +44,25 @@ if [[ ! -d node_modules || package-lock.json -nt node_modules/.package-lock.json
 fi
 
 log "Scholar: job claimed, refreshing"
-OUT=$(SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs run 2>&1 | tail -1)
+# Tell the backend how the job ended; a closing step that does not arrive is logged, because the
+# admin page would keep showing the job as running.
+finish() { SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs finish "$1" "$2" 2>&1 | while IFS= read -r l; do log "Scholar: $l"; done }
+# This run's data and stamp are dropped together, so a failed run does not leave "checked just now".
+discard() { git checkout -q -- data/publications.tsv data/status/scholar.txt }
+RAW=$(SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs run 2>&1)
+# The result is the line "STATUS<TAB>message"; anything else the run printed (a crash, a warning) is not it.
+OUT=$(print -r -- "$RAW" | grep -E $'^(done|blocked|failed|NONE)\t' | tail -1)
 STATUS=${OUT%%$'\t'*}
 MSG=${OUT#*$'\t'}
 [[ "$STATUS" == NONE ]] && { log "Scholar: job taken by another run"; exit 0; }
 if [[ "$STATUS" != done && "$STATUS" != blocked ]]; then
-  git checkout -q -- data/publications.tsv
-  SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs finish failed "${MSG:-เกิดข้อผิดพลาด}"
-  log "Scholar: failed: $OUT"; exit 1
+  discard
+  finish failed "${MSG:-เกิดข้อผิดพลาด}"
+  log "Scholar: failed: ${OUT:-$(print -r -- "$RAW" | tail -1)}"; exit 1
 fi
 if ! node scripts/build-data.mjs >/dev/null 2>&1; then
-  git checkout -q -- data/publications.tsv
-  SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs finish failed "ข้อมูลที่ได้จาก Scholar ผ่านการตรวจไม่ได้ จึงไม่บันทึก"
+  discard
+  finish failed "ข้อมูลที่ได้จาก Scholar ผ่านการตรวจไม่ได้ จึงไม่บันทึก"
   log "Scholar: build-data failed; changes discarded"; exit 1
 fi
 git add data/publications.tsv
@@ -49,15 +71,15 @@ git add data/publications.tsv
 if git diff --cached --quiet -- data/publications.tsv; then
   if ! git diff --cached --quiet; then
     git commit -q -m "Google Scholar checked from iMac $(date +%Y-%m-%d)"
-    git push -q || { git pull --rebase -q && git push -q; } || { git rebase --abort >/dev/null 2>&1; log "WARNING: stamp push failed"; }
+    git push -q || { git pull --rebase -q && git push -q; } || { git rebase --abort >/dev/null 2>&1; git reset -q --hard origin/main; log "WARNING: stamp push failed"; }
   fi
   MSG="$MSG · ไม่มีการเปลี่ยนแปลง"
 else
   git commit -q -m "Google Scholar refresh from iMac $(date +%Y-%m-%d)"
   if ! git push -q; then
-    git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs finish failed "บันทึกข้อมูลขึ้น GitHub ไม่สำเร็จ"; log "ERROR: push failed"; exit 1; }
+    git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; git reset -q --hard origin/main; finish failed "บันทึกข้อมูลขึ้น GitHub ไม่สำเร็จ"; log "ERROR: push failed"; exit 1; }
   fi
   MSG="$MSG · เว็บจะอัปเดตภายในไม่กี่นาที"
 fi
-SCHOLAR_TOKEN="$TOKEN" node scripts/scholar-job.mjs finish "$STATUS" "$MSG"
+finish "$STATUS" "$MSG"
 log "Scholar: $STATUS: $MSG"

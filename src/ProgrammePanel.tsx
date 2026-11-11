@@ -14,7 +14,8 @@ const degreeText = (r: PersonResult) => {
 const LEVEL_SHORT = { ba: 'ป.ตรี', ms: 'ป.โท', phd: 'ป.เอก' } as const
 
 export function ProgrammePanel({ programme, results }: { programme: Programme; results: PersonResult[] }) {
-  const lv = LEVELS.find((l) => l.id === programme.level)!
+  const lv = LEVELS.find((l) => l.id === programme.level)
+  if (!lv) return null // a level this build does not know: nothing to count against
   const rows = programme.members.map((m) => ({ m, r: results.find((x) => x.person.nameEn === m.nameEn) }))
   const isMet = ({ r }: (typeof rows)[number]) => r?.roles[lv.responsible].status === 'met'
   // When the programme document names its responsible lecturers, count those; otherwise everyone listed.
@@ -52,8 +53,8 @@ export function ProgrammePanel({ programme, results }: { programme: Programme; r
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ m, r }) => (
-              <tr key={m.nameEn}>
+            {rows.map(({ m, r }, i) => (
+              <tr key={`${i}|${m.nameEn}`}>
                 <td>
                   <a href={`#/person/${encodeURIComponent(m.nameEn)}`}>{r ? displayName(r.person) : m.nameEn}</a>
                 </td>

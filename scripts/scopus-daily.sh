@@ -12,12 +12,32 @@ log() { print -r -- "$(date '+%Y-%m-%d %H:%M:%S') $*" }
 KEY=$(security find-generic-password -s seen-scopus-api-key -w 2>/dev/null) || {
   log "ERROR: Scopus key not found in Keychain (service seen-scopus-api-key)"; exit 1; }
 cd "$REPO" || { log "ERROR: $REPO missing; run install-scopus-daily.sh"; exit 1; }
-# One job at a time in this clone (shared with scholar-poll.sh); a lock older than 2 h is stale.
+# One job at a time in this clone (shared with scholar-poll.sh).
 LOCK="$HOME/Library/Application Support/seen-scopus/job.lock"
-if [[ -d "$LOCK" && -n "$(find "$LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]]; then rmdir "$LOCK"; fi
-for i in {1..30}; do mkdir "$LOCK" 2>/dev/null && break; sleep 60; done
-[[ -d "$LOCK" ]] || { log "ERROR: job lock busy for 30 min"; exit 1; }
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+# The lock is a directory holding the owner's process id. It is stale when that process is gone (a
+# run killed by sleep or shutdown), or, for a lock without an id, when it is older than 2 h.
+lock_stale() {
+  [[ -d "$LOCK" ]] || return 1
+  local pid=""
+  [[ -f "$LOCK/pid" ]] && pid=$(<"$LOCK/pid")
+  if [[ "$pid" == <-> ]]; then
+    # Alive and one of these two jobs: busy. A recycled process id belongs to something else.
+    ps -p "$pid" -o command= 2>/dev/null | grep -qE 'scholar-poll\.sh|scopus-daily\.sh' && return 1
+    return 0
+  fi
+  [[ -n "$(find "$LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]]
+}
+unlock() { rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null }
+GOT=""
+for i in {1..30}; do
+  lock_stale && unlock
+  mkdir "$LOCK" 2>/dev/null && { GOT=1; break; }
+  sleep 60
+done
+# "The directory exists" is not "this run holds it": the other job may still own it.
+[[ -n "$GOT" ]] || { log "ERROR: job lock busy for 30 min"; exit 1; }
+print -r -- $$ > "$LOCK/pid"
+trap unlock EXIT
 # A run killed mid-way (sleep, shutdown) leaves unstaged data or a half-done rebase;
 # everything here is regenerated, so start from a clean checkout of origin/main (a hard
 # reset also drops a local commit left behind by a failed push, which a rebase would not).
@@ -73,6 +93,6 @@ fi
 git commit -q -m "Scopus refresh and conference screening from iMac $(date +%Y-%m-%d)"
 if ! git push -q; then
   log "Push rejected, rebasing and retrying"
-  git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; log "ERROR: push failed"; exit 1; }
+  git pull --rebase -q && git push -q || { git rebase --abort >/dev/null 2>&1; git reset -q --hard origin/main; log "ERROR: push failed"; exit 1; }
 fi
 log "Pushed Scopus update"

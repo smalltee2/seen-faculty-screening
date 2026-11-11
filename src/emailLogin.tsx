@@ -8,14 +8,14 @@ import { DESKTOP, GateShell } from './adminGate'
 const SESSION_KEY = 'seen-personal-session'
 const API = (import.meta.env.VITE_LOGIN_API as string | undefined) ?? ''
 
-export type ApiOk = { ok: true; session?: string; email?: string; nameEn?: string; folder?: string; expires?: string; isAdmin?: boolean; id?: string; items?: unknown[]; added?: number; skipped?: number; removed?: number; batch?: string }
+export type ApiOk = { ok: true; session?: string; email?: string; nameEn?: string; folder?: string; expires?: string; remember?: boolean; isAdmin?: boolean; id?: string; items?: unknown[]; added?: number; skipped?: number; removed?: number; batch?: string }
 export type ApiErr = { ok: false; error: string }
 
 /** Public read-only actions. When several are sent at once (every page load sends about seven),
  *  Apps Script can refuse some with an error page that has no CORS header, so the browser reports a
  *  network error and the list came back empty. These are retried; a write never is, because a write
  *  that looked failed may still have been saved (2026-11-11). */
-export const READ_ACTIONS = new Set(['confList', 'list', 'formCancelList', 'noticeList', 'scholarJob', 'scholarList', 'decisionLog'])
+export const READ_ACTIONS = new Set(['confList', 'list', 'formCancelList', 'noticeList', 'scholarJob', 'scholarList', 'decisionLog', 'me'])
 const RETRY_DELAYS_MS = [700, 2000]
 
 /** POST to the Apps Script web app as text/plain (no CORS preflight); it redirects once. */
@@ -26,7 +26,11 @@ export async function api(body: Record<string, unknown>, delays: number[] = RETR
     try {
       const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
       if (!res.ok) return { ok: false, error: `http_${res.status}` }
-      return (await res.json()) as ApiOk | ApiErr
+      const r = (await res.json()) as ApiOk | ApiErr
+      // The backend no longer knows the session this call carried (expired, or signed out in another
+      // tab): forget it here too, so every page shows the sign-in form instead of a stale account.
+      if (!r.ok && r.error === 'no_session' && body.session && body.session === sessionStore.get()) dropSession()
+      return r
     } catch (e) {
       if (i >= retries.length) throw e
       await new Promise((r) => setTimeout(r, retries[i]))
@@ -84,10 +88,12 @@ const ERRORS: Record<string, string> = {
   not_configured: 'ระบบเข้าสู่ระบบยังไม่ได้ตั้งค่า กรุณาติดต่อผู้ดูแล',
   not_found: 'ไม่พบข้อมูลของท่านในระบบ กรุณาติดต่อผู้ดูแลระบบของคณะ',
   no_session: 'การเข้าสู่ระบบหมดอายุ กรุณาเข้าสู่ระบบใหม่',
-  not_lecturer: 'บัญชีนี้ไม่ได้อยู่ในรายชื่ออาจารย์ จึงเพิ่มผลงานไม่ได้',
+  not_lecturer: 'บัญชีนี้ไม่ได้อยู่ในรายชื่ออาจารย์ที่ใช้งานอยู่ จึงทำรายการนี้ไม่ได้',
+  server_busy: 'ระบบกำลังทำรายการอื่นอยู่ กรุณาลองใหม่ในอีกสักครู่',
+  mail_failed: 'ส่งอีเมลไม่สำเร็จ (อาจเกินโควตาอีเมลของวันนี้) กรุณาลองใหม่ภายหลัง',
   not_admin: 'บัญชีนี้ไม่ได้อยู่ในรายชื่อผู้ดูแลที่อนุมัติผลงานได้ (ชีต admins)',
   bad_work: 'ข้อมูลไม่ครบหรือไม่ถูกต้อง กรุณาตรวจปี ชื่อผลงาน ประเภท และชื่อวารสาร/งานประชุม',
-  not_pending: 'ผลงานนี้ได้รับการพิจารณาแล้ว จึงถอนไม่ได้',
+  not_pending: 'ผลงานนี้ได้รับการพิจารณาหรือถูกถอนไปแล้ว จึงทำรายการนี้ไม่ได้',
   notified_recently: 'เพิ่งส่งอีเมลแจ้งเตือนอาจารย์ท่านนี้ไปแล้วภายใน 12 ชั่วโมง',
   busy: 'มีงานอัปเดตที่รอหรือกำลังทำอยู่แล้ว',
   bad_key: 'กุญแจอนุมัติของรหัสผู้ดูแลชุดนี้ใช้ไม่ได้ กรุณาออกจากระบบผู้ดูแลแล้วใส่รหัสระดับ 2 ใหม่',
@@ -100,15 +106,31 @@ export type EmailUser = { email: string; nameEn: string; isAdmin: boolean }
 let cached: EmailUser | null = null
 let checked = false
 /** One "me" request shared by every component that mounts in the same render. */
-let inflight: Promise<EmailUser | null> | null = null
+let inflight: Promise<Saved> | null = null
+/** Every mounted useEmailUser, so signing out (or a session the backend dropped) reaches all of them. */
+const listeners = new Set<(u: EmailUser | null) => void>()
 
-async function fromSavedSession(): Promise<EmailUser | null> {
+function setCached(u: EmailUser | null) {
+  cached = u
+  for (const l of listeners) l(u)
+}
+
+/** Forget the session in this browser and tell every mounted hook. */
+function dropSession() {
+  sessionStore.clear()
+  setCached(null)
+}
+
+/** `known` is false when the backend could not be asked (network error, busy): the answer is then
+ *  "not signed in for now", and the next mount asks again instead of trusting it for the page's life. */
+type Saved = { user: EmailUser | null; known: boolean }
+
+async function fromSavedSession(): Promise<Saved> {
   const saved = sessionStore.get()
-  if (!saved) return null
+  if (!saved) return { user: null, known: true }
   const r = await api({ action: 'me', session: saved }).catch(() => ({ ok: false, error: '' }) as ApiErr)
-  if (r.ok) return { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }
-  if (r.error === 'no_session') sessionStore.clear()
-  return null
+  if (r.ok) return { user: { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }, known: true }
+  return { user: null, known: r.error === 'no_session' } // api() already forgot a session the backend refused
 }
 
 /** Resolves the e-mail session: a one-time code from the link, else the stored session. */
@@ -117,10 +139,16 @@ export function useEmailUser(loginCode?: string) {
   const [checking, setChecking] = useState(!checked || !!loginCode)
   const [notice, setNotice] = useState<string>()
   useEffect(() => {
+    listeners.add(setUser)
+    return () => {
+      listeners.delete(setUser)
+    }
+  }, [])
+  useEffect(() => {
     if (checked && !loginCode) return
     let on = true
     if (loginCode) setChecking(true)
-    const run = async (): Promise<EmailUser | null> => {
+    const run = async (): Promise<Saved> => {
       if (loginCode) {
         try {
           window.history.replaceState(null, '', `${window.location.pathname}#/me`)
@@ -129,13 +157,15 @@ export function useEmailUser(loginCode?: string) {
         }
         const r = await api({ action: 'verify', code: loginCode }).catch(() => ({ ok: false, error: '' }) as ApiErr)
         if (r.ok && r.session) {
-          const remember = r.expires ? new Date(r.expires).getTime() - Date.now() > 24 * 3600 * 1000 : false
+          // The backend says which kind of session it made; a backend that predates that answer is read
+          // from the lifetime, which depends on this device's clock.
+          const remember = typeof r.remember === 'boolean' ? r.remember : r.expires ? new Date(r.expires).getTime() - Date.now() > 24 * 3600 * 1000 : false
           sessionStore.set(r.session, remember)
-          return { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }
+          return { user: { email: r.email ?? '', nameEn: r.nameEn ?? '', isAdmin: !!r.isAdmin }, known: true }
         }
         // A used or expired link must not log out a session this browser still has.
         const kept = await fromSavedSession()
-        if (on && !kept) setNotice(errorText(r.ok ? '' : r.error))
+        if (on && !kept.user) setNotice(errorText(r.ok ? '' : r.error))
         return kept
       }
       if (!inflight) inflight = fromSavedSession().finally(() => (inflight = null))
@@ -143,9 +173,8 @@ export function useEmailUser(loginCode?: string) {
     }
     void run()
       .then((v) => {
-        cached = v
-        checked = true
-        if (on) setUser(v)
+        checked = v.known
+        setCached(v.user)
       })
       .finally(() => on && setChecking(false))
     return () => {
@@ -154,9 +183,7 @@ export function useEmailUser(loginCode?: string) {
   }, [loginCode])
   const logout = () => {
     const s = sessionStore.get()
-    sessionStore.clear()
-    cached = null
-    setUser(null)
+    dropSession()
     if (s) void api({ action: 'logout', session: s }).catch(() => undefined)
   }
   return { user, checking, notice, logout }

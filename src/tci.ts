@@ -45,10 +45,11 @@ export function venueName(venue: string): string {
 export function buildTciIndex(list: TciJournal[], scopusJournals: { issn: string; name: string }[] = []): TciIndex {
   const byIssn = new Map<string, TciJournal>()
   const byName = new Map<string, TciJournal>()
-  const scopusIssn = new Set(scopusJournals.map((j) => normIssn(j.issn)))
+  // An ISSN cell with no digits normalises to '' and must not become a key every blank ISSN matches.
+  const scopusIssn = new Set(scopusJournals.map((j) => normIssn(j.issn)).filter(Boolean))
   const scopusName = new Set(scopusJournals.map((j) => normName(j.name)).filter((n) => n.length >= 4))
   for (const j of list) {
-    for (const i of [j.issn, j.eissn]) if (i) byIssn.set(normIssn(i), j)
+    for (const i of [j.issn, j.eissn]) if (normIssn(i ?? '')) byIssn.set(normIssn(i), j)
     for (const n of [j.nameEng, j.nameLocal, j.abbrev]) {
       const k = normName(n)
       if (k.length >= 4 && !byName.has(k)) byName.set(k, j)
@@ -58,14 +59,14 @@ export function buildTciIndex(list: TciJournal[], scopusJournals: { issn: string
 }
 
 export function inScopusJournal(pub: Pick<Pub, 'venue' | 'issn'>, idx: TciIndex): boolean {
-  if ((pub.issn ?? '').split(';').some((i) => i && idx.scopusIssn.has(normIssn(i)))) return true
+  if ((pub.issn ?? '').split(';').some((i) => normIssn(i) !== '' && idx.scopusIssn.has(normIssn(i)))) return true
   const k = normName(venueName(pub.venue))
   return k.length >= 4 && idx.scopusName.has(k)
 }
 
 export function matchTci(pub: Pick<Pub, 'venue' | 'issn'>, idx: TciIndex): { j: TciJournal; by: 'issn' | 'name' } | null {
   for (const i of (pub.issn ?? '').split(';')) {
-    const j = i && idx.byIssn.get(normIssn(i))
+    const j = normIssn(i) !== '' && idx.byIssn.get(normIssn(i))
     if (j) return { j, by: 'issn' }
   }
   const k = normName(venueName(pub.venue))

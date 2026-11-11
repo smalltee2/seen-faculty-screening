@@ -97,9 +97,9 @@ export function Button({ children, onClick, kind = 'default', title }: { childre
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string }) {
   return (
-    <div className="seg seg-small" role="tablist" aria-label={label}>
+    <div className="seg seg-small" role="group" aria-label={label}>
       {options.map((o) => (
-        <button key={o.id} type="button" role="tab" aria-selected={value === o.id} onClick={() => onChange(o.id)}>
+        <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
           {o.label}
         </button>
       ))}

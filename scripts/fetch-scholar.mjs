@@ -71,7 +71,16 @@ export async function fetchProfile(scholarId, key) {
     rows.push(...page)
     if (page.length < PAGE) break
   }
+  checkLayout(rows)
   return rows
+}
+
+/** A list with titles but no year or no author in any row means Scholar changed its page, not that
+ *  the lecturer's works lost them: stop, so the rows on file are not replaced with emptier ones. */
+export function checkLayout(rows) {
+  if (rows.length < 5) return
+  if (!rows.some((r) => r.year)) throw new BlockedError('changed layout (no year read in any row)')
+  if (!rows.some((r) => r.authors)) throw new BlockedError('changed layout (no authors read in any row)')
 }
 
 /** New rows for one lecturer: replace when complete and not much shorter, else add new titles only. */

@@ -4,7 +4,7 @@
 // yet in the system and sends them to the backend (Apps Script scholarImport); the public list
 // (scholarList) is read live by the site and copied hourly into data/scholar_imports.tsv.
 import { api } from './emailLogin'
-import { normalizeTitle } from './classify'
+import { normalizeTitle, truncatedStem } from './classify'
 import type { Pub, RawPub } from './types'
 import snippetSource from '../scripts/scholar_export_snippet.js?raw'
 
@@ -39,7 +39,8 @@ export function parseScholarTsv(text: string): { rows: ScholarRow[]; bad: number
     if (!line.trim()) continue
     const c = line.split('\t').map((x) => x.trim())
     if (c[0] === 'key' && c[2] === 'title') continue
-    const year = c[1] ? Number(c[1]) : null
+    // Scholar writes 0 for a work without a year.
+    const year = c[1] && c[1] !== '0' ? Number(c[1]) : null
     if (c.length < 6 || !c[2] || (year !== null && !(Number.isInteger(year) && year >= 1900 && year <= 2100))) {
       bad++
       continue
@@ -52,13 +53,19 @@ export function parseScholarTsv(text: string): { rows: ScholarRow[]; bad: number
 /** Pasted rows not yet in the system for that lecturer (same normalised title as any source, or
  *  repeated in the paste). */
 export function newScholarRows(rows: ScholarRow[], nameEn: string, pubs: Pick<Pub, 'key' | 'title'>[]): ScholarRow[] {
-  const seen = new Set(pubs.filter((p) => p.key === nameEn).map((p) => normalizeTitle(p.title)))
+  const mine = pubs.filter((p) => p.key === nameEn)
+  const seen = new Set(mine.map((p) => normalizeTitle(p.title)))
+  // Known titles that Scholar cut with "…": a pasted full title that starts with one is the same work.
+  const stems = mine.map((p) => truncatedStem(p.title)).filter((s): s is string => s !== null)
   return rows.filter((r) => {
     const k = normalizeTitle(r.title)
     if (!k || seen.has(k)) return false
+    if (stems.some((s) => k.startsWith(s))) return false
     // Scholar cuts long titles with "…": a cut title matches any known title that starts with it.
     if (/(…|\.\.\.)\s*$/.test(r.title) && k.length >= 20 && [...seen].some((t) => t.startsWith(k))) return false
     seen.add(k)
+    const stem = truncatedStem(r.title)
+    if (stem) stems.push(stem)
     return true
   })
 }

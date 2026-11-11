@@ -29,7 +29,7 @@ const guessEmail = (nameEn) => {
   return parts.length < 2 ? '' : `${parts[0]}.${parts[parts.length - 1].slice(0, 2)}@up.ac.th`
 }
 const sep = csv ? ',' : '\t'
-const q = (v) => (csv && /[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
+const q = (v) => (csv && /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
 const out = [(users ? ['email', 'name_en', 'name_th', 'folder', 'active'] : ['name_th', 'name_en', 'code', 'page']).join(sep)]
 for (const r of rows.slice(1)) {
   const nameEn = col(r, 'name_en')

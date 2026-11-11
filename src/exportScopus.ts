@@ -27,7 +27,10 @@ export function parseVenue(venue: string, year: number | null): VenueParts {
   const out: VenueParts = { source: '', volume: '', issue: '', artNo: '', pageStart: '', pageEnd: '', pageCount: '' }
   let v = venue.trim()
   if (!v) return out
-  if (year !== null) v = v.replace(new RegExp(`,\\s*${year}$`), '')
+  // The year Scholar puts last. It can differ by one from the work's year (online first against the
+  // issue year), and a work with no year still has it; an unrelated number is kept as the location.
+  const tail = /,\s*((?:19|20)\d{2}|0)$/.exec(v)
+  if (tail && (year === null || tail[1] === '0' || Math.abs(Number(tail[1]) - year) <= 1)) v = v.slice(0, tail.index)
   // Journal names may hold commas ("Water, Air, & Soil Pollution 234 (6), 396"): the name ends at the
   // first comma that is followed by a number (volume, pages or article number), as tci.venueName does.
   const cut = v.search(/,\s*(?=[a-z]?\d)/i)
@@ -60,11 +63,13 @@ export function parseVenue(venue: string, year: number | null): VenueParts {
 function pages(loc: string): Pick<VenueParts, 'artNo' | 'pageStart' | 'pageEnd' | 'pageCount'> {
   const r = { artNo: '', pageStart: '', pageEnd: '', pageCount: '' }
   if (!loc) return r
-  const m = /^(\d+)\s*[-–]\s*(\d+)$/.exec(loc)
+  // "293-306", and lettered ranges such as "S12-S20" or "e101-e110" (counted when the letters agree).
+  const m = /^([A-Za-z]?)(\d+)\s*[-–]\s*([A-Za-z]?)(\d+)$/.exec(loc)
   if (m) {
-    const a = Number(m[1])
-    const b = Number(m[2])
-    return { artNo: '', pageStart: m[1], pageEnd: m[2], pageCount: b >= a ? String(b - a + 1) : '' }
+    const a = Number(m[2])
+    const b = Number(m[4])
+    const same = m[1].toLowerCase() === m[3].toLowerCase()
+    return { artNo: '', pageStart: m[1] + m[2], pageEnd: m[3] + m[4], pageCount: same && b >= a ? String(b - a + 1) : '' }
   }
   const one = /^(\d+)$/.exec(loc)
   // A lone number is an article number (Sustainability 18 (21), 11212) in today's journals.
@@ -79,7 +84,12 @@ export function formatIssn(issn: string | undefined): string {
 }
 
 /** Author list with "; " between names, as Scopus writes it. */
-export const authorList = (authors: string) => authors.split(/\s*[;,]\s*/).filter(Boolean).join('; ')
+export const authorList = (authors: string) =>
+  authors
+    // With ";" between names, a comma is inside a name ("Ptak, M.; Amnuaylojaroen, T.").
+    .split(authors.includes(';') ? /\s*;\s*/ : /\s*,\s*/)
+    .filter(Boolean)
+    .join('; ')
 
 const DOC_TYPE: Record<string, string> = { journal: 'Article', proceeding: 'Conference paper', poster: 'Conference paper' }
 const SOURCE_NAME = { scopus: 'Scopus', openalex: 'OpenAlex', scholar: 'Google Scholar', manual: 'Manual' } as const
@@ -103,10 +113,11 @@ export function biblioOf(p: Pub, crossref: CrossrefIndex): VenueParts & { date: 
   const cr = p.doi ? crossref.get(p.doi.toLowerCase()) : undefined
   const sc = p.biblio
   const scPages = sc?.pages ? pages(sc.pages) : null
-  const artNo = cr?.articleNumber || sc?.articleNumber || (cr?.pageStart || scPages?.pageStart ? '' : v.artNo)
+  const artNo = cr?.articleNumber || sc?.articleNumber || (cr?.pageStart || scPages?.pageStart ? '' : scPages?.artNo || v.artNo)
   const pageStart = cr?.pageStart || scPages?.pageStart || v.pageStart
   const pageEnd = cr?.pageEnd || scPages?.pageEnd || v.pageEnd
-  const n = Number(pageEnd) - Number(pageStart) + 1
+  const digits = (s: string) => Number(s.replace(/^[A-Za-z]/, ''))
+  const n = digits(pageEnd) - digits(pageStart) + 1
   // Crossref sometimes files an article number as the page ("11212"): then it is not a page range.
   const samePage = pageStart && pageStart === pageEnd && !cr?.articleNumber && !sc?.articleNumber && !v.pageEnd
   return {
@@ -134,8 +145,9 @@ export function scopusRow(e: PubEval, person: Faculty, crossref: CrossrefIndex =
     ...b,
     issue: b.issue || DEFAULTS.issue,
     pageStart: b.pageStart || DEFAULTS.pageStart,
-    pageEnd: b.pageStart ? b.pageEnd : DEFAULTS.pageEnd,
-    pageCount: b.pageStart ? b.pageCount : String(Number(DEFAULTS.pageEnd) - Number(DEFAULTS.pageStart) + 1),
+    // A first page with no last page (Crossref gives only one): a one-page range, not an empty cell.
+    pageEnd: b.pageStart ? b.pageEnd || b.pageStart : DEFAULTS.pageEnd,
+    pageCount: b.pageStart ? b.pageCount || (b.pageEnd ? '' : '1') : String(Number(DEFAULTS.pageEnd) - Number(DEFAULTS.pageStart) + 1),
   }
   const when = formatDate(v.date)
   const authors = authorList(p.allAuthors || p.authors)

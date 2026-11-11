@@ -22,7 +22,7 @@ export const isAdminView = (v: string): v is AdminView => ADMIN_VIEWS.some((x) =
 
 const when = (iso: string) => {
   const t = Date.parse(iso)
-  return Number.isNaN(t) ? iso || '—' : new Date(t).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+  return Number.isNaN(t) ? iso || '—' : new Date(t).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' })
 }
 const personLink = (f: Faculty) => <a href={`#/person/${encodeURIComponent(f.nameEn)}`}>{displayName(f)}</a>
 const roleName = (id: string) => {
@@ -31,6 +31,9 @@ const roleName = (id: string) => {
 }
 
 // ───────────────────────── 1. Decision history ─────────────────────────
+
+/** Names an entry across reloads of the lists (the entry objects are rebuilt each time). */
+const entryId = (e: HistoryEntry) => `${e.at}|${e.kind}|${e.target}|${e.action}`
 
 export function HistoryTable({ entries, confirm, busy, onAsk, onUndo }: { entries: HistoryEntry[]; confirm: HistoryEntry | null; busy: boolean; onAsk: (e: HistoryEntry | null) => void; onUndo: (e: HistoryEntry) => void }) {
   if (entries.length === 0) return <p className="note">ยังไม่มีประวัติในหมวดนี้</p>
@@ -59,7 +62,7 @@ export function HistoryTable({ entries, confirm, busy, onAsk, onUndo }: { entrie
               <td className="small">{e.note || '—'}</td>
               <td className="no-print">
                 {e.undo &&
-                  (confirm === e ? (
+                  (confirm !== null && entryId(confirm) === entryId(e) ? (
                     <div className="conf-buttons">
                       <span className="small">{e.undoLabel}?</span>
                       <button type="button" className="btn btn-small btn-primary" disabled={busy} onClick={() => onUndo(e)}>ยืนยัน</button>
@@ -86,7 +89,8 @@ export function HistoryPage({ confItems, formCancels, submissions, notices, facu
   const [confirm, setConfirm] = useState<HistoryEntry | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const loadLog = () => fetchDecisionLog().then(setLog)
+  // A reload that fails keeps the log already shown.
+  const loadLog = () => fetchDecisionLog().then((v) => setLog((prev) => v ?? prev ?? null))
   useEffect(() => {
     void loadLog()
   }, [])

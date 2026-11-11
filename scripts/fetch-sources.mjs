@@ -22,6 +22,17 @@ import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+/** The calendar year in Thailand (UTC+7). The daily run is at 20:00 UTC, which is already the next
+ *  day there, so the runner's own year is one behind on 31 December. */
+function thaiYear() {
+  return new Date(Date.now() + 7 * 3600000).getUTCFullYear()
+}
+/** Sort key for a time written as text; an unreadable time sorts first. */
+const whenMs = (at) => {
+  const t = Date.parse(String(at ?? ''))
+  return Number.isNaN(t) ? 0 : t
+}
+const TIMEOUT_MS = 60000
 const CONFIG = {
   faculty: join(ROOT, 'data/faculty.csv'),
   sources: join(ROOT, 'data/sources.json'),
@@ -45,7 +56,7 @@ const CONFIG = {
   crossrefOut: join(ROOT, 'data/crossref.tsv'),
   crossrefMailto: 'teerachai.am@up.ac.th',
   tciUrl: 'https://tci-thailand.org/backend/journal/list_all_journal',
-  firstYear: new Date().getFullYear() - 11, // ten years for the chart plus one
+  firstYear: thaiYear() - 11, // ten years for the chart plus one
   userAgent: 'seen-faculty-screening (https://github.com/smalltee2/seen-faculty-screening)',
 }
 const log = (m) => console.log(`[fetch] ${m}`)
@@ -66,16 +77,18 @@ function stamp(name) {
 async function getJson(url, tries = 3, headers = {}) {
   for (let i = 1; ; i++) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent, ...headers } })
+      const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent, ...headers }, signal: AbortSignal.timeout(TIMEOUT_MS) })
       if (res.status === 401 || res.status === 403) {
         // Elsevier explains the refusal in the body (invalid key, no entitlement from this IP, …).
         const body = (await res.text()).replace(/\s+/g, ' ').slice(0, 300)
         throw Object.assign(new Error(`HTTP ${res.status}: ${body}`), { fatal: true })
       }
+      // The same request gets the same answer for these, so asking again only wastes time.
+      if ([400, 404, 410].includes(res.status)) throw Object.assign(new Error(`HTTP ${res.status}`), { noRetry: true })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return await res.json()
     } catch (e) {
-      if (e.fatal || i >= tries) throw e
+      if (e.fatal || e.noRetry || i >= tries) throw e
       await sleep(1500 * i)
     }
   }
@@ -85,7 +98,8 @@ function readTsv(path) {
   if (!existsSync(path)) return { header: [], rows: [] }
   const lines = readFileSync(path, 'utf8').replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim())
   const header = lines[0]?.split('\t') ?? []
-  return { header, rows: lines.slice(1).map((l) => Object.fromEntries(l.split('\t').map((v, i) => [header[i], v]))) }
+  // Cells beyond the header (a stray tab in a line) are dropped; missing ones read as ''.
+  return { header, rows: lines.slice(1).map((l) => { const cells = l.split('\t'); return Object.fromEntries(header.map((h, i) => [h, cells[i] ?? ''])) }) }
 }
 
 function writeTsv(path, header, rows) {
@@ -161,7 +175,7 @@ async function fetchOpenAlex(faculty) {
     }
   }
   if (tried && !ok) throw new Error('every OpenAlex request failed; data/openalex.tsv left unchanged')
-  out.sort((a, b) => a.key.localeCompare(b.key) || b.year - a.year || a.oa_id.localeCompare(b.oa_id))
+  out.sort((a, b) => a.key.localeCompare(b.key) || b.year - a.year || String(a.oa_id ?? '').localeCompare(String(b.oa_id ?? '')))
   writeTsv(CONFIG.openalexOut, OA_HEADER, out)
   if (ok) stamp('openalex')
   log(`OpenAlex: ${out.length} rows for ${ok}/${tried} lecturers -> data/openalex.tsv`)
@@ -186,8 +200,10 @@ async function scopusQuery(f) {
     try {
       const a = await getJson(`https://api.openalex.org/authors/${encodeURIComponent(f.openalex_id)}?select=ids`)
       id = String(a.ids?.scopus ?? '').match(/authorID=(\d+)/)?.[1] ?? ''
-    } catch {
-      /* fall back to the name query */
+    } catch (e) {
+      // Not answered is not the same as "has no Scopus ID": the name query can return another set of
+      // documents, which would replace this lecturer's rows. Fail, so the previous rows are kept.
+      throw new Error(`OpenAlex author lookup for the Scopus ID failed (${e.message})`)
     }
   }
   if (id) return { query: `AU-ID(${id})`, id }
@@ -212,7 +228,8 @@ async function fetchScopus(faculty, key) {
       for (let start = 0; ; start += 25) {
         const q = `${query} AND PUBYEAR > ${CONFIG.firstYear - 1}`
         const d = await scopusGet(`https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(q)}&count=25&start=${start}`, key)
-        const entries = (d['search-results']?.entry ?? []).filter((e) => e['dc:title'])
+        const raw = (d['search-results']?.entry ?? []).filter((e) => !e.error)
+        const entries = raw.filter((e) => e['dc:title'])
         for (const e of entries) {
           const year = /^\d{4}/.test(String(e['prism:coverDate'] ?? '')) ? Number(String(e['prism:coverDate']).slice(0, 4)) : ''
           let venue = e['prism:publicationName'] ?? ''
@@ -241,7 +258,10 @@ async function fetchScopus(faculty, key) {
           })
         }
         const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
-        if (start + 25 >= total || !entries.length) break
+        // A page with nothing on it before the end is a cut answer: fail, so the previous rows are kept
+        // instead of a shorter list.
+        if (!raw.length && total > start) throw new Error(`Scopus returned an empty page at ${start} of ${total}`)
+        if (start + 25 >= total || !raw.length) break
         await sleep(200)
       }
       // Same guard as OpenAlex: an empty answer never replaces rows already on file.
@@ -306,7 +326,7 @@ async function issnByDoi(doi, previous) {
 
 /** "https://doi.org/10.x/y" or "10.x/y" → "10.x/y"; anything else → '' (the form field also accepts URLs). */
 const bareDoi = (v) => {
-  const d = v.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+  const d = String(v ?? '').trim().replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '')
   return /^10\.\d{4,}\//.test(d) ? d : ''
 }
 
@@ -347,7 +367,7 @@ async function fetchDecisions(url, admins = []) {
   try {
     if (url.startsWith('/')) text = readFileSync(url, 'utf8') // local file (tests)
     else {
-      const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent } })
+      const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent }, signal: AbortSignal.timeout(TIMEOUT_MS) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       text = await res.text()
     }
@@ -416,7 +436,7 @@ async function fetchConfDecisions(loginApiUrl) {
   if (!loginApiUrl) return
   let items
   try {
-    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'confList' }), redirect: 'follow' })
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'confList' }), redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) })
     const js = await res.json()
     if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
     items = js.items
@@ -431,7 +451,7 @@ async function fetchConfDecisions(loginApiUrl) {
   const registerPath = join(ROOT, 'data/conferences.csv')
   const register = readRegister(registerPath)
   const latest = new Map()
-  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) {
+  for (const it of [...items].sort((a, b) => whenMs(a.at) - whenMs(b.at))) {
     const key = String(it.key ?? '').trim() // register keys are trimmed on read
     if (/^(venue|work):/.test(key) && ['count', 'no_count', 'clear'].includes(it.decision)) latest.set(key, { ...it, key })
   }
@@ -460,7 +480,7 @@ async function fetchManual(faculty, url) {
   }
   let text
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent } })
+    const res = await fetch(url, { headers: { 'User-Agent': CONFIG.userAgent }, signal: AbortSignal.timeout(TIMEOUT_MS) })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     text = await res.text()
   } catch (e) {
@@ -515,8 +535,9 @@ async function fetchManual(faculty, url) {
   const previousManual = readTsv(CONFIG.manualOut).rows
   // A sheet that parses but matches nothing (renamed dropdown option, year format) must not
   // empty the file: the hourly job would commit an empty manual.tsv and every form work would vanish.
-  if (rows.length > 1 && !out.length) {
-    warn(`Google Sheet: ${rows.length - 1} rows but none usable; data/manual.tsv left unchanged`)
+  // The same holds for a sheet that comes back with its header only while the file has works.
+  if (!out.length && (rows.length > 1 || previousManual.length)) {
+    warn(`Google Sheet: ${rows.length - 1} rows, none usable; data/manual.tsv left unchanged (${previousManual.length} rows kept)`)
     return
   }
   for (const r of out) r.issn = await issnByDoi(r.doi, previousManual)
@@ -535,7 +556,7 @@ async function fetchSelf(faculty, loginApiUrl) {
   }
   let items
   try {
-    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow' })
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'list' }), redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) })
     const js = await res.json()
     if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
     items = js.items
@@ -578,7 +599,7 @@ async function fetchScholarImports(faculty, loginApiUrl) {
   if (!loginApiUrl) return log('Scholar imports: no loginApiUrl in data/sources.json; skipped')
   let items
   try {
-    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'scholarList' }), redirect: 'follow' })
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'scholarList' }), redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) })
     const js = await res.json()
     if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
     items = js.items
@@ -601,7 +622,7 @@ async function fetchFormCancels(loginApiUrl) {
   if (!loginApiUrl) return log('Form cancels: no loginApiUrl in data/sources.json; skipped')
   let items
   try {
-    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'formCancelList' }), redirect: 'follow' })
+    const res = await fetch(loginApiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'formCancelList' }), redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) })
     const js = await res.json()
     if (!js.ok || !Array.isArray(js.items)) throw new Error(js.error ?? 'no items')
     items = js.items
@@ -616,7 +637,7 @@ async function fetchFormCancels(loginApiUrl) {
     return
   }
   const latest = new Map()
-  for (const it of [...items].sort((a, b) => String(a.at).localeCompare(String(b.at)))) if (it.nameEn && it.titleNorm) latest.set(`${it.nameEn}|${it.titleNorm}`, it)
+  for (const it of [...items].sort((a, b) => whenMs(a.at) - whenMs(b.at))) if (it.nameEn && it.titleNorm) latest.set(`${it.nameEn}|${it.titleNorm}`, it)
   const out = [...latest.values()].filter((it) => it.action === 'cancel').map((it) => ({ name_en: it.nameEn, title_norm: it.titleNorm, title: clean(it.title), at: it.at, by: clean(it.by) }))
   writeTsv(join(ROOT, 'data/form_cancels.tsv'), ['name_en', 'title_norm', 'title', 'at', 'by'], out)
   log(`Form cancels: ${out.length} cancelled -> data/form_cancels.tsv`)
@@ -631,10 +652,16 @@ async function fetchScopusJournals(key) {
     log('Scopus journals: no SCOPUS_API_KEY; skipped')
     return
   }
-  const prev = existsSync(CONFIG.scopusJournalsOut) ? parseCsv(readFileSync(CONFIG.scopusJournalsOut, 'utf8')) : [['issn', 'in_scopus', 'name', 'checked']]
-  const header = prev[0]
-  const rows = prev.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
-  const known = new Set(rows.map((r) => r.issn))
+  const SJ_HEADER = ['issn', 'in_scopus', 'name', 'checked']
+  const prev = existsSync(CONFIG.scopusJournalsOut) ? parseCsv(readFileSync(CONFIG.scopusJournalsOut, 'utf8')) : []
+  const header = prev.length ? prev[0].map((h) => h.trim()) : SJ_HEADER // an empty file starts a new cache
+  const missingCols = SJ_HEADER.filter((h) => !header.includes(h))
+  if (missingCols.length) throw new Error(`data/scopus_journals.csv has no column ${missingCols.join(', ')}`)
+  let rows = prev.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
+  // A journal Scopus did not list is asked again after 30 days, so one that Scopus adds later is
+  // found; "yes" stays.
+  const recheck = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const known = new Set(rows.filter((r) => r.in_scopus === 'yes' || r.checked >= recheck).map((r) => r.issn))
   const seen = new Set()
   for (const f of [CONFIG.openalexOut, CONFIG.scopusOut]) for (const r of readTsv(f).rows) for (const i of (r.issn ?? '').split(';')) if (i) seen.add(i.trim())
   const todo = [...seen].filter((i) => !known.has(i))
@@ -644,6 +671,7 @@ async function fetchScopusJournals(key) {
       const d = await scopusGet(`https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(`ISSN(${issn})`)}&count=1`, key)
       const total = Number(d['search-results']?.['opensearch:totalResults'] ?? 0)
       const name = d['search-results']?.entry?.[0]?.['prism:publicationName'] ?? ''
+      rows = rows.filter((r) => r.issn !== issn) // the old "no" of a journal asked again
       rows.push({ issn, in_scopus: total > 0 ? 'yes' : 'no', name, checked: new Date().toISOString().slice(0, 10) })
       added++
       await sleep(150)
@@ -654,7 +682,7 @@ async function fetchScopusJournals(key) {
   }
   rows.sort((a, b) => a.issn.localeCompare(b.issn))
   writeFileSync(CONFIG.scopusJournalsOut, [header.join(','), ...rows.map((r) => header.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
-  log(`Scopus journals: ${rows.length} ISSNs cached (${added} new), ${rows.filter((r) => r.in_scopus === 'yes').length} in Scopus -> data/scopus_journals.csv`)
+  log(`Scopus journals: ${rows.length} ISSNs cached (${added} asked), ${rows.filter((r) => r.in_scopus === 'yes').length} in Scopus -> data/scopus_journals.csv`)
 }
 
 /** CiteScore quartiles (Tum, 2026-11-08: "แยกตามคุณภาพผลงาน" chart view). For every journal in
@@ -670,7 +698,8 @@ async function fetchScopusQuartiles(key, refresh) {
   if (!existsSync(CONFIG.scopusJournalsOut)) return log('Scopus quartiles: no data/scopus_journals.csv yet; skipped')
   const sj = parseCsv(readFileSync(CONFIG.scopusJournalsOut, 'utf8'))
   const issns = sj.slice(1).filter((r) => r[sj[0].indexOf('in_scopus')] === 'yes').map((r) => r[sj[0].indexOf('issn')])
-  const prev = !refresh && existsSync(CONFIG.scopusQuartilesOut) ? parseCsv(readFileSync(CONFIG.scopusQuartilesOut, 'utf8')).slice(1) : []
+  // --refresh-quartiles asks every journal again; a journal whose request fails keeps its old rows.
+  const prev = existsSync(CONFIG.scopusQuartilesOut) ? parseCsv(readFileSync(CONFIG.scopusQuartilesOut, 'utf8')).slice(1) : []
   const rows = prev.map((r) => Object.fromEntries(SQ_HEADER.map((h, i) => [h, r[i] ?? ''])))
   // Journals that had no CiteScore last time are asked again every run (Tum, 2026-11-08), so a
   // journal that Scopus rates later gets its quartiles without a manual refresh.
@@ -679,7 +708,7 @@ async function fetchScopusQuartiles(key, refresh) {
   // A journal is also asked again when its newest complete CiteScore year is older than last year
   // (a new year is published around mid-year) and it was last checked more than 30 days ago, so
   // later years arrive by themselves without asking Scopus about every journal every night.
-  const lastYear = new Date().getFullYear() - 1
+  const lastYear = thaiYear() - 1
   const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const newest = new Map()
   const checked = new Map()
@@ -688,16 +717,16 @@ async function fetchScopusQuartiles(key, refresh) {
     if (r.checked > (checked.get(r.issn) ?? '')) checked.set(r.issn, r.checked)
   }
   const stale = new Set([...newest].filter(([i, y]) => y < lastYear && (checked.get(i) ?? '') < cutoff).map(([i]) => i))
-  const done = new Set(rows.filter((r) => r.status !== 'none' && !stale.has(r.issn)).map((r) => r.issn))
+  const done = new Set(refresh ? [] : rows.filter((r) => r.status !== 'none' && !stale.has(r.issn)).map((r) => r.issn))
   let ok = 0
   let failed = 0
-  for (const issn of issns.filter((i) => !done.has(i))) {
+  for (const issn of [...new Set(issns)].filter((i) => i && !done.has(i))) {
     try {
       const d = await scopusGet(`https://api.elsevier.com/content/serial/title/issn/${encodeURIComponent(issn)}?view=CITESCORE`, key)
       const e = d['serial-metadata-response']?.entry?.[0] ?? {}
       // Elsevier returns one year as an object, several as an array.
       // Drop the journal's old rows (the "none" marker, or every year of a stale journal) before adding the fresh ones.
-      if (none.has(issn) || stale.has(issn)) for (let i = rows.length - 1; i >= 0; i--) if (rows[i].issn === issn) rows.splice(i, 1)
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].issn === issn) rows.splice(i, 1)
       const years = [].concat(e.citeScoreYearInfoList?.citeScoreYearInfo ?? [])
       let n = 0
       for (const y of years) {
@@ -732,11 +761,14 @@ async function fetchTciHistory(refresh) {
   const jh = journals[0]
   const ids = journals.slice(1).map((r) => r[jh.indexOf('id')]).filter(Boolean)
   const header = ['journal_id', 'tier', 'start_date', 'end_date', 'category', 'fetched']
-  const prev = !refresh && existsSync(CONFIG.tciHistoryOut) ? parseCsv(readFileSync(CONFIG.tciHistoryOut, 'utf8')).slice(1) : []
+  // --refresh-history asks every journal again; a journal whose request fails keeps its old rows.
+  const prev = existsSync(CONFIG.tciHistoryOut) ? parseCsv(readFileSync(CONFIG.tciHistoryOut, 'utf8')).slice(1) : []
   const rows = prev.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
-  const done = new Set(rows.map((r) => r.journal_id))
-  const todo = ids.filter((id) => !done.has(id))
   const today = new Date().toISOString().slice(0, 10)
+  // A journal that had no certification round when it was asked is asked again after 30 days.
+  const recheck = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const done = new Set(refresh ? [] : rows.filter((r) => r.tier !== '' || r.fetched >= recheck).map((r) => r.journal_id))
+  const todo = [...new Set(ids)].filter((id) => !done.has(id))
   let ok = 0
   let failed = 0
   const worker = async () => {
@@ -748,6 +780,7 @@ async function fetchTciHistory(refresh) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const d = await res.json()
         const hist = Array.isArray(d.tci_tier_history) ? d.tci_tier_history : []
+        for (let i = rows.length - 1; i >= 0; i--) if (rows[i].journal_id === id) rows.splice(i, 1) // replaced by this answer
         if (!hist.length) rows.push({ journal_id: id, tier: '', start_date: '', end_date: '', category: '', fetched: today })
         for (const h of hist) rows.push({ journal_id: id, tier: h.tier ?? '', start_date: h.start_date ?? '', end_date: h.end_date ?? '', category: h.journal_catetory ?? h.journal_category ?? '', fetched: today })
         ok++
@@ -759,7 +792,7 @@ async function fetchTciHistory(refresh) {
     }
   }
   await Promise.all([worker(), worker(), worker()])
-  rows.sort((a, b) => Number(a.journal_id) - Number(b.journal_id) || (a.start_date < b.start_date ? 1 : -1))
+  rows.sort((a, b) => Number(a.journal_id) - Number(b.journal_id) || (a.start_date < b.start_date ? 1 : a.start_date > b.start_date ? -1 : 0))
   writeFileSync(CONFIG.tciHistoryOut, [header.join(','), ...rows.map((r) => header.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
   log(`TCI history: ${ok} journals fetched, ${failed} failed, ${new Set(rows.map((r) => r.journal_id)).size} journals in file -> data/tci_tier_history.csv`)
 }
@@ -771,7 +804,7 @@ const csvCell = (v) => {
 
 /** The TCI journal database: one POST returns every journal (about 1,700 rows). */
 async function fetchTci() {
-  const res = await fetch(CONFIG.tciUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': CONFIG.userAgent }, body: '{}' })
+  const res = await fetch(CONFIG.tciUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': CONFIG.userAgent }, body: '{}', signal: AbortSignal.timeout(120000) })
   if (!res.ok) throw new Error(`TCI HTTP ${res.status}`)
   const d = await res.json()
   const js = Array.isArray(d.journals) ? d.journals : []
@@ -781,7 +814,7 @@ async function fetchTci() {
   const csv = [header.join(','), ...lines].join('\n') + '\n'
   writeFileSync(CONFIG.tciOut, csv)
   mkdirSync(CONFIG.tciSnapshotDir, { recursive: true })
-  writeFileSync(join(CONFIG.tciSnapshotDir, `${new Date().getFullYear()}.csv`), csv)
+  writeFileSync(join(CONFIG.tciSnapshotDir, `${thaiYear()}.csv`), csv)
   const tiers = js.reduce((m, j) => ((m[j.tci_tier] = (m[j.tci_tier] ?? 0) + 1), m), {})
   log(`TCI: ${js.length} journals (กลุ่ม 1: ${tiers['1'] ?? 0}, 2: ${tiers['2'] ?? 0}, 3: ${tiers['3'] ?? 0}) -> data/tci_journals.csv`)
 }
@@ -808,7 +841,7 @@ async function fetchCrossref(refresh) {
   const dois = new Set()
   for (const f of [CONFIG.openalexOut, CONFIG.scopusOut, CONFIG.manualOut, CONFIG.selfOut]) for (const r of readTsv(f).rows) if (bareDoi(r.doi ?? '')) dois.add(bareDoi(r.doi).toLowerCase())
   const previous = readTsv(CONFIG.crossrefOut).rows
-  const byDoi = new Map(previous.map((r) => [r.doi.toLowerCase(), r]))
+  const byDoi = new Map(previous.filter((r) => r.doi).map((r) => [r.doi.toLowerCase(), r]))
   const todo = [...dois].filter((d) => refresh || !byDoi.get(d)?.fetched)
   let ok = 0
   let failed = 0

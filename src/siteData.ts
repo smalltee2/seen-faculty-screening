@@ -32,7 +32,7 @@ export function useSiteData(extraConfItems: ConfDecisionItem[] = NONE) {
   }, [])
   // Works lecturers added themselves (src/submissions.ts): approved ones count, pending ones are only shown.
   const [submissions, setSubmissions] = useState<Submission[]>([])
-  const refreshSubmissions = () => fetchSubmissions().then(setSubmissions)
+  const refreshSubmissions = () => fetchSubmissions().then((v) => setSubmissions((prev) => v ?? prev))
   useEffect(() => {
     void refreshSubmissions()
   }, [])
@@ -41,27 +41,29 @@ export function useSiteData(extraConfItems: ConfDecisionItem[] = NONE) {
   // Google Scholar rows a level-2 admin imported (src/scholarImport.ts); null = list not read.
   const [scholarItems, setScholarItems] = useState<ScholarImportItem[] | null>(null)
   const refreshScholar = () => {
-    void fetchScholarImports().then(setScholarItems)
+    void fetchScholarImports().then((v) => setScholarItems((prev) => v ?? prev))
   }
   useEffect(refreshScholar, [])
   const scholarRows = useMemo(() => scholarImportRows(scholarItems ?? [], lecturerNames, bundledRows), [scholarItems, lecturerNames])
   // Conference decisions from the register buttons (src/confDecisions.ts), applied live.
   const [confItems, setConfItems] = useState<ConfDecisionItem[]>([])
   // Returns the reload, so the register's buttons can keep their spinner until the new result shows.
-  const refreshConf = () => fetchConfDecisions().then(setConfItems)
+  const refreshConf = () => fetchConfDecisions().then((v) => setConfItems((prev) => v ?? prev))
   useEffect(() => {
     void refreshConf()
   }, [])
   const conferences = useMemo(() => applyConfDecisions(data.conferences ?? [], [...confItems, ...extraConfItems]), [confItems, extraConfItems])
+  // A list that could not be read (null) never replaces one already shown: after a save, a failed
+  // reload must not make every decision, work or reminder look undone.
   // Reminder e-mails sent to lecturers (src/notify.ts): when each was last notified.
   const [notices, setNotices] = useState<Notice[]>([])
   const refreshNotices = () => {
-    void fetchNotices().then(setNotices)
+    void fetchNotices().then((v) => setNotices((prev) => v ?? prev))
   }
   useEffect(refreshNotices, [])
   // Admin-form works a level-2 admin cancelled on the site (src/formCancel.ts); null = list not read.
   const [formCancels, setFormCancels] = useState<FormCancelItem[] | null>(null)
-  const refreshFormCancels = () => fetchFormCancels().then(setFormCancels)
+  const refreshFormCancels = () => fetchFormCancels().then((v) => setFormCancels((prev) => v ?? prev))
   useEffect(() => {
     void refreshFormCancels()
   }, [])

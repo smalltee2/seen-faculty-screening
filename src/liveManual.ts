@@ -59,7 +59,10 @@ const TYPE_MAP: Record<string, string> = {
 }
 
 const bareDoi = (v: string) => {
-  const d = v.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+  const d = v
+    .trim()
+    .replace(/^(https?:\/\/)?(dx\.)?doi\.org\//i, '')
+    .replace(/^doi:\s*/i, '')
   return /^10\.\d{4,}\//.test(d) ? d : ''
 }
 
@@ -109,7 +112,7 @@ export function newLiveRows(live: RawPub[], bundled: RawPub[]): RawPub[] {
 export async function fetchLiveManual(url: string | undefined, faculty: Faculty[], bundled: RawPub[]): Promise<RawPub[]> {
   if (!url || window.location.protocol === 'file:') return []
   try {
-    const res = await fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' })
+    const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, { cache: 'no-store' })
     if (!res.ok) return []
     return newLiveRows(manualRowsFromCsv(await res.text(), faculty), bundled)
   } catch {

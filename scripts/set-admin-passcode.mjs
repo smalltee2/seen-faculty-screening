@@ -40,6 +40,14 @@ function askHidden(question) {
 const b64 = (buf) => Buffer.from(buf).toString('base64')
 
 const sources = JSON.parse(readFileSync(SOURCES, 'utf8'))
+// A mistyped option (--level 1, --level=one, --form_url=…) must not fall through to the default and
+// replace the level-2 passcode and its approval key.
+const KNOWN = [/^--level=[12]$/, /^--form-url=.+/, /^--decision-form-url=.*/]
+const unknown = process.argv.slice(2).filter((a) => !KNOWN.some((re) => re.test(a)))
+if (unknown.length) {
+  console.error(`Unknown option(s): ${unknown.join(' ')}. Use --level=1 or --level=2, --form-url=<url>, --decision-form-url=<url>. Nothing changed.`)
+  process.exit(1)
+}
 const level = process.argv.includes('--level=1') ? 1 : 2
 
 async function encrypt(pass, payload) {
@@ -49,6 +57,24 @@ async function encrypt(pass, payload) {
   const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITERATIONS }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt'])
   const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(payload)))
   return { iterations: ITERATIONS, salt: b64(salt), iv: b64(iv), data: b64(data) }
+}
+
+/** True when `pass` opens `gate`: the two levels must not share a passcode, or the site could not
+ *  tell which level was meant. */
+async function opens(gate, pass) {
+  if (!gate?.salt || !gate.iv || !gate.data) return false
+  try {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: Buffer.from(gate.salt, 'base64'), iterations: gate.iterations }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt'])
+    await crypto.subtle.decrypt({ name: 'AES-GCM', iv: Buffer.from(gate.iv, 'base64') }, key, Buffer.from(gate.data, 'base64'))
+    return true
+  } catch {
+    return false
+  }
+}
+function refuseSame() {
+  console.error('This passcode is already the passcode of the other level; the two must differ. Nothing changed.')
+  process.exit(1)
 }
 
 async function askPass(label) {
@@ -67,9 +93,10 @@ async function askPass(label) {
 
 if (level === 1) {
   const pass = await askPass('level-1 (ข้อมูลอาจารย์ only)')
+  if (await opens(sources.adminGate, pass)) refuseSame()
   sources.viewerGate = await encrypt(pass, { level: 1 })
   writeFileSync(SOURCES, JSON.stringify(sources, null, 2) + '\n')
-  console.log('Level-1 passcode set (viewerGate in data/sources.json). It must differ from the level-2 passcode. Commit and push to publish.')
+  console.log('Level-1 passcode set (viewerGate in data/sources.json). Commit and push to publish.')
   process.exit(0)
 }
 
@@ -82,6 +109,7 @@ if (!formUrl) {
 const decisionFormUrl = process.argv.find((a) => a.startsWith('--decision-form-url='))?.slice('--decision-form-url='.length) ?? sources.decisionFormUrl ?? ''
 
 const pass = await askPass('level-2 admin')
+if (await opens(sources.viewerGate, pass)) refuseSame()
 // Approval key (2026-11-07): random, stored only inside the encrypted level-2 data, so whoever
 // opens level 2 can approve lecturers' works. The backend keeps only its SHA-256 (approvalKeyHash,
 // safe to publish), copied into apps-script/Code.gs (APPROVAL_KEY_HASH). A new passcode = a new key.

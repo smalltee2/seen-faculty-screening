@@ -141,13 +141,18 @@ const PaletteIcon = () => (
 export function ThemePicker({ value, onChange }: { value: AppThemeId; onChange: (v: AppThemeId) => void }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
+  const btn = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!open) return
+    // Keyboard: focus goes into the panel (the theme in use) and back to the button on Escape.
+    box.current?.querySelector<HTMLElement>('.app-themes-item[aria-pressed="true"], .app-themes-item')?.focus()
     const away = (e: MouseEvent) => {
       if (box.current && !box.current.contains(e.target as Node)) setOpen(false)
     }
     const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      btn.current?.focus()
     }
     document.addEventListener('mousedown', away)
     document.addEventListener('keydown', esc)
@@ -158,7 +163,7 @@ export function ThemePicker({ value, onChange }: { value: AppThemeId; onChange: 
   }, [open])
   return (
     <div className="app-themes" ref={box}>
-      <button type="button" className="theme-toggle app-themes-btn" aria-expanded={open} aria-haspopup="dialog" aria-label="เลือกภาพธีม" title="เลือกภาพธีม" onClick={() => setOpen((o) => !o)}>
+      <button ref={btn} type="button" className="theme-toggle app-themes-btn" aria-expanded={open} aria-haspopup="dialog" aria-label="เลือกภาพธีม" title="เลือกภาพธีม" onClick={() => setOpen((o) => !o)}>
         <PaletteIcon />
       </button>
       {open && (
