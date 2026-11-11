@@ -215,9 +215,9 @@ export function OutlookPage({ results, settings }: { results: PersonResult[]; se
               {rows.flatMap((p) =>
                 p.roles.map((o, i) => (
                   <tr key={`${p.result.person.nameEn}|${o.role.id}`}>
-                    {i === 0 && <td rowSpan={p.roles.length}>{personLink(p.result.person)}</td>}
+                    {i === 0 && <td className="nowrap" rowSpan={p.roles.length}>{personLink(p.result.person)}</td>}
                     <td className="small">{roleName(o.role.id)}</td>
-                    <td>พ.ศ. {toBE(o.lostIn)}</td>
+                    <td className="nowrap">พ.ศ. {toBE(o.lostIn)}</td>
                     <td>
                       {o.need > 0 ? (
                         <>
