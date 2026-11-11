@@ -609,3 +609,50 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 /* Only where the line fits; narrower content areas wrap as before. */
 .app-content { container-type: inline-size; }
 @container (min-width: 1040px) { .app .outlook-note { white-space: nowrap; max-width: none; } }
+
+
+/* ── Picture themes (Tum, 2026-11-11, like Gmail's): src/webapp/appThemes.tsx ──
+   Computers and tablets: the picture fills the window behind the logo, menu and top bar; the page
+   content sits on a frosted card. The logo sits on a light frosted plate so its dark lettering reads
+   on any picture. Text on the menu and top bar is light on dark pictures and dark on light ones.
+   Phones keep the plain layout. */
+.app-themes { position: relative; }
+.app-themes-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: 340px; padding: 14px;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--fg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.app-themes-head { margin: 0 0 10px; font-weight: 600; }
+.app-themes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.app-themes-item { display: flex; flex-direction: column; gap: 4px; padding: 0; border: 0; background: none; color: var(--fg); font: inherit; font-size: 0.75rem; text-align: center; cursor: pointer; }
+.app-themes-thumb { display: block; aspect-ratio: 16 / 10; border-radius: 10px; background-size: cover; background-position: center; border: 2px solid var(--line); }
+.app-themes-plain { background: var(--app-canvas); }
+.app-themes-item[aria-pressed='true'] .app-themes-thumb { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.app-themes-item:focus-visible .app-themes-thumb { outline: 2px solid var(--focus); outline-offset: 2px; }
+.app-themes-note { margin: 10px 0 0; color: var(--muted); font-size: 0.72rem; }
+@media (max-width: 760px) { .app-themes { display: none; } }
+
+@media (min-width: 761px) {
+  .app.app-pictured { background: var(--app-picture) center / cover no-repeat; }
+  .app-pictured .app-content {
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  }
+  .app-pictured .app-brand {
+    margin: 6px 0 4px; padding: 6px 10px 8px; border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .app-pictured .app-brand span { color: #1d5c33; font-size: 1.04rem; }
+  .app-pictured .app-top-tools .btn, .app-pictured .app-top-tools .theme-toggle { background: rgba(255, 255, 255, 0.86); color: #1d5c33; }
+  /* Menu items on a light veil for dark pictures, a dark ink for light ones. */
+  .app-pictured-dark .app-nav-link, .app-pictured-dark .app-side-foot, .app-pictured-dark .app-side-foot .muted,
+  .app-pictured-dark .app-title h1, .app-pictured-dark .app-crumb { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }
+  .app-pictured-light .app-nav-link, .app-pictured-light .app-side-foot .muted,
+  .app-pictured-light .app-title h1, .app-pictured-light .app-crumb { color: #1f2a22; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7); }
+  /* A faint veil behind the menu column keeps its text clear on busy pictures (autumn leaves). */
+  .app-pictured-dark .app-side { background: linear-gradient(to right, rgba(10, 8, 6, 0.42), rgba(10, 8, 6, 0.18)); }
+  .app-pictured-light .app-side { background: linear-gradient(to right, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.2)); }
+  .app-pictured .app-nav-link:hover { background: rgba(255, 255, 255, 0.22); }
+  .app-pictured .app-nav-link[aria-current='page'] { background: rgba(255, 255, 255, 0.86); color: #1d5c33; text-shadow: none; }
+  .app-pictured .app-window-chip { background: rgba(255, 255, 255, 0.86); color: #1d5c33; }
+}
