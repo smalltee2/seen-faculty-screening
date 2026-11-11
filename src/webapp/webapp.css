@@ -385,9 +385,13 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   /* Downloads and printing are desk tasks */
   .app .actions.no-print > .btn { display: none; }
   .app .actions.no-print:not(:has(> :not(.btn))) { display: none; }
-  /* Tab rows scroll sideways instead of breaking words */
-  .app .seg { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
-  .app .seg::-webkit-scrollbar { display: none; }
-  .app .seg a, .app .seg button { white-space: nowrap; flex: none; }
-  .app .section-switch .seg button { flex: none; white-space: nowrap; }
+  /* Switch rows fit the screen with no sideways scrolling (Tum, 2026-11-11): every option shares
+     the width and its label wraps to a second line when needed; with many options (the history's
+     categories) they flow onto a second row, at most three per row. */
+  .app .seg { display: flex; flex-wrap: wrap; overflow: visible; width: 100%; max-width: 100%; border-radius: 16px; gap: 2px; }
+  .app .seg a, .app .seg button {
+    flex: 1 1 0; min-width: 30%; white-space: normal; text-align: center; line-height: 1.25;
+    padding: 8px 6px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  }
+  .app .section-switch .seg button { flex: 1 1 0; white-space: normal; padding: 9px 8px; }
 }
