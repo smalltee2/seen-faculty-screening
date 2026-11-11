@@ -793,16 +793,22 @@ function checkFreshness() {
   var today = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
   if (props.getProperty('ALERT_SENT_ON') === today) return 'already sent today';
   var to = props.getProperty('ALERT_EMAIL') || Session.getEffectiveUser().getEmail();
+  // A missing permission is the script's own problem, not stale data: say so, and how to fix it.
+  var noPermission = /permission|authorization|script\.external_request/i.test(unreadable);
   var lines = unreadable
-    ? ['อ่านไฟล์สถานะของเว็บไม่ได้ (' + unreadable + '): ' + STATUS_URL, 'เว็บอาจล่ม หรือการ deploy ครั้งล่าสุดล้มเหลว']
+    ? noPermission
+      ? ['สคริปต์แจ้งเตือนยังไม่ได้รับสิทธิ์อ่านเว็บ (' + unreadable + ')', 'แก้: เปิดโปรเจกต์ Apps Script เลือกฟังก์ชัน checkFreshness แล้วกด Run และกดอนุญาตสิทธิ์ (ทำครั้งเดียว)', 'ข้อมูลของเว็บอาจยังอัปเดตตามปกติ ตรวจได้ที่หน้าผู้ดูแล']
+      : ['อ่านไฟล์สถานะของเว็บไม่ได้ (' + unreadable + '): ' + STATUS_URL, 'เว็บอาจล่ม หรือการ deploy ครั้งล่าสุดล้มเหลว']
     : problems.map(function (p) {
         return '• ' + STALE_LABEL[p.key] + ': ' + (p.at ? 'ครั้งล่าสุด ' + Utilities.formatDate(new Date(p.at), 'Asia/Bangkok', 'd MMM yyyy HH:mm') + ' น. (' + Math.floor(p.hours / 24) + ' วันที่แล้ว)' : 'ไม่มีบันทึกเวลา');
       });
   MailApp.sendEmail({
     to: to,
-    subject: '[SEEN] ข้อมูลระบบตรวจสอบคุณสมบัติอาจารย์ไม่อัปเดตเกิน 2 วัน',
+    subject: unreadable
+      ? '[SEEN] ระบบแจ้งเตือนตรวจสถานะเว็บไม่ได้'
+      : '[SEEN] ข้อมูลระบบตรวจสอบคุณสมบัติอาจารย์ไม่อัปเดตเกิน 2 วัน',
     body:
-      'ระบบตรวจพบว่าข้อมูลต่อไปนี้ไม่ได้อัปเดตเกิน ' + STALE_HOURS + ' ชั่วโมง\n\n' + lines.join('\n') +
+      (unreadable ? 'ระบบแจ้งเตือนตรวจสถานะข้อมูลของเว็บไม่ได้\n\n' : 'ระบบตรวจพบว่าข้อมูลต่อไปนี้ไม่ได้อัปเดตเกิน ' + STALE_HOURS + ' ชั่วโมง\n\n') + lines.join('\n') +
       '\n\nตรวจได้ที่\n- GitHub Actions: https://github.com/smalltee2/seen-faculty-screening/actions\n- iMac: ~/Library/Logs/seen-scopus.log\n- หน้าผู้ดูแลของเว็บ (แหล่งข้อมูล): ' + SITE + 'sfs.html#/admin' +
       '\n\nอีเมลนี้ส่งวันละไม่เกิน 1 ฉบับ และจะหยุดเองเมื่อข้อมูลกลับมาอัปเดต',
   });
