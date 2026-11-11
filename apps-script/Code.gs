@@ -22,6 +22,16 @@
 // The main address since 2026-11-12 (Cloudflare Pages). The same build is also published at
 // https://smalltee2.github.io/seen-faculty-screening/ (GitHub Pages).
 var SITE = 'https://seen-education-service.pages.dev/';
+// Every address the site is published at. A login link goes back to the one it was asked from
+// (Tum, 2026-11-12), so the GitHub copy works on its own when the main site is down.
+var SITES = [SITE, 'https://smalltee2.github.io/seen-faculty-screening/'];
+/** The site a request came from when it is one of ours, otherwise the main address. The value comes
+ *  from the browser, so it only picks from SITES and is never put into an e-mail as sent. */
+function siteOf(v) {
+  var s = typeof v === 'string' ? v : '';
+  for (var i = 0; i < SITES.length; i++) if (s === SITES[i]) return SITES[i];
+  return SITE;
+}
 // This web app's own URL (data/sources.json loginApiUrl), used in the รับทราบ link; a constant so
 // the script needs no extra permission to read its deployment.
 var APP_URL = 'https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec';
@@ -296,7 +306,7 @@ function requestLink(body) {
   }
   var code = randomToken();
   var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
-  var link = SITE + 'me/#login=' + code;
+  var link = siteOf(body.site) + 'me/#login=' + code;
   var name = user ? user.name_th || user.name_en : admin.name || email;
   // The code is stored only once its e-mail has gone out. A refused send (daily quota, a bounced
   // address) is logged and answered like any other request, so the answer still does not reveal

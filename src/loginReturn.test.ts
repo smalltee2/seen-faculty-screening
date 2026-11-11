@@ -46,3 +46,28 @@ describe('login link returns to the page that asked for it', () => {
     expect(forward('', 'sfs_webapp.html')).toBe('../sfs_webapp.html#/me')
   })
 })
+
+// The backend picks the site for the login link from its own list (apps-script/Code.gs).
+import gsSource from '../apps-script/Code.gs?raw'
+import { siteAddress } from './emailLogin'
+
+describe('login link goes back to the site that asked', () => {
+  const { siteOf, SITE, SITES } = new Function(`${gsSource}\nreturn { siteOf, SITE, SITES }`)() as {
+    siteOf: (v: unknown) => string
+    SITE: string
+    SITES: string[]
+  }
+  const GITHUB = 'https://smalltee2.github.io/seen-faculty-screening/'
+  it('knows both published addresses, the main one first', () => {
+    expect(SITES).toEqual(['https://seen-education-service.pages.dev/', GITHUB])
+    expect(SITES[0]).toBe(SITE)
+  })
+  it('answers the site that asked when it is one of ours', () => {
+    expect(siteOf(siteAddress('https://smalltee2.github.io', '/seen-faculty-screening/'))).toBe(GITHUB)
+    expect(siteOf(siteAddress('https://seen-education-service.pages.dev', '/'))).toBe(SITE)
+  })
+  it('falls back to the main address for anything else', () => {
+    for (const v of [undefined, null, '', 42, {}, 'http://localhost:5173/seen-faculty-screening/', 'https://evil.example/', `${GITHUB}x`, `${GITHUB}@evil.example/`, 'https://smalltee2.github.io/'])
+      expect(siteOf(v)).toBe(SITE)
+  })
+})

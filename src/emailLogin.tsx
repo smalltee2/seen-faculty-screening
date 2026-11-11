@@ -56,6 +56,12 @@ export function rememberLoginReturn(path = window.location.pathname) {
   }
 }
 
+/** This copy of the site (origin and base path), sent with a login request so the link in the
+ *  e-mail comes back here. The backend only accepts the addresses it knows (SITES in Code.gs). */
+export function siteAddress(origin = window.location.origin, base = import.meta.env.BASE_URL) {
+  return `${origin}${base}`
+}
+
 export const sessionStore = {
   get(): string {
     try {
@@ -204,7 +210,7 @@ export function EmailLogin({ notice, eyebrow = 'สำหรับอาจา�
     setError('')
     try {
       rememberLoginReturn()
-      const r = await api({ action: 'request', email: email.trim(), remember })
+      const r = await api({ action: 'request', email: email.trim(), remember, site: siteAddress() })
       if (r.ok) setSent(true)
       else setError(errorText(r.error))
     } catch {
