@@ -30,6 +30,7 @@ import { Inbox, type InboxKind, type InboxShow } from './Inbox'
 import { inboxItems } from './inboxItems'
 import { SeenIcon, type IconKey } from './iconSets'
 import { useStoredChoice } from './storedChoice'
+import { labelTables } from './tableLabels'
 
 const data = raw as unknown as DataBundle
 const CURRENT_YEAR = new Date().getFullYear()
@@ -86,6 +87,29 @@ export function WebApp() {
     return () => window.removeEventListener('hashchange', on)
   }, [])
 
+  // Phones show data tables as cards; label every cell with its column header, now and whenever
+  // React adds rows (src/webapp/tableLabels.ts).
+  useEffect(() => {
+    const root = document.getElementById('app-main')
+    if (!root) return
+    let queued = 0
+    const run = () => {
+      queued = 0
+      labelTables(root)
+    }
+    run()
+    // A short timer, not requestAnimationFrame: that one pauses in a background tab, which would
+    // leave a page switched there unlabelled until the tab is shown.
+    const mo = new MutationObserver(() => {
+      if (!queued) queued = window.setTimeout(run, 30)
+    })
+    mo.observe(root, { childList: true, subtree: true })
+    return () => {
+      mo.disconnect()
+      if (queued) window.clearTimeout(queued)
+    }
+  }, [])
+
   // The year menu offers this year and next year, as on sfs.html; the page always opens on this year.
   const [settings, setSettings] = useState<Settings>({ year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' })
   const site = useSiteData()
@@ -125,6 +149,18 @@ export function WebApp() {
   }
 
   const visibleNav = NAV.filter((n) => level >= n.level)
+  // Phones: the bottom bar holds at most 5 slots (Tum, 2026-11-11). With more pages, the first 4 stay
+  // in the bar and the rest open from a "เพิ่มเติม" sheet; the side menu on larger screens lists all.
+  const PHONE_SLOTS = 5
+  const extraNav = visibleNav.length > PHONE_SLOTS ? visibleNav.slice(PHONE_SLOTS - 1) : []
+  const [moreOpen, setMoreOpen] = useState(false)
+  useEffect(() => setMoreOpen(false), [route])
+  useEffect(() => {
+    if (!moreOpen) return
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMoreOpen(false)
+    document.addEventListener('keydown', esc)
+    return () => document.removeEventListener('keydown', esc)
+  }, [moreOpen])
   const active: Page = route.page === 'person' ? 'lecturers' : route.page
   const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
@@ -150,7 +186,12 @@ export function WebApp() {
         </a>
         <nav className="app-nav">
           {visibleNav.map((n) => (
-            <a key={n.page} href={n.page === 'overview' ? '#/' : `#/${n.page}`} className={`app-nav-link${n.level > 0 ? ' app-nav-admin' : ''}`} aria-current={active === n.page ? 'page' : undefined}>
+            <a
+              key={n.page}
+              href={n.page === 'overview' ? '#/' : `#/${n.page}`}
+              className={`app-nav-link${n.level > 0 ? ' app-nav-admin' : ''}${extraNav.includes(n) ? ' app-nav-extra' : ''}`}
+              aria-current={active === n.page ? 'page' : undefined}
+            >
               {/* SEEN icons (Tum, 2026-11-11): style A (leaf outline) in the side menu, style C (solid) in the phone bar. */}
               <span className="app-icon app-icon-side">
                 <SeenIcon name={n.page} style="leaf" size={22} />
@@ -169,6 +210,26 @@ export function WebApp() {
               )}
             </a>
           ))}
+          {extraNav.length > 0 && (
+            <button
+              type="button"
+              className="app-nav-link app-nav-more"
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
+              aria-controls="app-more"
+              aria-current={extraNav.some((n) => n.page === active) ? 'page' : undefined}
+              onClick={() => setMoreOpen(!moreOpen)}
+            >
+              <span className="app-icon app-icon-phone">
+                <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+                  <circle cx="5" cy="12" r="2.2" />
+                  <circle cx="12" cy="12" r="2.2" />
+                  <circle cx="19" cy="12" r="2.2" fill="var(--icon-accent)" />
+                </svg>
+              </span>
+              <span className="app-nav-short">เพิ่มเติม</span>
+            </button>
+          )}
         </nav>
         <div className="app-side-foot">
           {admin && lock ? (
@@ -186,6 +247,29 @@ export function WebApp() {
           <span className="muted small">ข้อมูลล่าสุด {UPDATED_AT} น.</span>
         </div>
       </aside>
+      {moreOpen && extraNav.length > 0 && (
+        <>
+          <div className="app-more-backdrop" onClick={() => setMoreOpen(false)} />
+          <div id="app-more" className="app-more" role="dialog" aria-modal="true" aria-label="เมนูเพิ่มเติม">
+            <div className="app-more-head">
+              <b>เมนูเพิ่มเติม</b>
+              <button type="button" className="icon-btn" aria-label="ปิดเมนูเพิ่มเติม" onClick={() => setMoreOpen(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+            <nav aria-label="เมนูเพิ่มเติม">
+              {extraNav.map((n) => (
+                <a key={n.page} href={`#/${n.page}`} className="app-more-link" aria-current={active === n.page ? 'page' : undefined}>
+                  <SeenIcon name={n.page} style="solid" size={26} />
+                  <span>{n.th}</span>
+                </a>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
       {/* A tab on the menu's edge hides or shows it (computers and tablets; phones use the bottom bar). */}
       <button
         type="button"
