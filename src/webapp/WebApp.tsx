@@ -13,7 +13,7 @@ import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
 import { HoverSelect } from '../HoverSelect'
-import { ThemeToggle } from '../ThemeToggle'
+import { ThemeToggle, useScrolled } from '../ThemeToggle'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from '../adminGate'
 import { reloadForBuild, useAutoRefresh } from '../autoRefresh'
 import { Overview } from '../pages/Overview'
@@ -115,6 +115,7 @@ export function WebApp() {
   }, [])
 
   // The year menu offers this year and next year, as on sfs.html; the page always opens on this year.
+  const scrolled = useScrolled()
   const [settings, setSettings] = useState<Settings>({ year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' })
   const site = useSiteData()
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, site.pubs, settings)), [site.pubs, settings])
@@ -325,17 +326,24 @@ export function WebApp() {
       </button>
 
       <div className="app-main">
-        <header className="app-top no-print">
+        {/* Top bar, style A (Tum, 2026-11-11): on the page background, no band; a line and shadow
+            appear only once the page is scrolled. A small trail above the title, the 5-year window
+            as a chip, and the menus as round chips. */}
+        <header className={`app-top no-print${scrolled ? ' app-top-scrolled' : ''}${route.page === 'lecturers' && level === 2 && programmes.length > 0 ? ' app-top-many' : ''}`}>
           <div className="app-title">
-            {route.page === 'person' && (
-              <a className="app-crumb" href="#/lecturers">
-                ผลงานอาจารย์ ›
-              </a>
-            )}
-            <h1>{title}</h1>
-            <p className="muted small">
-              ช่วงผลงาน 5 ปี พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} ({settings.year - 4}–{settings.year})
+            <p className="app-crumb">
+              {route.page === 'person' ? (
+                <a href="#/lecturers">ผลงานอาจารย์ ›</a>
+              ) : need > 0 ? (
+                'ผู้ดูแล ›'
+              ) : (
+                'ระบบตรวจสอบคุณสมบัติอาจารย์ ›'
+              )}
             </p>
+            <h1>{title}</h1>
+            <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี ค.ศ. ${settings.year - 4}–${settings.year}`}>
+              ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+            </span>
           </div>
           <div className="app-top-tools">
             {route.page === 'lecturers' && level === 2 && programmes.length > 0 && (

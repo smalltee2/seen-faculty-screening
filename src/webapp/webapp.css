@@ -444,3 +444,53 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-top { min-height: var(--app-head-h); box-sizing: border-box; align-items: center; padding-top: 12px; padding-bottom: 12px; }
   .app-title h1 { font-size: 1.6rem; }
 }
+
+/* ── Top bar, style A (Tum, 2026-11-11) ──
+   No coloured band: the header sits on the page background and joins the content. A thin line and
+   a soft shadow appear only after scrolling. Trail above the title, the window as a green chip,
+   the menus as round chips without labels (their names stay for screen readers). */
+.app-top { background: var(--bg); border-bottom: 1px solid transparent; backdrop-filter: none; transition: box-shadow var(--t-fast), border-color var(--t-fast); }
+.app-top.app-top-scrolled { background: var(--nav-bg); backdrop-filter: blur(10px); border-bottom-color: var(--line); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+.app-title { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.app-crumb { margin: 0; font: 500 0.78rem/1.4 var(--font-body); color: var(--subtle); }
+.app-crumb a { color: inherit; text-decoration: none; }
+.app-crumb a:hover { color: var(--accent); }
+.app-title h1 { margin: 0; line-height: 1.25; }
+.app-window-chip {
+  display: inline-flex; align-items: center; margin-top: 4px; padding: 2px 10px; border-radius: 999px;
+  background: var(--met-bg); color: var(--met); font: 600 0.75rem/1.5 var(--font-body);
+}
+.app-top-tools { gap: 8px; }
+.app-top-tools .hover-select .control-label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.app-top-tools .hover-select-button {
+  min-width: 0; margin: 0; height: 38px; padding: 0 12px 0 16px; border-radius: 999px; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); font: 500 0.88rem/1 var(--font-body);
+}
+.app-top-tools .hover-select-button:hover, .app-top-tools .hover-select-button[aria-expanded='true'] { border-color: var(--accent); }
+.app-top-tools .hover-select-list { left: auto; right: 0; }
+.app-top-tools .icon-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); }
+@media (min-width: 1101px) {
+  /* A little lower than before; brand and top bar still share one height so the title stays level. */
+  .app { --app-head-h: 118px; }
+  .app-brand { padding-top: 6px; padding-bottom: 8px; gap: 6px; }
+  .app-brand img { width: 150px; }
+  .app-title h1 { font-size: 1.55rem; }
+}
+@media (max-width: 760px) {
+  .app-crumb { display: none; }
+  .app-window-chip { margin-top: 2px; padding: 0 8px; font-size: 0.68rem; white-space: nowrap; }
+  .app-top-tools .hover-select-button, .app-top-tools .icon-btn { height: 44px; min-height: 44px; }
+  .app-top-tools .icon-btn { width: 44px; }
+}
+@media (max-width: 360px) { .app-window-chip { display: none; } }
+@media (max-width: 760px) {
+  /* With the programme menu too (ผลงานอาจารย์, level 2) four controls left no room for the title:
+     the controls take a second row under it. */
+  .app-top.app-top-many { flex-wrap: wrap; row-gap: 6px; }
+  .app-top.app-top-many .app-title { flex-basis: 100%; }
+  .app-top.app-top-many .app-top-tools { width: 100%; }
+  .app-top.app-top-many .app-top-tools .hover-select:first-child { flex: 1 1 auto; min-width: 0; }
+  .app-top.app-top-many .app-top-tools .hover-select:first-child .hover-select-button { width: 100%; justify-content: space-between; }
+}
