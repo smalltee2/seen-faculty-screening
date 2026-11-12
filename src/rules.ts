@@ -110,20 +110,29 @@ export function academicWindow(year: number): [string, string] {
   return [ym(year - 4, ACADEMIC_START_MONTH), ym(year + 1, ACADEMIC_START_MONTH - 1)]
 }
 
-/** Whether a work falls in the five years counted, and whether that rests on a missing month.
- *  Calendar: the work's year is Y−4 … Y. Academic: its month is June of Y−4 … May of Y+1; a work
- *  whose month no source gives is counted when its year could be inside (the two edge years
- *  included), and `monthUnknown` says so for an edge year. */
+/** The academic year a month belongs to: June of year Y to May of Y+1 is academic year Y. */
+export const academicYearOfMonth = (month: string): number => Number(month.slice(0, 4)) - (Number(month.slice(5, 7)) < ACADEMIC_START_MONTH ? 1 : 0)
+/** The academic year running on a date (the site's default evaluation year). */
+export const academicYearOf = (d: Date = new Date()): number => d.getFullYear() - (d.getMonth() + 1 < ACADEMIC_START_MONTH ? 1 : 0)
+
+/** The year a work is counted under: its calendar year, or with academic years the academic year of
+ *  its month. A work whose month no source gives goes under its own year, which counts it whenever
+ *  that year could be inside; one dated Y+1 goes under Y for the same reason (January–May of Y+1
+ *  belongs to academic year Y). null = no year. */
+export function periodYear(pub: Pick<Pub, 'year' | 'pubMonth'>, s: Settings): number | null {
+  if (s.period !== 'academic') return pub.year
+  if (pub.pubMonth) return academicYearOfMonth(pub.pubMonth)
+  if (pub.year === null) return null
+  return pub.year === s.year + 1 ? s.year : pub.year
+}
+
+/** Whether a work falls in the five years counted (period years Y−4 … Y), and whether that rests on
+ *  a missing month: with academic years, a work of an edge year (Y−4 or Y+1) with no known month. */
 export function inWindow(pub: Pick<Pub, 'year' | 'pubMonth'>, s: Settings): { in: boolean; monthUnknown: boolean } {
-  if (s.period !== 'academic') {
-    const [from, to] = windowYears(s.year)
-    return { in: pub.year !== null && pub.year >= from && pub.year <= to, monthUnknown: false }
-  }
-  const [start, end] = academicWindow(s.year)
-  if (pub.pubMonth) return { in: pub.pubMonth >= start && pub.pubMonth <= end, monthUnknown: false }
-  if (pub.year === null) return { in: false, monthUnknown: false }
-  const edge = pub.year === s.year - 4 || pub.year === s.year + 1
-  return { in: pub.year >= s.year - 4 && pub.year <= s.year + 1, monthUnknown: edge }
+  const y = periodYear(pub, s)
+  const inside = y !== null && y >= s.year - 4 && y <= s.year
+  const monthUnknown = s.period === 'academic' && inside && !pub.pubMonth && (pub.year === s.year - 4 || pub.year === s.year + 1)
+  return { in: inside, monthUnknown }
 }
 
 const TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -131,6 +140,18 @@ const TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค
 export function windowText(s: Settings): string {
   if (s.period !== 'academic') return windowYears(s.year).join('–')
   return academicWindow(s.year).map((x) => `${TH_MONTH[Number(x.slice(5)) - 1]} ${x.slice(0, 4)}`).join(' – ')
+}
+
+/** "ปีการศึกษา 2569" or "พ.ศ. 2569": how the evaluation year (or another year) is named on the site. */
+export const yearName = (s: Settings, year: number = s.year): string => `${s.period === 'academic' ? 'ปีการศึกษา' : 'พ.ศ.'} ${year + 543}`
+/** The short form used inside sentences: "ปีการศึกษา 2569" or "ปี 2569". */
+export const yearShort = (s: Settings, year: number = s.year): string => `${s.period === 'academic' ? 'ปีการศึกษา' : 'ปี'} ${year + 543}`
+/** The five years counted, as the site words them: "พ.ศ. 2565–2569", or
+ *  "ปีการศึกษา 2565–2569 (มิ.ย. 2565 – พ.ค. 2570)". */
+export function periodName(s: Settings): string {
+  const [from, to] = [s.year - 4 + 543, s.year + 543]
+  if (s.period !== 'academic') return `พ.ศ. ${from}–${to}`
+  return `ปีการศึกษา ${from}–${to} (${TH_MONTH[ACADEMIC_START_MONTH - 1]} ${from} – ${TH_MONTH[ACADEMIC_START_MONTH - 2]} ${to + 1})`
 }
 
 const minTri = (...xs: Tri[]): Tri => (xs.includes('no') ? 'no' : xs.includes('maybe') ? 'maybe' : 'yes')
@@ -412,7 +433,7 @@ export function evaluatePerson(p: Faculty, pubs: Pub[], s: Settings): PersonResu
 /** Roles met this year that would not be met next year if no new output appears:
  *  the oldest year leaves the window and nothing new enters it. */
 export function nextYearRisk(r: PersonResult, s: Settings): RoleSpec[] {
-  const known = r.pubs.filter((p) => p.year === null || p.year <= s.year)
+  const known = r.pubs.filter((p) => (periodYear(p, s) ?? -Infinity) <= s.year)
   const next = evaluatePerson(r.person, known, { ...s, year: s.year + 1 })
   return ROLES.filter((role) => r.roles[role.id].status === 'met' && next.roles[role.id].status !== 'met')
 }

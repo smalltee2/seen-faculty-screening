@@ -2,7 +2,7 @@
 // --c-journal / --c-proceeding / --c-poster, validated for colour-blind
 // separation in light and dark themes.
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
+import { nextYearRisk, periodYear, toBE, yearShort, type PersonResult, type Settings } from './rules'
 import type { Pub } from './types'
 import { SHOWN_ROLES, displayName, levelGroup, type LevelGroup, GROUP_SHORT } from './ui'
 import { journalLevel } from './tci'
@@ -95,10 +95,10 @@ export function PubsPerYear({ pubs, allPubs = pubs, settings, mode = 'type' }: {
   const years: number[] = []
   for (let y = Y - 9; y <= Y; y++) years.push(y)
   const rows = years.map((y) => {
-    const ofYear = pubs.filter((p) => p.year === y)
+    const ofYear = pubs.filter((p) => periodYear(p, settings) === y)
     const n: Record<string, number> = Object.fromEntries(SERIES.map((sr) => [sr.key, ofYear.filter(sr.match).length]))
     const counted = new Set(ofYear.map((p) => p.titleNorm))
-    const excluded = new Set(allPubs.filter((p) => p.year === y && !counted.has(p.titleNorm)).map((p) => p.titleNorm)).size
+    const excluded = new Set(allPubs.filter((p) => periodYear(p, settings) === y && !counted.has(p.titleNorm)).map((p) => p.titleNorm)).size
     return { y, n, total: SERIES.reduce((a, sr) => a + n[sr.key], 0), excluded }
   })
   // 15% headroom so the bar totals never collide with the window label.
@@ -140,7 +140,7 @@ export function PubsPerYear({ pubs, allPubs = pubs, settings, mode = 'type' }: {
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={mode === 'quality' ? 'จำนวนผลงานต่อปีแยกตามคุณภาพ' : 'จำนวนผลงานต่อปีแยกตามประเภท'}>
         <rect className="window-band" x={winX} y={m.t - 14 - dy} width={band * 5 + dx} height={ih + 14 + dy + ph + 2} rx={8} />
         <text className="window-label" x={winX + band * 2.5} y={m.t - 4 - dy} textAnchor="middle">
-          ช่วงประเมิน {toBE(Y - 4)}–{toBE(Y)}
+          ช่วงประเมิน {settings.period === 'academic' ? 'ปีการศึกษา ' : ''}{toBE(Y - 4)}–{toBE(Y)}
         </text>
         {ticks(max).map((t) => (
           <g key={t}>
@@ -463,21 +463,21 @@ export function LecturerOutputs({ results, settings, group, view }: { results: P
                       ))}
                       {x.maybe > 0 && <span>ยังไม่แน่ใจ {x.maybe}</span>}
                       <span className="muted">
-                        ปี {toBE(settings.year - 4)}–{toBE(settings.year)}
+                        {settings.period === 'academic' ? 'ปีการศึกษา' : 'ปี'} {toBE(settings.year - 4)}–{toBE(settings.year)}
                       </span>
                       {x.failed > 0 && (
                         <span className="tip-fail">
-                          ✗ ปี {toBE(settings.year)} ไม่ผ่าน ({lvl}) {x.failed} จาก {roles.length} หน้าที่
+                          ✗ {yearShort(settings)} ไม่ผ่าน ({lvl}) {x.failed} จาก {roles.length} หน้าที่
                         </span>
                       )}
                       {x.review > 0 && (
                         <span className="tip-risk">
-                          ? ปี {toBE(settings.year)} รอตรวจสอบ ({lvl}) {x.review} จาก {roles.length} หน้าที่
+                          ? {yearShort(settings)} รอตรวจสอบ ({lvl}) {x.review} จาก {roles.length} หน้าที่
                         </span>
                       )}
                       {x.risk.length > 0 && (
                         <span className="tip-risk">
-                          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน ({lvl}): {x.risk.map((role) => role.clause).join(', ')}
+                          ⚠︎ ถ้า{yearShort(settings, settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน ({lvl}): {x.risk.map((role) => role.clause).join(', ')}
                         </span>
                       )}
                     </>,

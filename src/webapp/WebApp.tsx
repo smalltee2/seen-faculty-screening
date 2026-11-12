@@ -9,7 +9,7 @@
 // pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import raw from '../generated/data.json'
-import { evaluatePerson, toBE, type Settings } from '../rules'
+import { academicYearOf, evaluatePerson, periodName, toBE, windowText, yearName, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
 import { DemoBanner } from '../demoNotice' // DEMO-NOTICE
@@ -39,7 +39,8 @@ import { useStoredChoice } from './storedChoice'
 import { labelTables } from './tableLabels'
 
 const data = raw as unknown as DataBundle
-const CURRENT_YEAR = new Date().getFullYear()
+// The evaluation year is the academic year running today (June–May; Tum, 2026-11-12).
+const CURRENT_YEAR = academicYearOf()
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
 /** What the two admin levels are called on this page (Tum, 2026-11-11); sfs.html keeps "ผู้ดูแลระดับ 1/2". */
@@ -134,7 +135,7 @@ export function WebApp() {
     const v = new URLSearchParams(window.location.search).get('topbg')
     return PATTERNS.some((p) => p.id === v) ? (v as PatternId) : null
   }, [])
-  const [settings, setSettings] = useState<Settings>({ year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' })
+  const [settings, setSettings] = useState<Settings>({ year: CURRENT_YEAR, period: 'academic', countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' })
   const site = useSiteData()
   const results = useMemo(() => data.faculty.map((f) => evaluatePerson(f, site.pubs, settings)), [site.pubs, settings])
 
@@ -372,8 +373,10 @@ export function WebApp() {
             )}
             <div className="app-title-row">
               <h1>{title}</h1>
-              <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี ค.ศ. ${settings.year - 4}–${settings.year}`}>
-                <span className="app-window-word">ช่วงผลงาน</span>พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)}
+              <span className="app-window-chip" title={`ช่วงผลงาน 5 ปี: ${periodName(settings)} (ค.ศ. ${windowText(settings)})`}>
+                <span className="app-window-word">ช่วงผลงาน</span>
+                <span className={`app-window-unit${settings.period === 'academic' ? ' app-window-unit-long' : ''}`}>{settings.period === 'academic' ? 'ปีการศึกษา' : 'พ.ศ.'}</span>
+                {toBE(settings.year - 4)}–{toBE(settings.year)}
               </span>
             </div>
           </div>
@@ -391,7 +394,7 @@ export function WebApp() {
               id="app-year"
               label="ปีที่ประเมิน"
               value={String(settings.year)}
-              options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: `พ.ศ. ${toBE(y)}` }))}
+              options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: yearName(settings, y) }))}
               onChange={(v) => setSettings({ ...settings, year: Number(v) })}
             />
             {/* Sign-in status and sign-out, moved from the side menu (Tum, 2026-11-11). */}

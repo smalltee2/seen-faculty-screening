@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { HoverSelect } from './HoverSelect'
 import raw from './generated/data.json'
-import { evaluatePerson, toBE, type Settings } from './rules'
+import { academicYearOf, evaluatePerson, periodName, yearName, type Settings } from './rules'
 import { DemoBanner } from './demoNotice' // DEMO-NOTICE
 import type { DataBundle } from './types'
 import { useSiteData } from './siteData'
@@ -19,7 +19,8 @@ import { BackToTop, ThemeToggle, useScrolled } from './ThemeToggle'
 const data = raw as unknown as DataBundle
 // Shown at the top right of the header; data.builtAt is written by scripts/build-data.mjs at build time.
 const UPDATED_AT = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date(data.builtAt))
-const CURRENT_YEAR = new Date().getFullYear()
+// The evaluation year is the academic year running today (June–May; Tum, 2026-11-12).
+const CURRENT_YEAR = academicYearOf()
 /** True on sfs.html (the page for real use), whose <html> carries data-years="current-next" (scripts/build-personal.mjs). */
 const REAL_USE = document.documentElement.dataset.years === 'current-next'
 const ANNOUNCEMENT_URL = 'https://www.ops.go.th/en/content_page/download/1080/6943/16?method=view'
@@ -100,7 +101,8 @@ function loadSettings(): Settings {
     /* storage unavailable */
   }
   // Posters/abstracts always count (decision by the programme, 2026-11-05).
-  return { year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on' }
+  // The five years are counted by academic year, June to May (Tum, 2026-11-12).
+  return { year: CURRENT_YEAR, countPosters: true, strict: true, screenConferences: data.conferenceScreening === 'on', period: 'academic' }
 }
 
 export function App() {
@@ -210,7 +212,7 @@ export function App() {
             id="eval-year"
             label="ปีที่ประเมิน"
             value={String(settings.year)}
-            options={years.map((y) => ({ value: String(y), label: `พ.ศ.${toBE(y)} (${y})` }))}
+            options={years.map((y) => ({ value: String(y), label: yearName(settings, y) }))}
             onChange={(v) => setSettings({ ...settings, year: Number(v) })}
           />
           {adminView ? (
@@ -250,7 +252,7 @@ export function App() {
               <div className="control">
                 <span className="control-label">ช่วงผลงาน 5 ปี</span>
                 <span className="control-value">
-                  {toBE(settings.year - 4)}–{toBE(settings.year)} <span className="muted">({settings.year - 4}–{settings.year})</span>
+                  {periodName(settings)}
                 </span>
               </div>
               <div className="control">

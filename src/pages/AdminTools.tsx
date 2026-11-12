@@ -7,7 +7,7 @@ import type { FormCancelItem } from '../formCancel'
 import { KIND_TH, buildHistory, fetchDecisionLog, type DecisionLogItem, type HistoryEntry, type HistoryKind } from '../history'
 import type { Notice } from '../notify'
 import { leavingWorks, outlook } from '../outlook'
-import { toBE, type PersonResult, type Settings } from '../rules'
+import { toBE, yearName, type PersonResult, type Settings } from '../rules'
 import type { Submission } from '../submissions'
 import type { Faculty } from '../types'
 import { SHOWN_ROLES, Segmented, displayName, roleShort } from '../ui'
@@ -185,12 +185,12 @@ export function OutlookPage({ results, settings }: { results: PersonResult[]; se
       <div className="section-head">
         <div>
           <h1>
-            แนวโน้ม 1–2 ปีข้างหน้า <small className="title-hint">ปีประเมิน พ.ศ. {toBE(settings.year + 1)} และ {toBE(settings.year + 2)}</small>
+            แนวโน้ม 1–2 ปีข้างหน้า <small className="title-hint">ปีประเมิน {yearName(settings, settings.year + 1)} และ {toBE(settings.year + 2)}</small>
           </h1>
         </div>
       </div>
       <p className="note outlook-note">
-        อาจารย์ที่ผ่านเกณฑ์ปี พ.ศ. {toBE(settings.year)} แต่จะไม่ผ่านเมื่อผลงานเก่าพ้นช่วง 5 ปี (<b>สมมติไม่มีผลงานใหม่</b> เกณฑ์เดียวกับหน้าข้อมูลอาจารย์)
+        อาจารย์ที่ผ่านเกณฑ์{settings.period === 'academic' ? '' : 'ปี '}{yearName(settings)} แต่จะไม่ผ่านเมื่อผลงานเก่าพ้นช่วง 5 ปี (<b>สมมติไม่มีผลงานใหม่</b> เกณฑ์เดียวกับหน้าข้อมูลอาจารย์)
         · "ต้องเพิ่ม" = จำนวนผลงานขั้นต่ำที่ต้องเพิ่มในปีนั้น
       </p>
       <div className="register-tools no-print">

@@ -4,7 +4,7 @@
 // no e-mail address is ever in the public site; it keeps a log the site reads ("noticeList").
 import { DEMO_BODY_LINE, DEMO_SUBJECT_TAG, isDemoPerson } from './demoNotice' // DEMO-NOTICE
 import { api, sessionStore } from './emailLogin'
-import { ROLES, nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
+import { ROLES, nextYearRisk, periodName, toBE, windowText, yearName, type PersonResult, type Settings } from './rules'
 import { SHOWN_ROLES, displayName, isShownLevel } from './ui'
 
 export type NoticeKind = 'fail' | 'risk'
@@ -46,17 +46,17 @@ const levelTh = (level: string) => (level === 'ba' ? 'ปริญญาตร�
 /** Subject and body of the reminder, built from the lecturer's own result (plain text, Thai). */
 export function buildNotice(r: PersonResult, settings: Settings, kind: NoticeKind): { subject: string; body: string } {
   const Y = toBE(settings.year)
-  const window = `พ.ศ. ${toBE(settings.year - 4)}–${Y} (ค.ศ. ${settings.year - 4}–${settings.year})`
+  const window = settings.period === 'academic' ? `${periodName(settings)} (ค.ศ. ${windowText(settings)})` : `พ.ศ. ${toBE(settings.year - 4)}–${Y} (ค.ศ. ${settings.year - 4}–${settings.year})`
   const c = r.roles.ms_program.counts
   const name = displayName(r.person)
   const lines: string[] = [`เรียน ${name}`, '']
   if (kind === 'fail') {
     const failing = ROLES.filter((role) => isShownLevel(role.level) && r.roles[role.id].status === 'not_met')
-    lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ปีการประเมิน พ.ศ. ${Y} ท่านยังไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)
+    lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ปีการประเมิน ${yearName(settings)} ท่านยังไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)
     for (const role of failing) lines.push(`  • ${levelTh(role.level)} ข้อ ${role.clause} ${role.labelTh}: ${failReason(r.roles[role.id].reasons)}`)
   } else {
     const risk = nextYearRisk(r, settings).filter((role) => isShownLevel(role.level))
-    lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ ปัจจุบัน (พ.ศ. ${Y}) ท่านผ่านเกณฑ์ แต่หากไม่มีผลงานเพิ่มภายในปี พ.ศ. ${toBE(settings.year + 1)} จะไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)
+    lines.push(`จากการตรวจสอบคุณสมบัติอาจารย์ ปัจจุบัน (${yearName(settings)}) ท่านผ่านเกณฑ์ แต่หากไม่มีผลงานเพิ่มภายใน${settings.period === 'academic' ? '' : 'ปี '}${yearName(settings, settings.year + 1)} จะไม่ผ่านเกณฑ์ในหน้าที่ต่อไปนี้:`)
     for (const role of risk) lines.push(`  • ${levelTh(role.level)} ข้อ ${role.clause} ${role.labelTh}`)
   }
   lines.push('')
@@ -64,7 +64,7 @@ export function buildNotice(r: PersonResult, settings: Settings, kind: NoticeKin
   lines.push('ผลงานที่นับ ได้แก่ บทความในวารสาร และ proceedings/โปสเตอร์/บทคัดย่อในงานประชุมที่จัดโดยสมาคมวิชาการหรือวิชาชีพในสาขาสิ่งแวดล้อม/พลังงาน')
   lines.push('')
   lines.push('หากท่านมีผลงานที่ยังไม่ปรากฏในระบบ กรุณาเพิ่มได้ที่แถบ "ตรวจสอบคุณสมบัติของฉัน" (เข้าสู่ระบบด้วยอีเมล @up.ac.th) หรือแจ้งผู้ดูแลระบบของคณะ')
-  const subject = kind === 'fail' ? `[SEEN] แจ้งเตือน: คุณสมบัติอาจารย์ยังไม่ผ่านเกณฑ์บางหน้าที่ (พ.ศ. ${Y})` : `[SEEN] แจ้งเตือน: ปี พ.ศ. ${toBE(settings.year + 1)} อาจไม่ผ่านเกณฑ์หากไม่มีผลงานเพิ่ม`
+  const subject = kind === 'fail' ? `[SEEN] แจ้งเตือน: คุณสมบัติอาจารย์ยังไม่ผ่านเกณฑ์บางหน้าที่ (${yearName(settings)})` : `[SEEN] แจ้งเตือน: ${settings.period === 'academic' ? '' : 'ปี '}${yearName(settings, settings.year + 1)} อาจไม่ผ่านเกณฑ์หากไม่มีผลงานเพิ่ม`
   if (isDemoPerson(r.person.nameEn)) return { subject: DEMO_SUBJECT_TAG + subject, body: [DEMO_BODY_LINE, '', ...lines].join('\n') } // DEMO-NOTICE
   return { subject, body: lines.join('\n') }
 }

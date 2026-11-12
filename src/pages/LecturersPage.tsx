@@ -3,7 +3,9 @@ import {
   LEVELS,
   ROLES,
   nextYearRisk,
-  toBE,
+  periodName,
+  yearName,
+  yearShort,
   type PersonResult,
   type Settings,
   type Status,
@@ -149,7 +151,7 @@ export function LecturersPage({
         x.research + x.other,
         x.maybe,
         `≥ ${g.rule}`,
-        x.failed > 0 ? `ไม่ผ่าน ${x.failed} หน้าที่` : x.review > 0 ? `รอตรวจสอบ ${x.review} หน้าที่` : x.risk.length > 0 ? `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน` : "ผ่าน",
+        x.failed > 0 ? `ไม่ผ่าน ${x.failed} หน้าที่` : x.review > 0 ? `รอตรวจสอบ ${x.review} หน้าที่` : x.risk.length > 0 ? `${yearShort(settings, settings.year + 1)} อาจไม่ผ่าน` : "ผ่าน",
       ]),
     );
   };
@@ -184,8 +186,7 @@ export function LecturersPage({
       <div className="print-only print-header">
         <h1>คุณสมบัติอาจารย์รายบุคคล</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ.{" "}
-          {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร และ
+          ปีที่ประเมิน {yearName(settings)} · ช่วงผลงาน {periodName(settings)} · นับวารสาร และ
           proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด
         </p>
       </div>
@@ -252,7 +253,7 @@ export function LecturersPage({
                 { id: "not_met", label: "มีหน้าที่ไม่ผ่าน" },
                 {
                   id: "risk",
-                  label: `ปี ${toBE(settings.year + 1)} อาจไม่ผ่าน`,
+                  label: `${yearShort(settings, settings.year + 1)} อาจไม่ผ่าน`,
                 },
               ]}
             />
@@ -363,7 +364,7 @@ function PersonCard({
           className="risk-note fail-note"
           title={failing.map((x) => `${x.clause} ${x.labelTh}`).join("\n")}
         >
-          ✗ ปี {toBE(settings.year)} ไม่ผ่าน ({groupsOf(failing.map((x) => x.level))}){" "}
+          ✗ {yearShort(settings)} ไม่ผ่าน ({groupsOf(failing.map((x) => x.level))}){" "}
           {failing.length} หน้าที่
         </div>
       )}
@@ -372,7 +373,7 @@ function PersonCard({
           className="risk-note"
           title={risk.map((x) => `${x.clause} ${x.labelTh}`).join("\n")}
         >
-          ⚠︎ ถ้าปี {toBE(settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน (
+          ⚠︎ ถ้า{yearShort(settings, settings.year + 1)} ไม่มีผลงานเพิ่ม จะไม่ผ่าน (
           {groupsOf(risk.map((x) => x.level))}) {risk.length} หน้าที่
         </div>
       )}
@@ -504,7 +505,7 @@ function MatrixTable({
                           .map((x) => `${x.clause} ${x.labelTh}`)
                           .join("\n")}
                       >
-                        ⚠︎ ปี {toBE(settings.year + 1)} อาจไม่ผ่าน (
+                        ⚠︎ {yearShort(settings, settings.year + 1)} อาจไม่ผ่าน (
                         {groupsOf(risk.map((x) => x.level))}) {risk.length} หน้าที่
                       </div>
                     )}

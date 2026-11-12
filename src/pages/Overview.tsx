@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { countedWorks, nextYearRisk, programmeCheck, toBE, type PersonResult, type ProgrammeCheck, type Settings } from '../rules'
+import { countedWorks, inWindow, nextYearRisk, periodName, periodYear, programmeCheck, toBE, yearName, type PersonResult, type ProgrammeCheck, type Settings } from '../rules'
 import { LecturerOutputs, PubsPerYear, ReadinessPie, YEAR_SERIES, type OutputsView, type YearMode } from '../charts'
 import { LEVEL_GROUPS, SHOWN_LEVELS, SHOWN_ROLES, Segmented, StatusBar, StatusChip, isShownLevel, levelGroup, roleShort, type LevelGroup } from '../ui'
 
@@ -7,7 +7,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
   // One list for the banner, the per-year chart and its table: each work once, counted works only.
   const works = countedWorks(results, settings)
   const allPubs = results.flatMap((r) => r.pubs)
-  const countedPubs = works.filter((p) => p.year !== null && p.year >= settings.year - 4 && p.year <= settings.year).length
+  const countedPubs = works.filter((p) => inWindow(p, settings).in).length
   const checks = SHOWN_LEVELS.map((l) => programmeCheck(l.id, results))
   const [ba, ms, phd] = checks
   const [yearMode, setYearMode] = useState<YearMode>('type')
@@ -25,14 +25,12 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <b className="mono">{n}</b> คน
     </>
   )
-  const Y = toBE(settings.year)
-
   return (
     <>
       <div className="print-only print-header">
         <h1>สรุปผลการคัดกรองคุณสมบัติอาจารย์</h1>
         <p>
-          ปีที่ประเมิน พ.ศ. {toBE(settings.year)} · ช่วงผลงาน พ.ศ. {toBE(settings.year - 4)}–{toBE(settings.year)} · นับวารสาร และ proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด ·
+          ปีที่ประเมิน {yearName(settings)} · ช่วงผลงาน {periodName(settings)} · นับวารสาร และ proceedings/โปสเตอร์จากการประชุมที่สมาคมวิชาการ/วิชาชีพด้านสิ่งแวดล้อมหรือพลังงานจัด ·
           พิมพ์เมื่อ {new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' })}
         </p>
       </div>
@@ -46,7 +44,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
       <div className="summary-row">
         <div className="finding">
         <p>
-          ปีการประเมิน พ.ศ. {Y} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
+          ปีการประเมิน {yearName(settings)} อาจารย์ <b className="mono">{fullyMet}</b> จาก <span className="mono">{results.length}</span> คน ผ่านเกณฑ์ครบทุกหน้าที่
         </p>
         <p>
           อาจารย์ทั้งคณะที่มีคุณสมบัติตามเกณฑ์มาตรฐานหลักสูตร ระดับปริญญาตรี จำนวน <b className="mono">{ba.metAll.length}</b> คน ระดับปริญญาโทจำนวน{' '}
@@ -72,7 +70,7 @@ export function Overview({ results, settings }: { results: PersonResult[]; setti
             )}
             {riskBa + riskGrad > 0 && (
               <p>
-                หากไม่มีผลงานเพิ่มในปี พ.ศ. {toBE(settings.year + 1)} จะมีอาจารย์ไม่ผ่านเพิ่ม ระดับปริญญาตรี <Count n={riskBa} filter="risk" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
+                หากไม่มีผลงานเพิ่มใน{settings.period === 'academic' ? '' : 'ปี '}{yearName(settings, settings.year + 1)} จะมีอาจารย์ไม่ผ่านเพิ่ม ระดับปริญญาตรี <Count n={riskBa} filter="risk" scope="ba" /> ระดับบัณฑิตศึกษา{' '}
                 <Count n={riskGrad} filter="risk" scope="grad" />
               </p>
             )}
@@ -200,7 +198,7 @@ function TypeSummary({ pubs, settings, mode }: { pubs: PersonResult['pubs']; set
   const years = Array.from({ length: 5 }, (_, i) => settings.year - 4 + i)
   const types = YEAR_SERIES[mode].map((sr) => ({ id: sr.key, cls: sr.cls, th: sr.th, match: sr.match }))
   const rows = types.map((t) => {
-    const perYear = years.map((y) => pubs.filter((p) => p.year === y && t.match(p)).length)
+    const perYear = years.map((y) => pubs.filter((p) => periodYear(p, settings) === y && t.match(p)).length)
     return { ...t, perYear, total: perYear.reduce((a, b) => a + b, 0) }
   })
   const colTotal = years.map((_, i) => rows.reduce((a, r) => a + r.perYear[i], 0))

@@ -599,6 +599,11 @@ body.is-resizing { cursor: col-resize; user-select: none; }
    (the full wording stays in its tooltip) instead of running under the menu. */
 @media (max-width: 760px) { .app-window-word { display: none; } }
 .app-window-word { margin-right: 0.3em; } /* the chip is a flex box, so a plain space would collapse */
+/* The unit before the years. "ปีการศึกษา" (2026-11-12) is too long beside the year menu on a phone,
+   so phones show the years alone: the menu beside the chip already says "ปีการศึกษา", and the
+   tooltip keeps the full wording. */
+.app-window-unit { margin-right: 0.3em; }
+@media (max-width: 760px) { .app-window-unit-long { display: none; } }
 
 /* Computers: logo and system name sized to sit with the 1.5 rem page title (Tum, 2026-11-11);
    the side menu widens from 272 to 324 px so the name stays on one line. */

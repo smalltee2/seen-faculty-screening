@@ -1,7 +1,7 @@
 // Outlook for the next evaluation years (Tum, 2026-11-10): which duties a lecturer meets this
 // year and stops meeting in year Y+1 or Y+2 as works leave the 5-year window, and how many works
 // short. Same engine and the same assumption as nextYearRisk in src/rules.ts: no new work appears.
-import { ROLES, evaluatePerson, windowYears, type PersonResult, type RoleSpec, type Settings } from './rules'
+import { ROLES, evaluatePerson, periodYear, type PersonResult, type RoleSpec, type Settings } from './rules'
 import type { Pub } from './types'
 
 export interface OutlookRole {
@@ -33,7 +33,7 @@ const outputLines = (reasons: string[]) => reasons.filter((x) => !x.startsWith('
 /** Duties in `roles` met in year Y and not met in one of the next `horizon` years. */
 export function outlookFor(r: PersonResult, s: Settings, horizon = 2, roles: RoleSpec[] = ROLES): OutlookRole[] {
   // Works dated after Y (already in press) would enter a later window; like nextYearRisk, leave them out.
-  const known = r.pubs.filter((p) => p.year === null || p.year <= s.year)
+  const known = r.pubs.filter((p) => (periodYear(p, s) ?? -Infinity) <= s.year)
   const out: OutlookRole[] = []
   const later = new Map<number, PersonResult>()
   for (const role of roles) {
@@ -47,14 +47,13 @@ export function outlookFor(r: PersonResult, s: Settings, horizon = 2, roles: Rol
       const c = then.counts
       const shortOutputs = role.researchOnly ? 0 : Math.max(0, role.minOutputs - c.total)
       const shortResearch = Math.max(0, (role.researchOnly ? role.minOutputs : role.minResearch) - c.research)
-      const [from] = windowYears(year)
       out.push({
         role,
         lostIn: year,
         shortOutputs,
         shortResearch,
         need: Math.max(shortOutputs, shortResearch),
-        leaving: now.used.map((e) => e.pub).filter((p) => p.year !== null && p.year < from),
+        leaving: now.used.map((e) => e.pub).filter((p) => { const y = periodYear(p, { ...s, year }); return y !== null && y < year - 4 }),
         path: now.path,
         reason: outputLines(then.reasons),
       })

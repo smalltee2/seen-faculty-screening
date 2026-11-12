@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { evaluatePub, toBE, type PersonResult, type Settings, rankFull } from '../rules'
+import { evaluatePub, inWindow, periodName, toBE, yearName, type PersonResult, type Settings, rankFull } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
 import { downloadCsv } from '../download'
 import { Button, SHOWN_LEVELS, SHOWN_ROLES, STATUS_LABEL, StatusChip, TYPE_LABEL, displayName, lecturersReturn, yearLabel } from '../ui'
@@ -15,18 +15,16 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
   const [allYears, setAllYears] = useState(false)
   if (!result) return <p>ไม่พบอาจารย์รายนี้{!personal && <> · <a href="#/">กลับหน้าภาพรวม</a></>}</p>
   const p = result.person
-  const [from, to] = [settings.year - 4, settings.year]
   // Screening view: list only outputs that count (journal, proceedings, poster); the rest are hidden.
   const inRange = result.pubs
     .map((pub) => evaluatePub(pub, p, settings))
-    .filter((e) => allYears || (e.pub.year !== null && e.pub.year >= from && e.pub.year <= to))
+    .filter((e) => allYears || inWindow(e.pub, settings).in)
   // Conference papers that fail only the conference check stay visible (shown but not counted).
   const evals = inRange.filter((e) => e.eligible !== 'no' || (e.pub.conference && e.pub.conference.verdict !== 'count')).sort((a, b) => (b.pub.year ?? 0) - (a.pub.year ?? 0))
   const hidden = inRange.length - evals.length
   // The heading counts only works that count; conference papers shown but not counted are named apart.
-  const outsideRange = (y: number | null) => y === null || y < from || y > to
-  const counted = evals.filter((e) => e.eligible !== 'no' && !outsideRange(e.pub.year)).length
-  const confWaiting = evals.filter((e) => e.eligible === 'no' && !outsideRange(e.pub.year)).length
+  const counted = evals.filter((e) => e.eligible !== 'no' && inWindow(e.pub, settings).in).length
+  const confWaiting = evals.filter((e) => e.eligible === 'no' && inWindow(e.pub, settings).in).length
   const scholar = p.scholarId ? `https://scholar.google.com/citations?user=${encodeURIComponent(p.scholarId)}` : null
 
   const exportRoles = () =>
@@ -65,7 +63,7 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
       </dl>
 
       <div className="table-head">
-        <h2>ผลตามหน้าที่ (ปีที่ประเมิน พ.ศ. {toBE(settings.year)})</h2>
+        <h2>ผลตามหน้าที่ (ปีที่ประเมิน {yearName(settings)})</h2>
         <div className="actions no-print"><Button onClick={exportRoles}>ดาวน์โหลด CSV</Button></div>
       </div>
       {SHOWN_LEVELS.map((l) => (
@@ -96,7 +94,7 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
 
       <div className="table-head">
         <h2>
-          ผลงานที่นับ {allYears ? '(ทุกปี)' : `ในช่วง พ.ศ. ${toBE(from)}–${toBE(to)}`} · {allYears ? `${evals.length} รายการ (นับในช่วง 5 ปี ${counted})` : `${counted} รายการ`}
+          ผลงานที่นับ {allYears ? '(ทุกปี)' : `ในช่วง ${periodName(settings)}`} · {allYears ? `${evals.length} รายการ (นับในช่วง 5 ปี ${counted})` : `${counted} รายการ`}
           {confWaiting > 0 && <span className="muted"> (งานประชุมที่ยังไม่นับ {confWaiting})</span>}
         </h2>
         {hidden > 0 && <span className="muted small">ไม่แสดงผลงานที่ไม่เข้าเกณฑ์ {hidden} รายการ</span>}
@@ -112,7 +110,7 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
           </thead>
           <tbody>
             {evals.map((e) => {
-              const outside = outsideRange(e.pub.year)
+              const outside = !inWindow(e.pub, settings).in
               return (
                 <tr key={e.pub.id} className={e.eligible === 'no' || outside ? 'greyed' : ''}>
                   <td className="nowrap">{yearLabel(e.pub.year)}</td>

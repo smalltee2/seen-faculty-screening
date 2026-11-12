@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest'
 import raw from './generated/data.json'
 import { monthOfDate, preparePubs, pubMonthOf } from './classify'
-import { academicWindow, evaluatePerson, inWindow, windowText, type Settings } from './rules'
+import { academicWindow, academicYearOf, academicYearOfMonth, evaluatePerson, inWindow, nextYearRisk, periodName, periodYear, windowText, yearName, yearShort, type Settings } from './rules'
+import { buildNotice } from './notify'
+import { outlookFor } from './outlook'
 import type { DataBundle, RawPub } from './types'
 
 const cal: Settings = { year: 2026, countPosters: true, strict: true }
@@ -75,6 +77,54 @@ describe('five academic years', () => {
       for (const p of differ) expect([2021, 2022, 2027]).toContain(p.pubMonth ? Number(p.pubMonth.slice(0, 4)) : p.year)
       expect(a.roles.ms_program.window).toEqual([2022, 2027])
       expect(c.roles.ms_program.window).toEqual([2022, 2026])
+    }
+  })
+})
+
+describe('the academic year as the evaluation year of the site', () => {
+  it('runs from June to May', () => {
+    expect(academicYearOf(new Date(2026, 10, 12))).toBe(2026) // 12 Nov 2026 → ปีการศึกษา 2569
+    expect(academicYearOf(new Date(2027, 4, 31))).toBe(2026) // 31 May 2027 still 2569
+    expect(academicYearOf(new Date(2027, 5, 1))).toBe(2027) // 1 June 2027 → 2570
+    expect(academicYearOf(new Date(2026, 0, 1))).toBe(2025)
+    expect(academicYearOfMonth('2022-05')).toBe(2021)
+    expect(academicYearOfMonth('2022-06')).toBe(2022)
+    expect(academicYearOfMonth('2027-01')).toBe(2026)
+  })
+  it('gives each work the year it is counted under', () => {
+    expect(periodYear({ year: 2022, pubMonth: '2022-03' }, aca)).toBe(2021)
+    expect(periodYear({ year: 2022, pubMonth: '2022-09' }, aca)).toBe(2022)
+    expect(periodYear({ year: 2022 }, aca)).toBe(2022) // month unknown: its own year
+    expect(periodYear({ year: 2027 }, aca)).toBe(2026) // month unknown in Y+1: counted under Y
+    expect(periodYear({ year: 2027, pubMonth: '2027-08' }, aca)).toBe(2027)
+    expect(periodYear({ year: null }, aca)).toBeNull()
+    expect(periodYear({ year: 2022, pubMonth: '2022-03' }, cal)).toBe(2022) // calendar: the year as it is
+  })
+  it('words the year and the five years for each way of counting', () => {
+    expect(yearName(aca)).toBe('ปีการศึกษา 2569')
+    expect(yearName(cal)).toBe('พ.ศ. 2569')
+    expect(yearShort(aca, 2027)).toBe('ปีการศึกษา 2570')
+    expect(yearShort(cal, 2027)).toBe('ปี 2570')
+    expect(periodName(aca)).toBe('ปีการศึกษา 2565–2569 (มิ.ย. 2565 – พ.ค. 2570)')
+    expect(periodName(cal)).toBe('พ.ศ. 2565–2569')
+  })
+  it('uses the same five years in the reminder e-mail, the risk for next year and the outlook', () => {
+    const data = raw as unknown as DataBundle
+    const pubs = preparePubs(data.publications, data.overrides, data.conferences ?? [], data.crossref ?? [])
+    const s = { ...aca, screenConferences: data.conferenceScreening === 'on' }
+    for (const f of data.faculty) {
+      const r = evaluatePerson(f, pubs, s)
+      const { subject, body } = buildNotice(r, s, 'fail')
+      expect(subject).toContain('(ปีการศึกษา 2569)')
+      expect(body).toContain('ปีการศึกษา 2565–2569 (มิ.ย. 2565 – พ.ค. 2570) (ค.ศ. มิ.ย. 2022 – พ.ค. 2027)')
+      expect(body).toContain(`: ${r.roles.ms_program.counts.total} เรื่อง`)
+      expect(buildNotice(r, s, 'risk').subject).toContain('ปีการศึกษา 2570 อาจไม่ผ่าน')
+      // A duty at risk next year is one the outlook also reports as lost in 2570.
+      const risk = new Set(nextYearRisk(r, s).map((x) => x.id))
+      const lost = new Set(outlookFor(r, s, 1).filter((o) => o.lostIn === 2027).map((o) => o.role.id))
+      expect(lost).toEqual(risk)
+      // Works leaving next year were published before June 2566.
+      for (const o of outlookFor(r, s, 1)) for (const p of o.leaving) expect(periodYear(p, { ...s, year: 2027 })).toBeLessThan(2023)
     }
   })
 })
