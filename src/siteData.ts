@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import raw from './generated/data.json'
 import { preparePubs } from './classify'
+import { demoNoticeOn, demoPubs } from './demoNotice' // DEMO-NOTICE
 import type { ConferenceEntry, DataBundle, RawPub } from './types'
 import { fetchLiveManual } from './liveManual'
 import { approvedRows, dropUnapproved, fetchSubmissions, type Submission } from './submissions'
@@ -74,6 +75,7 @@ export function useSiteData(extraConfItems: ConfDecisionItem[] = NONE) {
   // Bundled Scholar imports undone since the build are dropped too.
   const keptBundled = useMemo(() => dropCancelledForms(dropRemovedScholar(dropUnapproved(bundledRows, submissions), scholarItems), cancelKeys), [submissions, scholarItems, cancelKeys])
   const keptLive = useMemo(() => dropCancelledForms(liveRows, cancelKeys), [liveRows, cancelKeys])
-  const pubs = useMemo(() => makePubs(keptBundled, [...keptLive, ...selfRows, ...scholarRows], conferences), [keptBundled, keptLive, selfRows, scholarRows, conferences])
+  const allPubs = useMemo(() => makePubs(keptBundled, [...keptLive, ...selfRows, ...scholarRows], conferences), [keptBundled, keptLive, selfRows, scholarRows, conferences])
+  const pubs = useMemo(() => (demoNoticeOn() ? demoPubs(allPubs) : allPubs), [allPubs]) // DEMO-NOTICE: remove, and name allPubs pubs again
   return { pubs, submissions, refreshSubmissions, scholarItems, refreshScholar, confItems, refreshConf, conferences, notices, refreshNotices, formCancels, refreshFormCancels, cancelled }
 }

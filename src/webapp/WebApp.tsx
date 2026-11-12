@@ -12,6 +12,7 @@ import raw from '../generated/data.json'
 import { evaluatePerson, toBE, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
+import { DemoBanner } from '../demoNotice' // DEMO-NOTICE
 import { HoverSelect } from '../HoverSelect'
 import { ThemeToggle, useScrolled } from '../ThemeToggle'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from '../adminGate'
@@ -248,6 +249,7 @@ export function WebApp() {
 
   return (
     <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}`}>
+      <DemoBanner />{/* DEMO-NOTICE */}
       <a className="skip-link" href="#app-main">
         ข้ามไปที่เนื้อหา
       </a>

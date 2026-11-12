@@ -2,6 +2,7 @@
 // sent from the lecturer list by a level-2 admin (Tum, 2026-11-07). The login backend
 // (apps-script/Code.gs, action "notify") looks the address up in its private users sheet, so
 // no e-mail address is ever in the public site; it keeps a log the site reads ("noticeList").
+import { DEMO_BODY_LINE, DEMO_SUBJECT_TAG, isDemoPerson } from './demoNotice' // DEMO-NOTICE
 import { api, sessionStore } from './emailLogin'
 import { ROLES, nextYearRisk, toBE, type PersonResult, type Settings } from './rules'
 import { SHOWN_ROLES, displayName, isShownLevel } from './ui'
@@ -64,6 +65,7 @@ export function buildNotice(r: PersonResult, settings: Settings, kind: NoticeKin
   lines.push('')
   lines.push('หากท่านมีผลงานที่ยังไม่ปรากฏในระบบ กรุณาเพิ่มได้ที่แถบ "ตรวจสอบคุณสมบัติของฉัน" (เข้าสู่ระบบด้วยอีเมล @up.ac.th) หรือแจ้งผู้ดูแลระบบของคณะ')
   const subject = kind === 'fail' ? `[SEEN] แจ้งเตือน: คุณสมบัติอาจารย์ยังไม่ผ่านเกณฑ์บางหน้าที่ (พ.ศ. ${Y})` : `[SEEN] แจ้งเตือน: ปี พ.ศ. ${toBE(settings.year + 1)} อาจไม่ผ่านเกณฑ์หากไม่มีผลงานเพิ่ม`
+  if (isDemoPerson(r.person.nameEn)) return { subject: DEMO_SUBJECT_TAG + subject, body: [DEMO_BODY_LINE, '', ...lines].join('\n') } // DEMO-NOTICE
   return { subject, body: lines.join('\n') }
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { HoverSelect } from './HoverSelect'
 import raw from './generated/data.json'
 import { evaluatePerson, toBE, type Settings } from './rules'
+import { DemoBanner } from './demoNotice' // DEMO-NOTICE
 import type { DataBundle } from './types'
 import { useSiteData } from './siteData'
 import { Overview } from './pages/Overview'
@@ -165,6 +166,7 @@ export function App() {
 
   return (
     <>
+      <DemoBanner />{/* DEMO-NOTICE */}
       <a className="skip-link" href="#main">ข้ามไปที่เนื้อหา</a>
       <header className={`site-nav no-print${scrolled ? ' scrolled' : ''}`}>
         <div className="site-nav-inner">
