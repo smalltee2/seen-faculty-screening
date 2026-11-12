@@ -493,6 +493,10 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   .app-top.app-top-many .app-top-tools { width: 100%; }
   .app-top.app-top-many .app-top-tools .hover-select:first-child { flex: 1 1 auto; min-width: 0; }
   .app-top.app-top-many .app-top-tools .hover-select:first-child .hover-select-button { width: 100%; justify-content: space-between; }
+  /* That menu sits at the left edge: its list opens from the left, or names longer than the button
+     ran off the left side of the screen (Tum, 2026-11-13). Long names wrap. */
+  .app-top.app-top-many .app-top-tools .hover-select:first-child .hover-select-list { left: 0; right: auto; }
+  .app-top-tools .hover-select-list li { white-space: normal; overflow-wrap: anywhere; }
 }
 
 

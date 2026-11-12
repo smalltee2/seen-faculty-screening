@@ -12,7 +12,7 @@ import { failReason } from '../notify'
 import type { Submission } from '../submissions'
 
 const TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-const LEVEL_SHORT: Record<string, string> = { ba: 'ป.ตรี', ms: 'ป.โท', phd: 'ป.เอก', gd: 'ป.บัณฑิต', hgd: 'ป.บัณฑิตชั้นสูง' }
+export const LEVEL_SHORT: Record<string, string> = { ba: 'ป.ตรี', ms: 'ป.โท', phd: 'ป.เอก', gd: 'ป.บัณฑิต', hgd: 'ป.บัณฑิตชั้นสูง' }
 const SRC = { scholar: 'Scholar', openalex: 'OpenAlex', scopus: 'Scopus', tci: 'TCI', manual: 'แบบฟอร์ม' } as const
 
 /** "มิ.ย. 69" when the month is known, else the Buddhist year. */

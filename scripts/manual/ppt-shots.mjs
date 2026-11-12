@@ -197,6 +197,10 @@ try {
     await shot('m-person', { ...chair, hash: `person/${encodeURIComponent(EXAMPLE.nameEn)}` })
     const admin = { as: 'admin', width: 390, height: 844, scale: 2, mobile: true, blur: true }
     for (const page of ['inbox', 'forms', 'outlook', 'sources', 'history']) await shot(`m-admin-${page}`, { ...admin, hash: page })
+    // The programme menu, the history details and the outlook details opened (checks of the phone layout).
+    await shot('m-admin-menu', { ...admin, hash: 'lecturers', act: click('.app-top-tools .hover-select-button') })
+    await shot('m-admin-history-open', { ...admin, hash: 'history', act: click('.mme-work') })
+    await shot('m-admin-outlook-open', { ...admin, hash: 'outlook', act: click('.mme-work') })
   } else {
   // อาจารย์ทั่วไป
   await shot('g-overview', { hash: 'overview', marks: [[1, '#app-side a', 'ภาพรวม'], [2, '.app-window-chip'], [3, 'button', 'ปีการศึกษา 2569'], [4, 'button,a', 'เข้าสู่ระบบผู้ดูแล'], [5, 'p', 'ผ่านเกณฑ์ครบทุกหน้าที่'], [6, 'p', 'ยังไม่ผ่านเกณฑ์บางหน้าที่'], [7, '*', 'อาจารย์ทั้งหมด'], [8, '*', 'ผลงานรวมที่นับได้']] })

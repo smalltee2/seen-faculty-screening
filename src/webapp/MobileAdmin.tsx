@@ -8,6 +8,7 @@ import { toBE } from '../rules'
 import type { Faculty, Pub } from '../types'
 import { TYPE_LABEL, displayName, roleShort, yearLabel } from '../ui'
 import { initial } from './MobileLecturers'
+import { LEVEL_SHORT } from './MobileMe'
 
 /** Short names of the history groups for the chips. */
 export const KIND_SHORT: Record<HistoryKind, string> = { conference: 'งานประชุม', submission: 'อาจารย์เพิ่มเอง', form: 'แบบฟอร์ม', notice: 'อีเมล' }
@@ -64,7 +65,9 @@ export function MobileOutlook({ rows, year }: { rows: OutlookPerson[]; year: num
               <div className="mme-detail">
                 {p.roles.map((o) => (
                   <p key={o.role.id}>
-                    <b>{roleShort(o.role.id)}</b>{' '}
+                    <b>
+                      {LEVEL_SHORT[o.role.level] ?? o.role.level} · {roleShort(o.role.id)}
+                    </b>{' '}
                     <span className="muted">
                       {o.need > 0 ? `ต้องเพิ่ม ${o.need}${o.shortResearch > 0 ? ` (วิจัย ≥ ${o.shortResearch})` : ''}` : o.reason || '—'}
                       {o.path === 'new_grad' && ' · ข้อยกเว้นผู้สำเร็จการศึกษาใหม่หมดอายุ'}
