@@ -841,18 +841,20 @@ function scholarJobUpdate(body) {
 // ALERT_EMAIL (Project Settings → Script Properties); without it the mail goes to the script owner.
 var STATUS_URL = SITE + 'status.json';
 var STALE_HOURS = 48;
-var STALE_WATCHED = ['build', 'scopus', 'openalex', 'forms']; // Scholar is refreshed by hand
+var STALE_WATCHED = ['build', 'scopus', 'openalex', 'forms', 'tci', 'crossref']; // Scholar is refreshed by hand
 var STALE_LABEL = {
   build: 'การสร้างเว็บ (GitHub Actions)',
   scopus: 'Scopus (งานบน iMac 07:30)',
   openalex: 'OpenAlex (GitHub Actions 03:00)',
   forms: 'Google Form (GitHub Actions ทุกชั่วโมง)',
+  tci: 'TCI วารสารไทย (GitHub Actions 03:00)',
+  crossref: 'Crossref (GitHub Actions 03:00)',
 };
 
 /** Pure: the watched sources that are stale. status = parsed status.json; nowMs = Date.now(). */
 function staleSources(status, nowMs) {
   var f = (status && status.freshness) || {};
-  var times = { build: status && status.builtAt, scopus: f.scopus, openalex: f.openalex, forms: f.forms };
+  var times = { build: status && status.builtAt, scopus: f.scopus, openalex: f.openalex, forms: f.forms, tci: f.tci, crossref: f.crossref };
   var out = [];
   STALE_WATCHED.forEach(function (key) {
     var t = typeof times[key] === 'string' ? Date.parse(times[key]) : NaN;

@@ -16,15 +16,21 @@ export const SOURCE_TH: Record<SourceKey, string> = {
   openalex: 'OpenAlex (ทุกวัน 03:00)',
   forms: 'แบบฟอร์มผู้ดูแล (Google Form ทุกชั่วโมง)',
   scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
+  // Added 2026-11-12, after the others so the stale list keeps the order of the backend's STALE_WATCHED.
+  tci: 'TCI วารสารไทย (ทุกวัน 03:00)',
+  crossref: 'Crossref รายละเอียดและเดือนตีพิมพ์ตาม DOI (ทุกวัน 03:00)',
 }
 
 /** Row order of the "แหล่งข้อมูล" list on the admin page: the four data sources. The site build is
  *  not listed (Tum, 2026-11-12); it is still watched, and its row appears only when it is stale, so
  *  the warning under the list always has the row it is about. */
-export const DISPLAY_ORDER: SourceKey[] = ['openalex', 'scopus', 'forms', 'scholar']
+export const DISPLAY_ORDER: SourceKey[] = ['openalex', 'scopus', 'tci', 'forms', 'scholar']
+/** Listed after them under "แหล่งข้อมูลเสริม": sources that add no works but fill in what the works carry
+ *  (Crossref: journal details and the month of publication, which counting by academic year reads). */
+export const SUPPORT_ORDER: SourceKey[] = ['crossref']
 
 /** Scholar is refreshed by hand (the "อัปเดตจาก Google Scholar" button), so its age is shown but never counts as stale. */
-export const WATCHED: SourceKey[] = ['build', 'scopus', 'openalex', 'forms']
+export const WATCHED: SourceKey[] = ['build', 'scopus', 'openalex', 'forms', 'tci', 'crossref']
 
 export interface SourceAge {
   key: SourceKey
@@ -41,6 +47,8 @@ export function sourceAges(builtAt: string, f: Freshness | undefined, now: numbe
     openalex: f?.openalex ?? null,
     forms: f?.forms ?? null,
     scholar: f?.scholar ?? null,
+    tci: f?.tci ?? null,
+    crossref: f?.crossref ?? null,
   }
   return (Object.keys(SOURCE_TH) as SourceKey[]).map((key) => {
     const at = times[key]

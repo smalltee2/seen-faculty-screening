@@ -934,6 +934,7 @@ async function fetchTciArticles(faculty) {
   if (tried && !ok) throw new Error('every TCI article search failed; data/tci_articles.tsv left unchanged')
   out.sort((a, b) => a.key.localeCompare(b.key) || Number(b.year) - Number(a.year) || String(a.tci_id).localeCompare(String(b.tci_id)))
   writeTsv(CONFIG.tciArticlesOut, TA_HEADER, out)
+  if (ok) stamp('tci')
   log(`TCI articles: ${out.length} rows (${added} new) for ${ok}/${tried} lecturers -> data/tci_articles.tsv`)
 }
 
@@ -1011,6 +1012,9 @@ async function fetchCrossref(refresh) {
   }
   const out = [...byDoi.values()].filter((r) => dois.has(r.doi.toLowerCase())).sort((a, b) => a.doi.localeCompare(b.doi))
   writeTsv(CONFIG.crossrefOut, CR_HEADER, out)
+  // Crossref answered, or there was nothing new to ask: the records are as current as they can be.
+  // A run in which every request failed writes no stamp.
+  if (ok || !failed) stamp('crossref')
   log(`Crossref: ${ok} fetched, ${failed} failed, ${out.length} DOIs in data/crossref.tsv`)
 }
 

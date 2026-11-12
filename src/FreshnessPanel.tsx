@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Freshness, NewWork } from './types'
 import { groupNewWorks, unseen } from './newWorks'
-import { DISPLAY_ORDER, SOURCE_TH, ageTh, sourceAges, type SourceAge, type SourceKey } from './freshness'
+import { DISPLAY_ORDER, SOURCE_TH, SUPPORT_ORDER, ageTh, sourceAges, type SourceAge, type SourceKey } from './freshness'
 
 /** Rows each source contributed to the bundle (before duplicates are merged). */
 export type SourceCounts = Partial<Record<SourceKey, number>>
@@ -29,7 +29,7 @@ export type NewWorksBySource = Partial<Record<SourceKey, NewWork[]>>
 export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, nameOf = (k) => k, seen, onOpen }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string; seen?: ReadonlySet<string>; onOpen?: (source: SourceKey) => void }) {
   const stale = ages.filter((a) => a.stale)
   const [open, setOpen] = useState<SourceKey | null>(null)
-  const rows = [...DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)), ages.find((a) => a.key === 'build' && a.stale)].filter((a): a is SourceAge => !!a)
+  const rows = [...DISPLAY_ORDER, ...SUPPORT_ORDER].map((k) => ages.find((a) => a.key === k)).concat(ages.find((a) => a.key === 'build' && a.stale)).filter((a): a is SourceAge => !!a)
   return (
     <div className="freshness">
       <dl className="source-list">
@@ -38,6 +38,7 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
           return (
             <div key={a.key} className={a.stale ? 'fresh-stale' : undefined}>
               <dt>
+                {a.key === SUPPORT_ORDER[0] && <span className="source-group muted small">แหล่งข้อมูลเสริม (ไม่เพิ่มรายการผลงาน)</span>}
                 <span className="source-name">
                   {SOURCE_TH[a.key]}
                   {/* New works in the last 7 days (Tum, 2026-11-11): a badge after the name; it opens the list. */}
@@ -65,7 +66,7 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
                   <span className="muted small">({ageTh(a.hours)})</span>
                   {a.stale && <strong className="fresh-flag"> ค้างเกิน 2 วัน</strong>}
                 </span>
-                {n !== undefined && <span className="fresh-count mono">จำนวน {n} รายการ</span>}
+                {n !== undefined && <span className="fresh-count mono">จำนวน {n} {a.key === 'crossref' ? 'DOI' : 'รายการ'}</span>}
               </dd>
               {open === a.key && <NewWorksList id={`new-${a.key}`} groups={groupNewWorks(newWorks[a.key])} nameOf={nameOf} />}
             </div>
@@ -135,6 +136,8 @@ export function FreshnessPanel({ builtAt, freshness, counts, actions, newWorks, 
     openalex: freshness?.openalex ?? null,
     scholar: freshness?.scholar ?? null,
     forms: freshness?.forms ?? published?.forms ?? null,
+    tci: freshness?.tci ?? null,
+    crossref: freshness?.crossref ?? null,
   }
   return <FreshnessList ages={sourceAges(builtAt, merged, Date.now())} counts={counts} actions={actions} newWorks={newWorks} nameOf={nameOf} seen={seen} onOpen={onOpen} />
 }

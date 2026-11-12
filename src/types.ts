@@ -66,11 +66,14 @@ export interface Freshness {
   openalex: string | null
   scholar: string | null
   forms: string | null
+  /** TCI article search and Crossref (2026-11-12); absent in a bundle built before they were stamped. */
+  tci?: string | null
+  crossref?: string | null
 }
 
 export interface DataBundle {
   /** Works new in each source in the last 7 days (scripts/new-works.mjs), newest first. */
-  newWorks?: Partial<Record<'openalex' | 'scopus' | 'forms' | 'scholar', NewWork[]>>
+  newWorks?: Partial<Record<'openalex' | 'scopus' | 'tci' | 'forms' | 'scholar', NewWork[]>>
   builtAt: string
   freshness?: Freshness
   sources: {

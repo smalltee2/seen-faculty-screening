@@ -161,7 +161,7 @@ export function WebApp() {
   const atRisk = useMemo(() => (level === 2 ? outlook(results, settings, 2, SHOWN_ROLES).length : 0), [results, settings, level])
   // Green counts are works not opened yet in this browser (Tum: "หายเมื่อเปิดดู"); opening a source's
   // list in แหล่งข้อมูl, or the form-works page, marks them as seen.
-  const NEW_SRC = ['openalex', 'scopus', 'forms', 'scholar'] as const
+  const NEW_SRC = ['openalex', 'scopus', 'tci', 'forms', 'scholar'] as const
   const newIds = useMemo(() => NEW_SRC.flatMap((src) => groupNewWorks(data.newWorks?.[src]).map(newWorkId)), [])
   const [seenNew, markSeen] = useSeenNew(newIds)
   const newCount = (src: (typeof NEW_SRC)[number]) => unseen(groupNewWorks(data.newWorks?.[src]), seenNew).length
@@ -502,6 +502,8 @@ export function WebApp() {
                       counts={{
                         openalex: data.publications.filter((p) => p.source === 'openalex').length,
                         scopus: data.publications.filter((p) => p.source === 'scopus').length,
+                        tci: data.publications.filter((p) => p.source === 'tci').length,
+                        crossref: data.crossref?.length ?? 0,
                         forms: data.publications.filter((p) => p.source === 'manual').length,
                         scholar: data.publications.filter((p) => (p.source ?? 'scholar') === 'scholar').length,
                       }}

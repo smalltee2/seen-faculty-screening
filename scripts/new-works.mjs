@@ -44,14 +44,15 @@ export function tsvRows(text) {
  * @param now      time given to rows that are in `current` but in no commit yet
  * @param bulk     a version adding more rows than this is a bulk load and counts as old; so do the
  *                 first rows of a lecturer who had none in the file before
+ * @param idOf     what makes two rows the same work (default: lecturer + title)
  * @returns the current rows that are new, each with `at`
  */
-export function firstSeen(baseline, versions, current, now, bulk = BULK_ROWS) {
+export function firstSeen(baseline, versions, current, now, bulk = BULK_ROWS, idOf = rowId) {
   const seen = new Map()
   const people = new Set(baseline.map((r) => r.key)) // lecturers that already had rows in this file
-  for (const r of baseline) seen.set(rowId(r), null)
+  for (const r of baseline) seen.set(idOf(r), null)
   for (const v of versions) {
-    const added = [...new Map(v.rows.map((r) => [rowId(r), r])).entries()].filter(([id]) => !seen.has(id))
+    const added = [...new Map(v.rows.map((r) => [idOf(r), r])).entries()].filter(([id]) => !seen.has(id))
     const bulkLoad = added.length > bulk // a bulk load joins the baseline
     for (const [id, r] of added) {
       // A lecturer's first rows in a file are their existing record arriving (a lecturer added to the
@@ -62,14 +63,14 @@ export function firstSeen(baseline, versions, current, now, bulk = BULK_ROWS) {
   }
   // Rows not committed yet (a refresh still in the working tree) go through the same two rules as a
   // commit, so a bulk load or a new lecturer's record is not listed as new works until it is pushed.
-  const pending = [...new Map(current.map((r) => [rowId(r), r])).entries()].filter(([id]) => !seen.has(id))
+  const pending = [...new Map(current.map((r) => [idOf(r), r])).entries()].filter(([id]) => !seen.has(id))
   const pendingBulk = pending.length > bulk
   for (const [id, r] of pending) seen.set(id, pendingBulk || !people.has(r.key) ? null : now)
   const out = []
   const done = new Set()
   for (const r of current) {
     if (!r.key || !normTitle(r.title)) continue // a broken line (no lecturer or no title) is not a work
-    const id = rowId(r)
+    const id = idOf(r)
     if (done.has(id)) continue
     done.add(id)
     const at = seen.get(id)
@@ -81,7 +82,7 @@ export function firstSeen(baseline, versions, current, now, bulk = BULK_ROWS) {
 const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
 
 /** New rows of one data file (path relative to `root`), or [] when git history is not available. */
-export function newRowsInFile(root, rel, days = NEW_DAYS, nowMs = Date.now()) {
+export function newRowsInFile(root, rel, days = NEW_DAYS, nowMs = Date.now(), idOf = undefined) {
   const file = join(root, rel)
   if (!existsSync(file)) return []
   const since = new Date(nowMs - days * 86400000).toISOString()
@@ -110,22 +111,28 @@ export function newRowsInFile(root, rel, days = NEW_DAYS, nowMs = Date.now()) {
     baseline = versions[0].rows
     versions = versions.slice(1)
   }
-  return firstSeen(baseline, versions, tsvRows(readFileSync(file, 'utf8')), new Date(nowMs).toISOString())
+  return firstSeen(baseline, versions, tsvRows(readFileSync(file, 'utf8')), new Date(nowMs).toISOString(), BULK_ROWS, idOf)
 }
 
 /** The sources as the admin page names them, and their files. */
 export const NEW_SOURCES = {
   openalex: ['data/openalex.tsv'],
   scopus: ['data/scopus.tsv'],
+  tci: ['data/tci_articles.tsv'],
   forms: ['data/manual.tsv'],
   scholar: ['data/publications.tsv', 'data/scholar_imports.tsv'],
+}
+/** A source whose rows carry their own id. A TCI row's title is chosen again on every fetch (it takes
+ *  the title another source uses for the same article), so its TCI id says whether it is new. */
+export const NEW_ROW_ID = {
+  'data/tci_articles.tsv': (r) => `${r.key}|tci:${r.tci_id}`,
 }
 
 /** { source: [{ at, key, title, year, venue, doi }] } newest first, for the data bundle. */
 export function newWorks(root, nowMs = Date.now()) {
   const out = {}
   for (const [source, files] of Object.entries(NEW_SOURCES)) {
-    const rows = files.flatMap((rel) => newRowsInFile(root, rel, NEW_DAYS, nowMs))
+    const rows = files.flatMap((rel) => newRowsInFile(root, rel, NEW_DAYS, nowMs, NEW_ROW_ID[rel]))
     rows.sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     out[source] = rows.slice(0, NEW_CAP).map((r) => ({ at: r.at, key: r.key, title: r.title, year: r.year, venue: r.venue, doi: r.doi ?? '' }))
   }

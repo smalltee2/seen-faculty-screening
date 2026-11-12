@@ -7,7 +7,7 @@ const by = (rows: ReturnType<typeof sourceAges>) => Object.fromEntries(rows.map(
 
 describe('sourceAges', () => {
   it('fresh sources are not stale', () => {
-    const r = by(sourceAges(h(1), { scopus: h(5), openalex: h(10), scholar: h(2), forms: h(0.5) }, now))
+    const r = by(sourceAges(h(1), { scopus: h(5), openalex: h(10), scholar: h(2), forms: h(0.5), tci: h(7), crossref: h(7) }, now))
     expect(Object.values(r).some((x) => x.stale)).toBe(false)
     expect(r.scopus.hours).toBe(5)
     expect(r.forms.hours).toBe(0)
@@ -28,11 +28,20 @@ describe('sourceAges', () => {
     expect(r.scholar.hours).toBe(24 * 90)
     expect(by(sourceAges(h(1), { scopus: h(1), openalex: h(1), scholar: null, forms: h(1) }, now)).scholar.stale).toBe(false)
   })
+  it('TCI and Crossref are watched like the other daily sources', () => {
+    const r = by(sourceAges(h(1), { scopus: h(1), openalex: h(1), scholar: h(1), forms: h(1), tci: h(STALE_HOURS + 1), crossref: h(STALE_HOURS) }, now))
+    expect(r.tci.stale).toBe(true)
+    expect(r.crossref.stale).toBe(false)
+    // A bundle built before they were stamped has no time for them: reported, like any missing stamp.
+    const old = by(sourceAges(h(1), { scopus: h(1), openalex: h(1), scholar: h(1), forms: h(1) }, now))
+    expect(old.tci).toMatchObject({ stale: true, hours: null })
+    expect(old.crossref).toMatchObject({ stale: true, hours: null })
+  })
   it('an old build is stale even when the stamps are fresh', () => {
     expect(by(sourceAges(h(72), { scopus: h(1), openalex: h(1), scholar: h(1), forms: h(1) }, now)).build.stale).toBe(true)
   })
   it('a bundle without freshness (older build) reports every watched source', () => {
-    expect(sourceAges(h(1), undefined, now).filter((x) => x.stale).map((x) => x.key)).toEqual(['scopus', 'openalex', 'forms'])
+    expect(sourceAges(h(1), undefined, now).filter((x) => x.stale).map((x) => x.key)).toEqual(['scopus', 'openalex', 'forms', 'tci', 'crossref'])
   })
   it('a stamp in the future (clock skew) counts as 0 hours', () => {
     expect(by(sourceAges(h(-3), undefined, now)).build.hours).toBe(0)
@@ -62,8 +71,8 @@ describe('Code.gs staleSources agrees with sourceAges', () => {
   }
   const gs = ctx.staleSources
   const cases = [
-    { builtAt: h(1), freshness: { scopus: h(5), openalex: h(10), scholar: h(2), forms: h(1) } },
-    { builtAt: h(1), freshness: { scopus: h(49), openalex: h(48), scholar: h(999), forms: h(1) } },
+    { builtAt: h(1), freshness: { scopus: h(5), openalex: h(10), scholar: h(2), forms: h(1), tci: h(3), crossref: h(3) } },
+    { builtAt: h(1), freshness: { scopus: h(49), openalex: h(48), scholar: h(999), forms: h(1), tci: h(49), crossref: h(48) } },
     { builtAt: h(72), freshness: { scopus: null, openalex: 'x', scholar: null, forms: h(100) } },
     { builtAt: h(1) },
   ]

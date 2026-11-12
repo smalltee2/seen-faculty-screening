@@ -45,7 +45,7 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
           <FreshnessPanel
             builtAt={data.builtAt}
             freshness={data.freshness}
-            counts={{ openalex: rawCount('openalex'), scopus: rawCount('scopus'), forms: rawCount('manual'), scholar: rawCount('scholar') }}
+            counts={{ openalex: rawCount('openalex'), scopus: rawCount('scopus'), tci: rawCount('tci'), forms: rawCount('manual'), scholar: rawCount('scholar'), crossref: data.crossref?.length ?? 0 }}
             actions={{ scholar: <ScholarButton scholar={scholar} /> }}
             newWorks={data.newWorks}
             nameOf={(k) => { const f = data.faculty.find((x) => x.nameEn === k); return f ? displayName(f) : k }}

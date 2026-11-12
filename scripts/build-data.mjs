@@ -296,7 +296,7 @@ function freshness() {
     const t = read(f).trim()
     return Number.isNaN(Date.parse(t)) ? null : t
   }
-  return { scopus: one('scopus'), openalex: one('openalex'), scholar: one('scholar'), forms: one('forms') }
+  return { scopus: one('scopus'), openalex: one('openalex'), tci: one('tci'), scholar: one('scholar'), forms: one('forms'), crossref: one('crossref') }
 }
 
 mkdirSync(dirname(CONFIG.out), { recursive: true })
