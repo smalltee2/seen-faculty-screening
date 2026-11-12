@@ -36,14 +36,13 @@ describe('login link returns to the page that asked for it', () => {
     rememberLoginReturn('/seen-faculty-screening/')
     expect(s.getItem(LOGIN_RETURN_KEY)).toBe('sfs.html')
   })
-  it('/me/ forwards with the login code to the remembered page', () => {
-    expect(forward('#login=ab12', 'sfs_webapp.html')).toBe('../sfs_webapp.html#/me/login=ab12')
-    expect(forward('#login=ab12', 'sfs.html')).toBe('../sfs.html#/me/login=ab12')
+  it('/me/ forwards with the login code to the web app, whatever page asked for the link', () => {
+    for (const stored of ['sfs_webapp.html', 'sfs.html', null, 'https://evil.example/']) expect(forward('#login=ab12', stored)).toBe('../sfs_webapp.html#/me/login=ab12')
+    expect(forward('', null)).toBe('../sfs_webapp.html#/me')
+    expect(forward('#login=NOT-HEX', null)).toBe('../sfs_webapp.html#/me')
   })
-  it('/me/ falls back to sfs.html when nothing (or something unexpected) is stored', () => {
-    expect(forward('#login=ab12', null)).toBe('../sfs.html#/me/login=ab12')
-    expect(forward('#login=ab12', 'https://evil.example/')).toBe('../sfs.html#/me/login=ab12')
-    expect(forward('', 'sfs_webapp.html')).toBe('../sfs_webapp.html#/me')
+  it('the bare address forwards to the web app and keeps the route', () => {
+    expect(buildPersonal).toContain("location.replace('sfs_webapp.html'+location.search+location.hash)")
   })
 })
 

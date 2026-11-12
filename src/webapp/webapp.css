@@ -710,3 +710,28 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 /* The form as on the desktop, without its long title, notes and hints. */
 .mme-sheet .add-work { padding: 0; border: 0; background: none; box-shadow: none; }
 .mme-sheet .add-work > h2, .mme-sheet .add-work > .note, .mme-sheet .wf small { display: none; }
+
+/* Phone: the lecturer list and a lecturer's page for a programme chair (MobileLecturers.tsx). */
+.mme-back { align-self: flex-start; min-height: 36px; display: inline-flex; align-items: center; color: var(--accent); font-size: 0.9rem; text-decoration: none; }
+.mme .mlist-search {
+  -webkit-appearance: none; appearance: none; width: 100%; min-height: 48px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
+  color: var(--fg); font: inherit; font-size: 1rem;
+}
+.mlist-row { align-items: center; text-decoration: none; }
+.mlist-avatar { margin-top: 0; }
+.mlist-avatar.bad { background: var(--not-mark); color: #fff; }
+.mlist-avatar.warn { background: #b7791f; color: #fff; }
+.mlist-bad { color: var(--not-mark); }
+.mlist-warn { color: #b7791f; }
+.mlist-count { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.mlist-count b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.mlist-count small { color: var(--muted); font-size: 0.72rem; }
+
+/* Phone: the overview keeps its numbers and charts and drops text the cards already say. */
+@media (max-width: 760px) {
+  .app-page-overview .report-head { display: none; }
+  .app-page-overview .finding:not(.finding-alert) p + p { display: none; }
+  .app-page-overview .note, .app-page-overview p.muted.small { display: none; }
+  /* The level cards: the badge (ป.ตรี …) and the number say it; the long label is for wide screens. */
+  .app-page-overview .stat:not(.stat-nobadge) .stat-label { display: none; }
+}

@@ -36,7 +36,9 @@ const TYPE_SHORT: Record<string, string> = { journal: 'วารสาร', proc
 
 type Filter = 'counted' | 'not' | 'all'
 
-export function MobileMe({ result, settings, email, onLogout, mine, addWork }: { result: PersonResult; settings: Settings; email: string; onLogout: () => void; mine: Submission[]; addWork: ReactNode }) {
+/** The lecturer's own page (`email`, `onLogout`, `addWork`), or, without them, the same view of a
+ *  lecturer for a programme chair, with a link back to the list (`back`). */
+export function MobileMe({ result, settings, email, onLogout, mine = [], addWork, back }: { result: PersonResult; settings: Settings; email?: string; onLogout?: () => void; mine?: Submission[]; addWork?: ReactNode; back?: string }) {
   const [openLevel, setOpenLevel] = useState<string | null>(null)
   const [openWork, setOpenWork] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('counted')
@@ -54,15 +56,22 @@ export function MobileMe({ result, settings, email, onLogout, mine, addWork }: {
 
   return (
     <div className="mme">
+      {back && (
+        <a className="mme-back" href={back}>
+          ← รายชื่อ
+        </a>
+      )}
       <div className="mme-head">
         <span className="mme-avatar" aria-hidden="true">{(p.nameTh || p.nameEn).replace(/^(ศ|รศ|ผศ|ดร|อ)\.?\s*/g, '').slice(0, 1)}</span>
         <div className="mme-who">
           <b>{p.nameTh || p.nameEn}</b>
-          <span>{email}</span>
+          <span>{email ?? ([p.rank, p.degree].filter(Boolean).join(' · ') || '—')}</span>
         </div>
-        <button type="button" className="mme-logout" onClick={onLogout}>
-          ออก
-        </button>
+        {onLogout && (
+          <button type="button" className="mme-logout" onClick={onLogout}>
+            ออก
+          </button>
+        )}
       </div>
 
       <div className="mme-stats" role="group" aria-label="สรุปผล">
@@ -183,11 +192,13 @@ export function MobileMe({ result, settings, email, onLogout, mine, addWork }: {
         })}
       </ul>
 
-      <button type="button" className="mme-fab" onClick={() => setAdding(true)}>
-        <span aria-hidden="true">＋</span> เพิ่มผลงาน
-      </button>
+      {addWork && (
+        <button type="button" className="mme-fab" onClick={() => setAdding(true)}>
+          <span aria-hidden="true">＋</span> เพิ่มผลงาน
+        </button>
+      )}
 
-      {adding && (
+      {adding && addWork && (
         <div className="mme-sheet" role="dialog" aria-modal="true" aria-label="เพิ่มผลงาน">
           <div className="mme-sheet-bar">
             <button type="button" className="mme-close" onClick={() => setAdding(false)} aria-label="ปิด">

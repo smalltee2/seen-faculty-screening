@@ -14,6 +14,8 @@ import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
 import { DemoBanner } from '../demoNotice' // DEMO-NOTICE
 import { useNarrow } from './useNarrow'
+import { MobileMe } from './MobileMe'
+import { MobileLecturers } from './MobileLecturers'
 import { HoverSelect } from '../HoverSelect'
 import { ThemeToggle, useScrolled } from '../ThemeToggle'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from '../adminGate'
@@ -237,7 +239,7 @@ export function WebApp() {
   const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
   // Phones: the short menu name, so the title fits beside the year menu (Tum, 2026-11-12: less text on phones).
-  const title = route.page === 'person' ? (person ? displayName(person.person) : 'ไม่พบอาจารย์') : narrow && 'short' in current ? current.short : current.th
+  const title = route.page === 'person' ? (narrow ? 'รายบุคคล' : person ? displayName(person.person) : 'ไม่พบอาจารย์') : narrow && 'short' in current ? current.short : current.th
   const need = route.page === 'person' || route.page === 'login' ? 1 : current.level
   const allowed = level >= need
   // Signed in at #/login: go on to the first admin page of that level.
@@ -461,7 +463,15 @@ export function WebApp() {
             <>
               {route.page === 'overview' && <Overview results={results} settings={settings} />}
               {route.page === 'me' && <MyPage mobile={narrow} approverTh={LEVEL_TH[2]} results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
-              {route.page === 'lecturers' && (
+              {route.page === 'lecturers' && narrow && (
+                <MobileLecturers
+                  key={`${navTick}|${q?.toString() ?? ''}`}
+                  results={programme ? results.filter((r) => programme.members.some((m) => m.nameEn === r.person.nameEn)) : results}
+                  settings={settings}
+                  filter={q?.get('filter') === 'not_met' || q?.get('filter') === 'risk' ? (q.get('filter') as 'not_met' | 'risk') : 'all'}
+                />
+              )}
+              {route.page === 'lecturers' && !narrow && (
                 <LecturersPage
                   key={`${navTick}|${q?.toString() ?? ''}`}
                   results={programme ? results.filter((r) => programme.members.some((m) => m.nameEn === r.person.nameEn)) : results}
@@ -474,7 +484,8 @@ export function WebApp() {
                   notify={approvalKey ? { approvalKey, notices: site.notices, onSent: site.refreshNotices } : undefined}
                 />
               )}
-              {route.page === 'person' && (
+              {route.page === 'person' && narrow && person && <MobileMe key={route.id} result={person} settings={settings} back="#/lecturers" />}
+              {route.page === 'person' && !(narrow && person) && (
                 <PersonPage key={route.id} result={person} settings={settings} withdraw={approvalKey ? { approvalKey, submissions: site.submissions, onChanged: site.refreshSubmissions } : undefined} crossref={data.crossref} />
               )}
               {route.page === 'inbox' && (

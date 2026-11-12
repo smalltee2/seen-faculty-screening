@@ -187,6 +187,12 @@ try {
     await shot('m-me-work-open', { ...phone, act: click('.mme-work'), scrollTo: '.mme-chips' })
     await shot('m-me-not', { ...phone, act: click('.mme-chips button', 'ไม่นับ'), scrollTo: '.mme-chips' })
     await shot('m-me-sheet', { ...phone, act: click('.mme-fab') })
+    const chair = { as: 'chair', width: 390, height: 844, scale: 2, mobile: true }
+    await shot('m-overview', { hash: 'overview', width: 390, height: 844, scale: 2, mobile: true })
+    await shot('m-overview-2', { hash: 'overview', width: 390, height: 844, scale: 2, mobile: true, scrollBy: 700 })
+    await shot('m-lecturers', { ...chair, hash: 'lecturers', blur: true })
+    await shot('m-lecturers-fail', { ...chair, hash: 'lecturers?filter=not_met', blur: true })
+    await shot('m-person', { ...chair, hash: `person/${encodeURIComponent(EXAMPLE.nameEn)}` })
   } else {
   // อาจารย์ทั่วไป
   await shot('g-overview', { hash: 'overview', marks: [[1, '#app-side a', 'ภาพรวม'], [2, '.app-window-chip'], [3, 'button', 'ปีการศึกษา 2569'], [4, 'button,a', 'เข้าสู่ระบบผู้ดูแล'], [5, 'p', 'ผ่านเกณฑ์ครบทุกหน้าที่'], [6, 'p', 'ยังไม่ผ่านเกณฑ์บางหน้าที่'], [7, '*', 'อาจารย์ทั้งหมด'], [8, '*', 'ผลงานรวมที่นับได้']] })
