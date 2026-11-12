@@ -1,5 +1,6 @@
 // Daily data refresh, run by GitHub Actions (and by hand with `npm run fetch`).
-//   1. OpenAlex: works of every lecturer with an openalex_id in data/faculty.csv
+//   1. OpenAlex: works of every lecturer's author record(s) (openalex_id in data/faculty.csv), plus
+//      works whose author is written exactly as the lecturer's English or Thai name (scripts/name-match.mjs)
 //      -> data/openalex.tsv
 //   2. Scopus (Elsevier Search API): works of every lecturer with a scopus_id, or found
 //      by name + University of Phayao affiliation -> data/scopus.tsv. The API key is
@@ -20,6 +21,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
+import { lecturerNames, namedOn } from './name-match.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The calendar year in Thailand (UTC+7). The daily run is at 20:00 UTC, which is already the next
@@ -85,6 +87,8 @@ async function getJson(url, tries = 3, headers = {}) {
       }
       // The same request gets the same answer for these, so asking again only wastes time.
       if ([400, 404, 410].includes(res.status)) throw Object.assign(new Error(`HTTP ${res.status}`), { noRetry: true })
+      // A used-up allowance (OpenAlex answers 429 with the hours to wait): asking again does not help.
+      if (res.status === 429 && Number(res.headers.get('retry-after')) > 60) throw Object.assign(new Error(`HTTP 429 (allowance used up; retry after ${res.headers.get('retry-after')} s)`), { noRetry: true })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return await res.json()
     } catch (e) {
@@ -122,40 +126,77 @@ const OA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', '
 /** ISSNs of a work's source, "issn_l;issn;…" (OpenAlex) — used to match the TCI list. */
 const issnsOf = (src) => [...new Set([src?.issn_l, ...(src?.issn ?? [])].filter(Boolean))].join(';')
 
+// Optional: a free OpenAlex API key raises the daily allowance (https://openalex.org; GitHub secret OPENALEX_API_KEY).
+const OA_KEY = process.env.OPENALEX_API_KEY ? `&api_key=${encodeURIComponent(process.env.OPENALEX_API_KEY)}` : ''
+
 async function fetchOpenAlex(faculty) {
   const previous = readTsv(CONFIG.openalexOut).rows
   const out = []
   let ok = 0
   let tried = 0
+  const SELECT = 'id,doi,display_name,publication_year,type,primary_location,biblio,authorships,cited_by_count'
+  /** Every work matching an OpenAlex filter (all pages). */
+  const worksOf = async (filter) => {
+    const found = []
+    let cursor = '*'
+    while (cursor) {
+      const d = await getJson(`https://api.openalex.org/works?filter=${filter},publication_year:>${CONFIG.firstYear - 1}&select=${SELECT}&per-page=200&cursor=${encodeURIComponent(cursor)}${OA_KEY}`)
+      found.push(...d.results)
+      cursor = d.meta?.next_cursor && d.results.length ? d.meta.next_cursor : null
+      await sleep(150)
+    }
+    return found
+  }
+  // OpenAlex charges a search ten times a plain request against a daily allowance (HTTP 429 once it
+  // is used up). The name search is therefore the part that may be skipped: when it fails, the rows
+  // an earlier run found by name are kept, and the rest of this run does not ask again.
+  let nameSearchOff = ''
   for (const f of faculty) {
-    if (!f.openalex_id) continue
+    const ids = openalexIds(f)
+    const names = lecturerNames(f)
+    if (!ids.length && !names.length) continue
     tried++
     try {
-      const rows = []
-      let cursor = '*'
-      while (cursor) {
-        const url =
-          `https://api.openalex.org/works?filter=author.id:${openalexIds(f).join('|')},publication_year:>${CONFIG.firstYear - 1}` +
-          `&select=id,doi,display_name,publication_year,type,primary_location,biblio,authorships,cited_by_count&per-page=200&cursor=${encodeURIComponent(cursor)}`
-        const d = await getJson(url)
-        for (const w of d.results) {
-          if (!w.display_name || !w.publication_year) continue
-          rows.push({
-            key: f.name_en,
-            year: w.publication_year,
-            title: w.display_name,
-            authors: w.authorships.slice(0, 6).map((a) => a.author?.display_name).filter(Boolean).join(', ') + (w.authorships.length > 6 ? ', ...' : ''),
-            venue: venueOf(w),
-            cites: w.cited_by_count ?? 0,
-            doi: (w.doi ?? '').replace('https://doi.org/', ''),
-            oa_type: w.type ?? '',
-            source_type: w.primary_location?.source?.type ?? '',
-            oa_id: w.id.split('/').pop(),
-            issn: issnsOf(w.primary_location?.source),
-          })
+      // 1. Works of the lecturer's author record(s). 2. Works whose author is written exactly as the
+      // lecturer's English or Thai name, whatever record OpenAlex filed them under (Tum, 2026-11-12).
+      const works = new Map()
+      if (ids.length) for (const w of await worksOf(`author.id:${ids.join('|')}`)) works.set(w.id, w)
+      let byName = 0
+      const named = []
+      if (!nameSearchOff) {
+        try {
+          for (const name of names) {
+            for (const w of await worksOf(`raw_author_name.search:${encodeURIComponent(`"${name.replace(/"/g, '')}"`)}`)) if (namedOn(w, [name])) named.push(w)
+          }
+        } catch (e) {
+          nameSearchOff = e.message
+          warn(`OpenAlex name search stopped for this run (${e.message}); rows found by name earlier are kept`)
         }
-        cursor = d.meta?.next_cursor && d.results.length ? d.meta.next_cursor : null
-        await sleep(150)
+      }
+      for (const w of named) {
+        if (works.has(w.id)) continue
+        works.set(w.id, w)
+        byName++
+      }
+      // Rows of an earlier run that the author record(s) no longer give: found by name then.
+      const keptByName = nameSearchOff ? previous.filter((r) => r.key === f.name_en && !works.has(`https://openalex.org/${r.oa_id}`)) : []
+      if (!ids.length && nameSearchOff && !keptByName.length) throw new Error(`no author record and no name search (${nameSearchOff})`)
+      const rows = [...keptByName]
+      for (const w of works.values()) {
+        if (!w.display_name || !w.publication_year) continue
+        rows.push({
+          key: f.name_en,
+          year: w.publication_year,
+          title: w.display_name,
+          authors: w.authorships.slice(0, 6).map((a) => a.author?.display_name).filter(Boolean).join(', ') + (w.authorships.length > 6 ? ', ...' : ''),
+          venue: venueOf(w),
+          cites: w.cited_by_count ?? 0,
+          doi: (w.doi ?? '').replace('https://doi.org/', ''),
+          oa_type: w.type ?? '',
+          source_type: w.primary_location?.source?.type ?? '',
+          oa_id: w.id.split('/').pop(),
+          issn: issnsOf(w.primary_location?.source),
+        })
       }
       // An answer with no works for a lecturer who had some is treated as a failed request:
       // writing it would silently drop every OpenAlex row of that lecturer.
@@ -167,7 +208,7 @@ async function fetchOpenAlex(faculty) {
       }
       out.push(...rows)
       ok++
-      log(`${f.name_en}: ${rows.length} works`)
+      log(`${f.name_en}: ${rows.length} works${byName ? ` (${byName} found by name only)` : ''}${keptByName.length ? ` (${keptByName.length} kept from an earlier name search)` : ''}`)
     } catch (e) {
       const kept = previous.filter((r) => r.key === f.name_en)
       out.push(...kept)

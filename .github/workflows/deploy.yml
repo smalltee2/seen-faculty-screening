@@ -60,6 +60,8 @@ jobs:
         if: steps.mode.outputs.mode == 'full' || steps.mode.outputs.mode == 'catchup'
         env:
           SCOPUS_API_KEY: ${{ secrets.SCOPUS_API_KEY }}
+          # Optional (a free OpenAlex key raises the daily allowance); empty when the secret is not set.
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
           SCOPUS_INSTTOKEN: ${{ secrets.SCOPUS_INSTTOKEN }}
           DECISION_ADMINS: ${{ secrets.DECISION_ADMINS }}
           MODE: ${{ steps.mode.outputs.mode }}
