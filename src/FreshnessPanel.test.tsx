@@ -38,7 +38,8 @@ describe('FreshnessList', () => {
     const old = renderToStaticMarkup(<FreshnessList ages={sourceAges(h(72), { scopus: h(3), openalex: h(3), scholar: h(50), forms: h(1), tci: h(3), crossref: h(3) }, now)} counts={{ openalex: 441 }} />)
     const last = old.split('<dt>').slice(1).map((r) => r.slice(0, r.indexOf('</dd>'))).pop()!
     expect(last).toContain('การสร้างเว็บ')
-    expect(last).toContain('(3 วันที่แล้ว)')
+    // The brackets around the age are separate marked spans (a phone leaves them out).
+    expect(last.replace(/<[^>]+>/g, '')).toContain('(3 วันที่แล้ว)')
     expect(last).not.toContain('รายการ')
   })
   it('there is no separate heading for the times', () => {

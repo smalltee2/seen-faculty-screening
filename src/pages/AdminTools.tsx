@@ -12,6 +12,7 @@ import type { Submission } from '../submissions'
 import type { Faculty } from '../types'
 import { SHOWN_ROLES, Segmented, displayName, roleShort } from '../ui'
 import { LeafSpinner, PAGE_SIZE, Pager } from './AdminPage'
+import { Chips, KIND_SHORT, MobileHistoryList, MobileOutlook } from '../webapp/MobileAdmin'
 
 export type AdminView = 'history' | 'outlook'
 export const ADMIN_VIEWS: { id: AdminView; th: string }[] = [
@@ -81,7 +82,7 @@ export function HistoryTable({ entries, confirm, busy, onAsk, onUndo }: { entrie
   )
 }
 
-export function HistoryPage({ confItems, formCancels, submissions, notices, faculty, approvalKey, onChanged }: { confItems: ConfDecisionItem[]; formCancels: FormCancelItem[]; submissions: Submission[]; notices: Notice[]; faculty: Faculty[]; approvalKey?: string; onChanged: () => unknown }) {
+export function HistoryPage({ confItems, formCancels, submissions, notices, faculty, approvalKey, onChanged, mobile = false }: { mobile?: boolean; confItems: ConfDecisionItem[]; formCancels: FormCancelItem[]; submissions: Submission[]; notices: Notice[]; faculty: Faculty[]; approvalKey?: string; onChanged: () => unknown }) {
   // undefined = still loading; null = this backend version has no decision log.
   const [log, setLog] = useState<DecisionLogItem[] | null | undefined>(undefined)
   const [kind, setKind] = useState<HistoryKind | 'all'>('all')
@@ -129,6 +130,35 @@ export function HistoryPage({ confItems, formCancels, submissions, notices, facu
     }
   }
   const count = (k: HistoryKind) => all.filter((e) => e.kind === k).length
+  // Phones (Tum, 2026-11-12): chips and a list; the long note is left to the desktop page.
+  if (mobile)
+    return (
+      <div className="mme">
+        <Chips
+          label="หมวดของประวัติ"
+          value={kind}
+          onChange={(v) => {
+            setKind(v)
+            setPage(0)
+            setConfirm(null)
+          }}
+          options={[{ id: 'all' as const, label: `ทั้งหมด ${all.length}` }, ...(Object.keys(KIND_TH) as HistoryKind[]).map((k) => ({ id: k, label: `${KIND_SHORT[k]} ${count(k)}` }))]}
+        />
+        {log === undefined && <LeafSpinner />}
+        {error && <p className="gate-error" role="alert">{error}</p>}
+        <MobileHistoryList entries={entries.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE)} confirm={confirm} busy={busy} onAsk={setConfirm} onUndo={(e) => void undo(e)} spinner={<LeafSpinner />} />
+        {pages > 1 && (
+          <Pager
+            page={cur}
+            pages={pages}
+            onPage={(p) => {
+              setPage(p)
+              setConfirm(null)
+            }}
+          />
+        )}
+      </div>
+    )
   return (
     <>
       <div className="section-head">
@@ -173,13 +203,21 @@ export function HistoryPage({ confItems, formCancels, submissions, notices, facu
 
 // ───────────────────────── 2. Outlook ─────────────────────────
 
-export function OutlookPage({ results, settings }: { results: PersonResult[]; settings: Settings }) {
+export function OutlookPage({ results, settings, mobile = false }: { results: PersonResult[]; settings: Settings; mobile?: boolean }) {
   const all = useMemo(() => outlook(results, settings, 2, SHOWN_ROLES), [results, settings])
   // One evaluation year at a time (Tum, 2026-11-11): lecturers who first stop meeting a duty that year.
   const years = [settings.year + 1, settings.year + 2]
   const [year, setYear] = useState(years[0])
   const shown = years.includes(year) ? year : years[0]
   const rows = all.filter((r) => r.firstYear === shown)
+  if (mobile)
+    return (
+      <div className="mme">
+        <Chips label="ปีที่เริ่มไม่ผ่าน" value={String(shown)} onChange={(v) => setYear(Number(v))} options={years.map((y) => ({ id: String(y), label: `เริ่มไม่ผ่านปี ${toBE(y)} · ${all.filter((r) => r.firstYear === y).length} คน` }))} />
+        <p className="madm-hint">สมมติไม่มีผลงานใหม่</p>
+        <MobileOutlook rows={rows} year={shown} />
+      </div>
+    )
   return (
     <>
       <div className="section-head">

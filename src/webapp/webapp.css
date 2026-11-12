@@ -735,3 +735,30 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   /* The level cards: the badge (ป.ตรี …) and the number say it; the long label is for wide screens. */
   .app-page-overview .stat:not(.stat-nobadge) .stat-label { display: none; }
 }
+
+/* ── Phone: the level-2 pages as lists (src/webapp/MobileAdmin.tsx, 2026-11-12) ── */
+.madm-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; padding-inline: 4px; }
+.madm-chips::-webkit-scrollbar { display: none; }
+.madm-chips button { flex: none; white-space: nowrap; }
+.madm-hint { margin: -6px 0 0; color: var(--muted); font-size: 0.8rem; }
+.madm-sub { margin-top: 6px !important; font-weight: 600; }
+.madm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px !important; }
+.madm-actions .btn { min-height: 40px; }
+.madm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.madm-bar b { font-size: 1rem; }
+.madm-more summary { min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: 0.88rem; cursor: pointer; }
+.madm-cancelled { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.mme-type.madm-k-conference { background: #b5530f; color: #fff; }
+.mme-type.madm-k-form { background: #2f6f9f; color: #fff; }
+.mme-type.madm-k-notice { background: var(--line-strong); color: var(--fg); }
+.mme .pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+
+/* Phone: the source list keeps the name, the age and the count; the explanations stay on the desktop. */
+@media (max-width: 760px) {
+  .app-page-sources .sources-page > .panel > h3, .app-page-sources .source-sched, .app-page-sources .fresh-word, .app-page-sources .fresh-explain, .app-page-sources .sources-how { display: none; }
+  .app-page-sources .source-list > div { flex-wrap: nowrap; align-items: center; padding: 12px 0; }
+  .app-page-sources .source-list dt { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+  .app-page-sources .source-list dd { flex: none; font-size: 0.8rem; }
+  .app-page-sources .source-list > div:has(.new-works) { flex-wrap: wrap; }
+  .app-page-sources .fresh-count { color: var(--muted); font-weight: 500; }
+}

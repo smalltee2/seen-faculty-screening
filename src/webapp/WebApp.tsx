@@ -503,9 +503,9 @@ export function WebApp() {
                 />
               )}
               {route.page === 'forms' && admin && (
-                <FormWorks pubs={site.pubs} faculty={data.faculty} formUrl={admin.formUrl} approvalKey={approvalKey} formCancelled={[...site.cancelled.values()]} onFormChanged={site.refreshFormCancels} />
+                <FormWorks mobile={narrow} pubs={site.pubs} faculty={data.faculty} formUrl={admin.formUrl} approvalKey={approvalKey} formCancelled={[...site.cancelled.values()]} onFormChanged={site.refreshFormCancels} />
               )}
-              {route.page === 'outlook' && <OutlookPage results={results} settings={settings} />}
+              {route.page === 'outlook' && <OutlookPage mobile={narrow} results={results} settings={settings} />}
               {route.page === 'sources' && (
                 <div className="sources-page">
                   <section className="panel">
@@ -527,7 +527,7 @@ export function WebApp() {
                       onOpen={(src) => markSeen(groupNewWorks(data.newWorks?.[src as (typeof NEW_SRC)[number]]).map(newWorkId))}
                       nameOf={(k) => { const f = data.faculty.find((x) => x.nameEn === k); return f ? displayName(f) : k }}
                     />
-                    <p className="note">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้{LEVEL_TH[2]}กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>
+                    <p className="note sources-how">รวมรายการซ้ำจากหลายแหล่งด้วย DOI หรือชื่อเรื่อง · Google Scholar ดึงอัตโนมัติไม่ได้ จึงให้{LEVEL_TH[2]}กด "อัปเดตจาก Google Scholar" เป็นครั้งคราว</p>
                   </section>
                   <ScholarStatus scholar={scholar}>
                     <ScholarImport faculty={data.faculty} pubs={site.pubs} raw={data.publications} items={site.scholarItems} approvalKey={approvalKey} onChanged={site.refreshScholar} />
@@ -536,6 +536,7 @@ export function WebApp() {
               )}
               {route.page === 'history' && (
                 <HistoryPage
+                  mobile={narrow}
                   confItems={site.confItems}
                   formCancels={site.formCancels ?? []}
                   submissions={site.submissions}

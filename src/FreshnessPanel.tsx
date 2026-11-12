@@ -40,7 +40,9 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
               <dt>
                 {a.key === SUPPORT_ORDER[0] && <span className="source-group muted small">แหล่งข้อมูลเสริม (ไม่เพิ่มรายการผลงาน)</span>}
                 <span className="source-name">
-                  {SOURCE_TH[a.key]}
+                  {/* The fetch schedule in brackets is marked so a phone can leave it out. */}
+                  {SOURCE_TH[a.key].replace(/\s*\([^()]*\)$/, '')}
+                  <span className="source-sched">{SOURCE_TH[a.key].match(/\s*\([^()]*\)$/)?.[0] ?? ''}</span>
                   {/* New works in the last 7 days (Tum, 2026-11-11): a badge after the name; it opens the list. */}
                   {groupNewWorks(newWorks[a.key]).length > 0 && (
                     <button
@@ -62,8 +64,9 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
               </dt>
               <dd>
                 <span className="fresh-when">
-                  อัปเดตล่าสุด {a.at ? new Date(a.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }) : '–'}{' '}
-                  <span className="muted small">({ageTh(a.hours)})</span>
+                  <span className="fresh-word">อัปเดตล่าสุด {a.at ? new Date(a.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }) : '–'} (</span>
+                  <span className="muted small fresh-age">{ageTh(a.hours)}</span>
+                  <span className="fresh-word">)</span>
                   {a.stale && <strong className="fresh-flag"> ค้างเกิน 2 วัน</strong>}
                 </span>
                 {n !== undefined && <span className="fresh-count mono">จำนวน {n} {a.key === 'crossref' ? 'DOI' : 'รายการ'}</span>}
@@ -76,9 +79,12 @@ export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, 
       <p className="note" role={stale.length ? 'alert' : undefined}>
         {stale.length
           ? `มี ${stale.length} แหล่งที่ไม่ได้ข้อมูลใหม่เกิน 2 วัน: งานดึงข้อมูลอาจล้มเหลว ให้ดูที่ GitHub Actions หรือ log บน iMac`
-          : 'ทุกแหล่งได้ข้อมูลใหม่ภายใน 2 วัน'}{' '}
-        · เวลาที่แสดงคือครั้งล่าสุดที่แหล่งนั้นตอบกลับจริง (ถ้าดึงไม่สำเร็จ ระบบใช้ข้อมูลเดิมและเวลาจะไม่ขยับ) · ผลงานที่อาจารย์เพิ่มเอง
-        และการตัดสินของผู้ดูแล หน้าเว็บอ่านสดจากระบบหลังบ้านทุกครั้งที่เปิด
+          : 'ทุกแหล่งได้ข้อมูลใหม่ภายใน 2 วัน'}
+        <span className="fresh-explain">
+          {' '}
+          · เวลาที่แสดงคือครั้งล่าสุดที่แหล่งนั้นตอบกลับจริง (ถ้าดึงไม่สำเร็จ ระบบใช้ข้อมูลเดิมและเวลาจะไม่ขยับ) · ผลงานที่อาจารย์เพิ่มเอง
+          และการตัดสินของผู้ดูแล หน้าเว็บอ่านสดจากระบบหลังบ้านทุกครั้งที่เปิด
+        </span>
       </p>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ConferenceEntry, DataBundle, Pub, PubSource } from '../types'
+import { MobileFormList } from '../webapp/MobileAdmin'
 import { Segmented, TYPE_LABEL, displayName, yearLabel } from '../ui'
 import { toBE } from '../rules'
 import { CONFERENCE_TAG } from '../conferences'
@@ -77,10 +78,46 @@ export function AdminPage({ data, pubs, scholarItems = null, onScholarChanged = 
 
 /** "ผลงานที่เพิ่มผ่านแบบฟอร์ม": works added through the admin Google Form, with cancel/restore.
  *  Used by AdminPage (sfs.html) and by the web app's own page (sfs_webapp.html), 2026-11-11. */
-export function FormWorks({ pubs, faculty, formUrl, approvalKey, formCancelled = [], onFormChanged = () => undefined }: { pubs: Pub[]; faculty: Faculty[]; formUrl: string; approvalKey?: string; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
+export function FormWorks({ pubs, faculty, formUrl, approvalKey, formCancelled = [], onFormChanged = () => undefined, mobile = false }: { mobile?: boolean; pubs: Pub[]; faculty: Faculty[]; formUrl: string; approvalKey?: string; formCancelled?: FormCancelItem[]; onFormChanged?: () => unknown }) {
   // Admin-form works only; works lecturers added themselves (submitted "self:…") are in the approval table.
   const manual = pubs.filter((p) => p.sources.includes('manual') && !p.submitted?.startsWith('self:')).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
   const person = (key: string) => faculty.find((f) => f.nameEn === key)
+  // Phones (Tum, 2026-11-12): the works as a list; a tap opens the details and the cancel button.
+  if (mobile)
+    return (
+      <div className="mme">
+        <div className="madm-bar">
+          <b>จากแบบฟอร์ม {manual.length}</b>
+          {formUrl ? (
+            <a className="btn btn-primary" href={formUrl} target="_blank" rel="noreferrer">
+              เปิดแบบฟอร์ม ↗
+            </a>
+          ) : (
+            <span className="madm-hint">ยังไม่ได้ตั้งค่าลิงก์แบบฟอร์ม</span>
+          )}
+        </div>
+        <MobileFormList rows={manual} person={person} action={(p) => <FormCancelButton nameEn={p.key} title={p.title} action="cancel" approvalKey={approvalKey} onChanged={onFormChanged} />} />
+        {formCancelled.length > 0 && (
+          <details className="madm-more">
+            <summary>ยกเลิกแล้ว {formCancelled.length} (ไม่นับ)</summary>
+            <ul className="mme-works">
+              {formCancelled.map((c) => {
+                const f = person(c.nameEn)
+                return (
+                  <li key={`${c.nameEn}|${c.titleNorm}`} className="off madm-cancelled">
+                    <span className="mme-work-main">
+                      <span className="mme-title">{c.title}</span>
+                      <span className="mme-venue">{f ? displayName(f) : c.nameEn}</span>
+                    </span>
+                    <FormCancelButton nameEn={c.nameEn} title={c.title} titleNorm={c.titleNorm} action="restore" approvalKey={approvalKey} onChanged={onFormChanged} />
+                  </li>
+                )
+              })}
+            </ul>
+          </details>
+        )}
+      </div>
+    )
   return (
     <>
       {/* Steps box removed (Tum, 2026-11-07); the admin form button moved here */}

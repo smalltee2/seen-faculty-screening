@@ -31,7 +31,7 @@ export function lecturerRows(results: PersonResult[], settings: Settings): Lectu
     .sort((a, b) => Number(b.failed > 0) - Number(a.failed > 0) || Number(b.risk > 0) - Number(a.risk > 0) || b.counted - a.counted || a.name.localeCompare(b.name, 'th'))
 }
 
-const initial = (name: string) => name.replace(/^((ศ|รศ|ผศ)\.)?\s*(ดร\.)?\s*(อ\.)?\s*/, '').slice(0, 1)
+export const initial = (name: string) => name.replace(/^((ศ|รศ|ผศ)\.)?\s*(ดร\.)?\s*(อ\.)?\s*/, '').slice(0, 1)
 
 export function MobileLecturers({ results, settings, filter: first = 'all' }: { results: PersonResult[]; settings: Settings; filter?: Filter }) {
   const rows = useMemo(() => lecturerRows(results, settings), [results, settings])

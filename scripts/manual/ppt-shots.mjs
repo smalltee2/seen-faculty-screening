@@ -32,6 +32,7 @@ const EXAMPLE = data.faculty.find((f) => f.nameEn === 'Teerachai Amnuaylojaroen'
 if (!EXAMPLE) throw new Error('example lecturer not in the data bundle')
 const SESSION = 'manual-screenshot-placeholder'
 const viewerSalt = data.sources.viewerGate?.salt
+const adminSalt = data.sources.adminGate?.salt
 if (!viewerSalt) throw new Error('no viewer gate in the data bundle')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -125,8 +126,9 @@ async function shot(name, { hash, width = 1440, height = 900, scale = 1.5, mobil
   const state =
     as === 'lecturer'
       ? `sessionStorage.setItem('seen-personal-session', ${JSON.stringify(SESSION)}); sessionStorage.removeItem('seen-admin-form');`
-      : as === 'chair'
-        ? `sessionStorage.setItem('seen-admin-form', ${JSON.stringify(JSON.stringify({ formUrl: '', decisionFormUrl: '', level: 1, gate: viewerSalt }))}); sessionStorage.removeItem('seen-personal-session');`
+      : as === 'chair' || as === 'admin'
+        ? // 'admin' = the level-2 state without its approval key: the pages open, and nothing can be approved or sent.
+          `sessionStorage.setItem('seen-admin-form', ${JSON.stringify(JSON.stringify(as === 'admin' ? { formUrl: '', decisionFormUrl: '', level: 2, gate: adminSalt } : { formUrl: '', decisionFormUrl: '', level: 1, gate: viewerSalt }))}); sessionStorage.removeItem('seen-personal-session');`
         : `sessionStorage.clear(); localStorage.removeItem('seen-admin-form'); localStorage.removeItem('seen-personal-session');`
   await send('Runtime.evaluate', { expression: state })
   // A fresh document for the view (a hash change alone would keep the page that is already open).
@@ -193,6 +195,8 @@ try {
     await shot('m-lecturers', { ...chair, hash: 'lecturers', blur: true })
     await shot('m-lecturers-fail', { ...chair, hash: 'lecturers?filter=not_met', blur: true })
     await shot('m-person', { ...chair, hash: `person/${encodeURIComponent(EXAMPLE.nameEn)}` })
+    const admin = { as: 'admin', width: 390, height: 844, scale: 2, mobile: true, blur: true }
+    for (const page of ['inbox', 'forms', 'outlook', 'sources', 'history']) await shot(`m-admin-${page}`, { ...admin, hash: page })
   } else {
   // อาจารย์ทั่วไป
   await shot('g-overview', { hash: 'overview', marks: [[1, '#app-side a', 'ภาพรวม'], [2, '.app-window-chip'], [3, 'button', 'ปีการศึกษา 2569'], [4, 'button,a', 'เข้าสู่ระบบผู้ดูแล'], [5, 'p', 'ผ่านเกณฑ์ครบทุกหน้าที่'], [6, 'p', 'ยังไม่ผ่านเกณฑ์บางหน้าที่'], [7, '*', 'อาจารย์ทั้งหมด'], [8, '*', 'ผลงานรวมที่นับได้']] })
