@@ -12,21 +12,34 @@ export function tciAuthorMatch(authors, f) {
 
 const normTitle = (t) => String(t ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
 
-/** The title to store. TCI has the title in English and in the local language; the site treats two
- *  rows as one work when their titles are the same, so the form the lecturer's other rows already
- *  use is taken (`known` = their normalised titles). Otherwise the local title, then the English. */
-export function tciTitle(article, known = new Set()) {
+const TRUNCATED = /(…|\.\.\.)\s*$/
+
+/** The title to store. The site treats two rows as one work when their titles are the same, so the
+ *  title of a row the lecturer already has for this article is taken when there is one (`known` =
+ *  [{ title, year }] of their rows in the other sources). Such a row can carry the title
+ *    1. as TCI has it, in English or in the local language;
+ *    2. written twice (OpenAlex stores some Thai titles as "title title");
+ *    3. cut short by Google Scholar ("…") after the local title, which Scholar joins with the
+ *       English one or repeats; only for the same year and a title of 30 characters or more.
+ *  Otherwise the local title, then the English one. */
+export function tciTitle(article, known = [], year = null) {
   const eng = String(article.article_eng ?? '').trim()
   const loc = String(article.article_loc ?? '').trim() || String(article.title_eng ?? '').trim()
-  if (eng && known.has(normTitle(eng))) return eng
-  if (loc && known.has(normTitle(loc))) return loc
+  const forms = [...new Set([eng, loc].map(normTitle).filter(Boolean))]
+  const rows = known.map((k) => ({ title: String(k.title ?? ''), year: Number(k.year) || null, n: normTitle(String(k.title ?? '').replace(TRUNCATED, '')), cut: TRUNCATED.test(String(k.title ?? '').trim()) }))
+  const same = rows.find((k) => !k.cut && forms.includes(k.n))
+  if (same) return same.title
+  const twice = rows.find((k) => !k.cut && forms.some((f) => k.n === f + f))
+  if (twice) return twice.title
+  const cut = rows.find((k) => k.cut && year !== null && k.year === year && forms.some((f) => f.length >= 30 && k.n.startsWith(f)))
+  if (cut) return cut.title
   return loc || eng
 }
 
 /** One row of data/tci_articles.tsv, or null when the record has no title or year. */
-export function tciRow(f, article, authors, issn = '', known = new Set()) {
-  const title = tciTitle(article, known)
+export function tciRow(f, article, authors, issn = '', known = []) {
   const year = Number(article.year)
+  const title = tciTitle(article, known, Number.isInteger(year) ? year : null)
   if (!title || !Number.isInteger(year) || year < 1900 || year > 2100) return null
   const journal = String(article.journal_eng ?? '').trim() || String(article.journal_loc ?? '').trim()
   const vol = String(article.volume ?? '').trim()

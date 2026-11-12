@@ -22,7 +22,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
 import { lecturerNames, namedOn } from './name-match.mjs'
-import { tciAuthorMatch, tciRow } from './tci-articles.mjs'
+import { tciAuthorMatch, tciRow, tciTitle } from './tci-articles.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The calendar year in Thailand (UTC+7). The daily run is at 20:00 UTC, which is already the next
@@ -870,12 +870,11 @@ async function fetchTciArticles(faculty) {
   const jh = journals[0] ?? []
   const issnOf = new Map(journals.slice(1).map((r) => [r[jh.indexOf('id')], [r[jh.indexOf('issn')], r[jh.indexOf('eissn')]].filter(Boolean).join(';')]))
   // Titles the lecturer's rows in the other sources use, so the same form of the title is stored.
-  const normTitle = (t) => String(t ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
   const known = new Map()
   for (const file of [CONFIG.openalexOut, CONFIG.scopusOut, join(ROOT, 'data/publications.tsv'), join(ROOT, 'data/manual.tsv'), join(ROOT, 'data/self.tsv'), join(ROOT, 'data/scholar_imports.tsv')]) {
     for (const r of readTsv(file).rows) {
-      if (!known.has(r.key)) known.set(r.key, new Set())
-      known.get(r.key).add(normTitle(r.title))
+      if (!known.has(r.key)) known.set(r.key, [])
+      known.get(r.key).push({ title: r.title, year: r.year })
     }
   }
   const text = async (url, init = {}) => {
@@ -908,7 +907,9 @@ async function fetchTciArticles(faculty) {
       for (const id of ids) {
         const had = before.find((r) => r.tci_id === id)
         if (had) {
-          rows.push(had)
+          // The title is chosen again each run: another source may have gained this article since.
+          const title = tciTitle({ article_eng: had.title_eng, article_loc: had.title_loc, title_eng: had.title }, known.get(f.name_en) ?? [], Number(had.year) || null)
+          rows.push({ ...had, title })
           continue
         }
         const authors = await text(`${CONFIG.tciSearch}/author_info.php?article_id=${encodeURIComponent(id)}`)
@@ -916,7 +917,7 @@ async function fetchTciArticles(faculty) {
         if (!tciAuthorMatch(authors, f)) continue
         const info = await text(`${CONFIG.tciSearch}/search_result.php?get_article_info=true&article_id=${encodeURIComponent(id)}&search_keyword=`)
         await sleep(300)
-        const row = tciRow(f, info[0] ?? {}, authors, issnOf.get(String(info[0]?.journal_id ?? '')) ?? '', known.get(f.name_en))
+        const row = tciRow(f, info[0] ?? {}, authors, issnOf.get(String(info[0]?.journal_id ?? '')) ?? '', known.get(f.name_en) ?? [])
         if (row && row.year >= CONFIG.firstYear) {
           rows.push(row)
           added++

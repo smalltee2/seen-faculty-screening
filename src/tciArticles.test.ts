@@ -14,10 +14,24 @@ describe('TCI articles found by the author\'s name', () => {
     expect(tciAuthorMatch([], f)).toBe(false)
     expect(tciAuthorMatch(undefined, f)).toBe(false)
   })
-  it('stores the title in the form the lecturer\'s other rows use, else the local title', () => {
-    const norm = (t: string) => t.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
-    expect(tciTitle(article)).toBe('การประเมินเพื่อจัดลำดับความสำคัญ')
-    expect(tciTitle(article, new Set([norm('Assessment to determine urgent plan priorities')]))).toBe('Assessment to Determine Urgent Plan Priorities')
+  it('stores the title of a row the lecturer already has for the article, else the local title', () => {
+    const th = 'การประเมินศักยภาพการประหยัดพลังงานของระบบปรับอากาศด้วยการใช้อากาศภายนอก'
+    const a = { article_loc: th, article_eng: 'Assessment of Energy-Saving Potential of Air Conditioning Systems', title_eng: th }
+    expect(tciTitle(a)).toBe(th)
+    // 1. the same title in the other language
+    expect(tciTitle(a, [{ title: 'Assessment of energy-saving potential of air conditioning systems', year: 2025 }], 2025)).toBe('Assessment of energy-saving potential of air conditioning systems')
+    // 2. OpenAlex writes some Thai titles twice
+    expect(tciTitle(a, [{ title: `${th} ${th}`, year: 2025 }], 2025)).toBe(`${th} ${th}`)
+    // 3. Google Scholar joins the Thai and the English title and cuts the result
+    const scholar = 'การ ประเมิน ศักยภาพ การ ประหยัด พลังงาน ของ ระบบ ปรับอากาศ ด้วย การ ใช้ อากาศ ภายนอก Assessment of Energy …'
+    expect(tciTitle(a, [{ title: scholar, year: 2025 }], 2025)).toBe(scholar)
+    expect(tciTitle(a, [{ title: scholar, year: 2024 }], 2025)).toBe(th) // another year: not taken as the same article
+    // a full row is preferred to a cut one
+    expect(tciTitle(a, [{ title: scholar, year: 2025 }, { title: `${th} ${th}`, year: 2025 }], 2025)).toBe(`${th} ${th}`)
+    // a short title is never matched as the start of a cut one
+    expect(tciTitle({ article_loc: 'การประเมิน', article_eng: '' }, [{ title: 'การ ประเมิน ศักยภาพ การ ประหยัด …', year: 2025 }], 2025)).toBe('การประเมิน')
+    // a longer, different title that only starts the same way is not a match
+    expect(tciTitle(a, [{ title: `${th} ภาคสอง`, year: 2025 }], 2025)).toBe(th)
     expect(tciTitle({ article_loc: '', article_eng: 'Only English', title_eng: 'Only English' })).toBe('Only English')
   })
   it('makes a row the site classifies as a journal article', () => {
