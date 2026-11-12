@@ -159,7 +159,7 @@ Research flag: "review", "editorial" and บทความวิชาการ
 
 So an uncertain row affects a result only when it could decide it.
 
-- The window is Y−4 … Y (the evaluation year is chosen on the site).
+- The five years are academic years (decision 2026-11-12): evaluation year Y counts June of Y−4 to May of Y+1, by month and year (academic year 2569 = June 2565 – May 2570; a work published before June 2565 has expired). The month comes from the issue date (Scopus, Crossref) or else the online date (OpenAlex); a work with only a year is counted when that year could be inside. The site opens on the academic year running today. The rules still accept calendar years Y−4 … Y (`period: 'calendar'`), which no page uses.
 - Outputs marked `part_of_own_degree = yes` never count. Outputs from the degree year or the two years before it count as "maybe" until an override settles them.
 - Posters count only when the switch is on.
 
