@@ -21,7 +21,7 @@ async function fetchPublishedFreshness(): Promise<Freshness | null> {
 }
 
 /** One list for the admin page's "แหล่งข้อมูล": per source, when it last answered and how many rows it gave.
- *  The site build has no rows of its own, so it shows the time only. */
+ *  The site build has no rows of its own, so when it is listed (only while stale) it shows the time only. */
 /** Works new in each source (data.newWorks) and how to show a lecturer's name. */
 export type NewWorksBySource = Partial<Record<SourceKey, NewWork[]>>
 
@@ -29,7 +29,7 @@ export type NewWorksBySource = Partial<Record<SourceKey, NewWork[]>>
 export function FreshnessList({ ages, counts = {}, actions = {}, newWorks = {}, nameOf = (k) => k, seen, onOpen }: { ages: SourceAge[]; counts?: SourceCounts; actions?: Partial<Record<SourceKey, ReactNode>>; newWorks?: NewWorksBySource; nameOf?: (nameEn: string) => string; seen?: ReadonlySet<string>; onOpen?: (source: SourceKey) => void }) {
   const stale = ages.filter((a) => a.stale)
   const [open, setOpen] = useState<SourceKey | null>(null)
-  const rows = DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)).filter((a): a is SourceAge => !!a)
+  const rows = [...DISPLAY_ORDER.map((k) => ages.find((a) => a.key === k)), ages.find((a) => a.key === 'build' && a.stale)].filter((a): a is SourceAge => !!a)
   return (
     <div className="freshness">
       <dl className="source-list">

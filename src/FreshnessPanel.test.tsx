@@ -12,7 +12,7 @@ describe('FreshnessList', () => {
   const rows = html.split('<dt>').slice(1).map((r) => r.slice(0, r.indexOf('</dd>')))
 
   it('one row per source in display order, each with its time and its row count', () => {
-    expect(rows.map((r) => r.replace(/<[^>]+>/g, '')).map((r) => r.slice(0, r.indexOf(' (')))).toEqual(['OpenAlex', 'Scopus', 'แบบฟอร์มผู้ดูแล', 'Google Scholar', 'การสร้างเว็บ'])
+    expect(rows.map((r) => r.replace(/<[^>]+>/g, '')).map((r) => r.slice(0, r.indexOf(' (')))).toEqual(['OpenAlex', 'Scopus', 'แบบฟอร์มผู้ดูแล', 'Google Scholar'])
     expect(rows[0]).toContain('อัปเดตล่าสุด')
     expect(rows[0]).toContain('3 ชั่วโมงที่แล้ว')
     expect(rows[0]).toContain('จำนวน 441 รายการ')
@@ -24,9 +24,15 @@ describe('FreshnessList', () => {
     expect(rows[2]).toContain('ไม่มีบันทึก')
     expect(rows[2]).toContain('ค้างเกิน 2 วัน')
   })
-  it('the site build has a time but no row count', () => {
-    expect(rows[4]).toContain('(1 ชั่วโมงที่แล้ว)')
-    expect(rows[4]).not.toContain('รายการ')
+  it('the site build is not listed while it is fresh', () => {
+    expect(html).not.toContain('การสร้างเว็บ')
+  })
+  it('a stale site build is listed, with a time and no row count', () => {
+    const old = renderToStaticMarkup(<FreshnessList ages={sourceAges(h(72), { scopus: h(3), openalex: h(3), scholar: h(50), forms: h(1) }, now)} counts={{ openalex: 441 }} />)
+    const last = old.split('<dt>').slice(1).map((r) => r.slice(0, r.indexOf('</dd>'))).pop()!
+    expect(last).toContain('การสร้างเว็บ')
+    expect(last).toContain('(3 วันที่แล้ว)')
+    expect(last).not.toContain('รายการ')
   })
   it('there is no separate heading for the times', () => {
     expect(html).not.toContain('ข้อมูลล่าสุดของแต่ละแหล่ง')

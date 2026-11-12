@@ -18,8 +18,10 @@ export const SOURCE_TH: Record<SourceKey, string> = {
   scholar: 'Google Scholar (นำเข้าเป็นครั้งคราว)',
 }
 
-/** Row order of the "แหล่งข้อมูล" list on the admin page: the four data sources, then the site build. */
-export const DISPLAY_ORDER: SourceKey[] = ['openalex', 'scopus', 'forms', 'scholar', 'build']
+/** Row order of the "แหล่งข้อมูล" list on the admin page: the four data sources. The site build is
+ *  not listed (Tum, 2026-11-12); it is still watched, and its row appears only when it is stale, so
+ *  the warning under the list always has the row it is about. */
+export const DISPLAY_ORDER: SourceKey[] = ['openalex', 'scopus', 'forms', 'scholar']
 
 /** Scholar is refreshed by hand (the "อัปเดตจาก Google Scholar" button), so its age is shown but never counts as stale. */
 export const WATCHED: SourceKey[] = ['build', 'scopus', 'openalex', 'forms']
