@@ -160,6 +160,6 @@ export function PersonPage({ result, settings, personal = false, withdraw, cross
   )
 }
 
-const SRC = { scholar: 'Scholar', openalex: 'OpenAlex', scopus: 'Scopus', manual: 'แบบฟอร์ม' } as const
+const SRC = { scholar: 'Scholar', openalex: 'OpenAlex', scopus: 'Scopus', tci: 'TCI', manual: 'แบบฟอร์ม' } as const
 
 const triLabel = (t: 'yes' | 'maybe' | 'no') => (t === 'yes' ? 'ใช่' : t === 'maybe' ? 'ไม่แน่ใจ' : 'ไม่')

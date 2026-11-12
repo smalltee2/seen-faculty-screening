@@ -116,6 +116,8 @@ const SOURCES = [
   { file: CONFIG.publications, name: 'scholar', label: 'publications.tsv', required: true },
   { file: join(ROOT, 'data/openalex.tsv'), name: 'openalex', label: 'openalex.tsv', ext: (p) => ({ doi: p.doi, extType: p.oa_type, sourceType: p.source_type, issn: p.issn ?? '' }) },
   { file: join(ROOT, 'data/scopus.tsv'), name: 'scopus', label: 'scopus.tsv', ext: (p) => ({ doi: p.doi, extType: p.sc_type, sourceType: p.source_type, issn: p.issn ?? '', eid: p.eid ?? '', ...(p.cover_date || p.volume || p.page_range || p.article_number ? { biblio: { date: p.cover_date ?? '', volume: p.volume ?? '', issue: p.issue ?? '', pages: p.page_range ?? '', articleNumber: p.article_number ?? '' } } : {}) }) },
+  // Articles in Thai journals found by the lecturer's name in the TCI article search (fetch-sources.mjs fetchTciArticles).
+  { file: join(ROOT, 'data/tci_articles.tsv'), name: 'tci', label: 'tci_articles.tsv', ext: (p) => ({ extType: 'article', sourceType: 'journal', issn: p.issn ?? '' }) },
   { file: join(ROOT, 'data/manual.tsv'), name: 'manual', label: 'manual.tsv', ext: (p) => ({ doi: p.doi, extType: p.type, manualResearch: p.is_research === 'yes', submitted: p.submitted, issn: p.issn ?? '' }) },
   // Google Scholar rows a level-2 admin imported on the admin page (scripts/fetch-sources.mjs fetchScholarImports).
   { file: join(ROOT, 'data/scholar_imports.tsv'), name: 'scholar', label: 'scholar_imports.tsv', ext: (p) => (p.batch ? { submitted: `scholar:${p.batch}` } : {}) },

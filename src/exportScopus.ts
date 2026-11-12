@@ -92,7 +92,7 @@ export const authorList = (authors: string) =>
     .join('; ')
 
 const DOC_TYPE: Record<string, string> = { journal: 'Article', proceeding: 'Conference paper', poster: 'Conference paper' }
-const SOURCE_NAME = { scopus: 'Scopus', openalex: 'OpenAlex', scholar: 'Google Scholar', manual: 'Manual' } as const
+const SOURCE_NAME = { scopus: 'Scopus', openalex: 'OpenAlex', tci: 'TCI', scholar: 'Google Scholar', manual: 'Manual' } as const
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 /** "2026-05-14" → { date: "14/5/2026", month: "May" }; "2026-05" → { date: "5/2026", month: "May" }; "2026" → { date: "", month: "" }. */

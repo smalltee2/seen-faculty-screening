@@ -22,6 +22,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
 import { lecturerNames, namedOn } from './name-match.mjs'
+import { tciAuthorMatch, tciRow } from './tci-articles.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The calendar year in Thailand (UTC+7). The daily run is at 20:00 UTC, which is already the next
@@ -44,6 +45,8 @@ const CONFIG = {
   manualOut: join(ROOT, 'data/manual.tsv'),
   selfOut: join(ROOT, 'data/self.tsv'),
   tciOut: join(ROOT, 'data/tci_journals.csv'),
+  tciArticlesOut: join(ROOT, 'data/tci_articles.tsv'),
+  tciSearch: 'https://search.tci-thailand.org/php/search',
   // One file per calendar year with the list as last seen in that year, so a journal's
   // กลุ่ม at the time an article appeared can be looked up later (stored, not displayed yet).
   tciSnapshotDir: join(ROOT, 'data/tci_snapshots'),
@@ -852,6 +855,84 @@ const csvCell = (v) => {
   return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
 }
 
+const TA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'tci_id', 'journal_id', 'issn', 'title_eng', 'title_loc']
+
+/** Articles in TCI journals by the lecturer's name, English and Thai (scripts/tci-articles.mjs).
+ *  Per lecturer: two searches, then one request per article not yet in the file to read its authors
+ *  (and one more for its details when the name matches). A lecturer whose search fails keeps the
+ *  rows of the last run. */
+async function fetchTciArticles(faculty) {
+  const previous = readTsv(CONFIG.tciArticlesOut).rows
+  const journals = existsSync(CONFIG.tciOut) ? parseCsv(readFileSync(CONFIG.tciOut, 'utf8')) : []
+  const jh = journals[0] ?? []
+  const issnOf = new Map(journals.slice(1).map((r) => [r[jh.indexOf('id')], [r[jh.indexOf('issn')], r[jh.indexOf('eissn')]].filter(Boolean).join(';')]))
+  // Titles the lecturer's rows in the other sources use, so the same form of the title is stored.
+  const normTitle = (t) => String(t ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
+  const known = new Map()
+  for (const file of [CONFIG.openalexOut, CONFIG.scopusOut, join(ROOT, 'data/publications.tsv'), join(ROOT, 'data/manual.tsv'), join(ROOT, 'data/self.tsv'), join(ROOT, 'data/scholar_imports.tsv')]) {
+    for (const r of readTsv(file).rows) {
+      if (!known.has(r.key)) known.set(r.key, new Set())
+      known.get(r.key).add(normTitle(r.title))
+    }
+  }
+  const text = async (url, init = {}) => {
+    const res = await fetch(url, { ...init, headers: { 'User-Agent': CONFIG.userAgent, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(TIMEOUT_MS) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return JSON.parse(await res.text())
+  }
+  const search = async (name) => {
+    const body = new URLSearchParams()
+    for (const [k, v] of [['cur_page', '1'], ['page_size', '100'], ['perform_advance_search', 'true'], ['keyword[]', name], ['criteria[]', 'author'], ['year_filter', ''], ['year_num', '10'], ['get_all_article_id', 'true']]) body.append(k, v)
+    const d = await text(`${CONFIG.tciSearch}/advance_search.php`, { method: 'POST', body })
+    return [...new Set([...(d.article_ids ?? []), ...(Array.isArray(d.all_article_id) ? d.all_article_id : [])].map(String))]
+  }
+  const out = []
+  let ok = 0
+  let tried = 0
+  let added = 0
+  for (const f of faculty) {
+    const names = lecturerNames(f)
+    if (!names.length) continue
+    tried++
+    const before = previous.filter((r) => r.key === f.name_en)
+    try {
+      const ids = new Set()
+      for (const name of names) {
+        for (const id of await search(name)) ids.add(id)
+        await sleep(400)
+      }
+      const rows = []
+      for (const id of ids) {
+        const had = before.find((r) => r.tci_id === id)
+        if (had) {
+          rows.push(had)
+          continue
+        }
+        const authors = await text(`${CONFIG.tciSearch}/author_info.php?article_id=${encodeURIComponent(id)}`)
+        await sleep(300)
+        if (!tciAuthorMatch(authors, f)) continue
+        const info = await text(`${CONFIG.tciSearch}/search_result.php?get_article_info=true&article_id=${encodeURIComponent(id)}&search_keyword=`)
+        await sleep(300)
+        const row = tciRow(f, info[0] ?? {}, authors, issnOf.get(String(info[0]?.journal_id ?? '')) ?? '', known.get(f.name_en))
+        if (row && row.year >= CONFIG.firstYear) {
+          rows.push(row)
+          added++
+        }
+      }
+      out.push(...rows)
+      ok++
+      if (rows.length) log(`${f.name_en}: ${rows.length} TCI articles`)
+    } catch (e) {
+      out.push(...before)
+      warn(`${f.name_en}: TCI article search failed (${e.message}); kept ${before.length} previous rows`)
+    }
+  }
+  if (tried && !ok) throw new Error('every TCI article search failed; data/tci_articles.tsv left unchanged')
+  out.sort((a, b) => a.key.localeCompare(b.key) || Number(b.year) - Number(a.year) || String(a.tci_id).localeCompare(String(b.tci_id)))
+  writeTsv(CONFIG.tciArticlesOut, TA_HEADER, out)
+  log(`TCI articles: ${out.length} rows (${added} new) for ${ok}/${tried} lecturers -> data/tci_articles.tsv`)
+}
+
 /** The TCI journal database: one POST returns every journal (about 1,700 rows). */
 async function fetchTci() {
   const res = await fetch(CONFIG.tciUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': CONFIG.userAgent }, body: '{}', signal: AbortSignal.timeout(120000) })
@@ -929,7 +1010,7 @@ async function fetchCrossref(refresh) {
   log(`Crossref: ${ok} fetched, ${failed} failed, ${out.length} DOIs in data/crossref.tsv`)
 }
 
-// --only=openalex|scopus|manual|decisions|tci|crossref runs one source (or several, comma-separated) (the iMac job runs --only=scopus).
+// --only=openalex|scopus|manual|decisions|tci|tciarticles|crossref runs one source (or several, comma-separated) (the iMac job runs --only=scopus).
 // --only accepts a comma-separated list, e.g. --only=manual,decisions (the hourly forms run).
 const only = (process.argv.find((a) => a.startsWith('--only='))?.split('=')[1] ?? '').split(',').map((x) => x.trim()).filter(Boolean)
 const run = (name) => !only.length || only.includes(name)
@@ -964,3 +1045,11 @@ if (run('tci')) {
   }
 }
 if (run('tci') || only.includes('tcihistory')) await fetchTciHistory(process.argv.includes('--refresh-history'))
+// After the journal list (it gives the ISSNs) and the other sources (they give the titles already used).
+if (run('tciarticles')) {
+  try {
+    await fetchTciArticles(faculty)
+  } catch (e) {
+    warn(`TCI articles: ${e.message}`)
+  }
+}

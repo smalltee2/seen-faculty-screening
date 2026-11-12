@@ -124,7 +124,7 @@ export interface Duplicate {
   sources: string[]
 }
 
-const SOURCE_TH: Record<string, string> = { scopus: 'Scopus', openalex: 'OpenAlex', scholar: 'Google Scholar', manual: 'ผลงานที่เพิ่มเองหรือแบบฟอร์มผู้ดูแล' }
+const SOURCE_TH: Record<string, string> = { scopus: 'Scopus', openalex: 'OpenAlex', tci: 'TCI', scholar: 'Google Scholar', manual: 'ผลงานที่เพิ่มเองหรือแบบฟอร์มผู้ดูแล' }
 
 export function findDuplicate(work: { title: string; doi: string }, pubs: Pick<Pub, 'title' | 'year' | 'doi' | 'sources'>[], mine: Submission[]): Duplicate | null {
   const t = normalizeTitle(work.title)

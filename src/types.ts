@@ -16,7 +16,7 @@ export interface Faculty {
   notes: string
 }
 
-export type PubSource = 'scholar' | 'openalex' | 'scopus' | 'manual'
+export type PubSource = 'scholar' | 'openalex' | 'scopus' | 'manual' | 'tci'
 
 /** One publication row from any data file, as parsed by scripts/build-data.mjs. */
 export interface RawPub {

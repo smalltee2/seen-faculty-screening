@@ -178,6 +178,8 @@ export function classifyRow(p: RawPub): TypeResult {
     if ((st === 'journal' || st === 'book series') && ['article', 'review', 'letter', 'editorial'].includes(ext) && !preprintVenue)
       return { type: 'journal', reason: `OpenAlex: วารสาร (${ext})`, uncertain: false }
   }
+  // TCI indexes journals only, so a row found there (by the author's name) is a journal article.
+  if (p.source === 'tci' && !preprintVenue) return { type: 'journal', reason: 'TCI: วารสาร', uncertain: false }
   if (p.source === 'scopus') {
     if (SCOPUS_EXCLUDE.includes(ext)) return { type: 'exclude', reason: `Scopus: ${p.extType}`, uncertain: false }
     if (ext === 'conference paper')
@@ -193,7 +195,7 @@ export function classifyRow(p: RawPub): TypeResult {
   return classifyType(p.title, p.venue)
 }
 
-const SOURCE_RANK: Record<string, number> = { manual: 4, scopus: 3, openalex: 2, scholar: 1 }
+const SOURCE_RANK: Record<string, number> = { manual: 4, scopus: 3, openalex: 2, tci: 2, scholar: 1 }
 
 /** Higher = better row to keep: a structured source, then a counted type, then volume/pages, the longer venue, more citations. */
 function richness(p: RawPub): number {
