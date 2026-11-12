@@ -15,7 +15,7 @@ import { fetchNotices, type Notice } from './notify'
 
 const data = raw as unknown as DataBundle
 const bundledRows = data.publications.filter((p) => data.faculty.some((f) => f.nameEn === p.key))
-const makePubs = (bundled: RawPub[], extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundled, ...extra], data.overrides, conferences)
+const makePubs = (bundled: RawPub[], extra: RawPub[], conferences: ConferenceEntry[]) => preparePubs([...bundled, ...extra], data.overrides, conferences, data.crossref ?? [])
 
 /** `extraConfItems` lets the prototype try decisions locally without saving them. */
 const NONE: ConfDecisionItem[] = [] // one array, so the memo below is not recomputed on every render

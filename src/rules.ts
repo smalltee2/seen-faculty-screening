@@ -24,6 +24,10 @@ export interface Settings {
   /** Strict mode (the site's setting): anything that cannot be confirmed is not counted,
    *  missing degree/rank data does not qualify, and no result is left as needs review. */
   strict?: boolean
+  /** How the five years are counted (Tum, 2026-11-12). 'calendar' (default): calendar years Y−4 … Y.
+   *  'academic': five academic years ending with year Y's, June of Y−4 to May of Y+1 (academic year
+   *  2569 = June 2026 – May 2027, so June 2022 – May 2027). */
+  period?: 'calendar' | 'academic'
 }
 
 /** Degree/rank requirement of a role. `master_or_asst` = ปริญญาโท หรือ ผศ. ขึ้นไป (clause 10). */
@@ -96,6 +100,37 @@ export const roleById = (id: string): RoleSpec => {
 
 export function windowYears(year: number): [number, number] {
   return [year - 4, year]
+}
+
+/** First month of an academic year (June). */
+export const ACADEMIC_START_MONTH = 6
+const ym = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`
+/** The five academic years counted for evaluation year Y, as ["YYYY-MM", "YYYY-MM"] (both included). */
+export function academicWindow(year: number): [string, string] {
+  return [ym(year - 4, ACADEMIC_START_MONTH), ym(year + 1, ACADEMIC_START_MONTH - 1)]
+}
+
+/** Whether a work falls in the five years counted, and whether that rests on a missing month.
+ *  Calendar: the work's year is Y−4 … Y. Academic: its month is June of Y−4 … May of Y+1; a work
+ *  whose month no source gives is counted when its year could be inside (the two edge years
+ *  included), and `monthUnknown` says so for an edge year. */
+export function inWindow(pub: Pick<Pub, 'year' | 'pubMonth'>, s: Settings): { in: boolean; monthUnknown: boolean } {
+  if (s.period !== 'academic') {
+    const [from, to] = windowYears(s.year)
+    return { in: pub.year !== null && pub.year >= from && pub.year <= to, monthUnknown: false }
+  }
+  const [start, end] = academicWindow(s.year)
+  if (pub.pubMonth) return { in: pub.pubMonth >= start && pub.pubMonth <= end, monthUnknown: false }
+  if (pub.year === null) return { in: false, monthUnknown: false }
+  const edge = pub.year === s.year - 4 || pub.year === s.year + 1
+  return { in: pub.year >= s.year - 4 && pub.year <= s.year + 1, monthUnknown: edge }
+}
+
+const TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+/** The counted period in words: "2022–2026", or "มิ.ย. 2022 – พ.ค. 2027" for academic years. */
+export function windowText(s: Settings): string {
+  if (s.period !== 'academic') return windowYears(s.year).join('–')
+  return academicWindow(s.year).map((x) => `${TH_MONTH[Number(x.slice(5)) - 1]} ${x.slice(0, 4)}`).join(' – ')
 }
 
 const minTri = (...xs: Tri[]): Tri => (xs.includes('no') ? 'no' : xs.includes('maybe') ? 'maybe' : 'yes')
@@ -263,10 +298,9 @@ function newGradPath(role: RoleSpec, p: Faculty, evals: PubEval[], s: Settings):
 }
 
 export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Settings): RoleResult {
-  const [from, to] = windowYears(s.year)
   const evals = pubs.map((pub) => evaluatePub(pub, p, s))
-  const inWindow = evals.filter((e) => e.pub.year !== null && e.pub.year >= from && e.pub.year <= to)
-  const counts = tally(inWindow)
+  const counted = evals.filter((e) => inWindow(e.pub, s).in)
+  const counts = tally(counted)
   const q0 = qualifies(p, role.qual)
   const q = s.strict && q0.ok === 'maybe' ? { ok: 'no' as Tri, reason: `${q0.reason} — ไม่ผ่าน` } : q0
   const o = outputsTri(counts, role.minOutputs, role.minResearch, role.researchOnly)
@@ -281,7 +315,7 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
   const have = role.researchOnly
     ? `มีผลงานวิจัย ${counts.research}${counts.researchPossible > counts.research ? ` (อาจถึง ${counts.researchPossible})` : ''}`
     : `มีผลงาน ${counts.total}${counts.totalPossible > counts.total ? ` (อาจถึง ${counts.totalPossible})` : ''}, วิจัย ${counts.research}${counts.researchPossible > counts.research ? ` (อาจถึง ${counts.researchPossible})` : ''}`
-  const reasons = [`คุณวุฒิ: ${q.reason}`, role.minOutputs === 0 ? `${need} (ข้อ ${role.clause}); ${have} ในปี ${from}–${to}` : `ต้องการ ${need} ในปี ${from}–${to}; ${have}`]
+  const reasons = [`คุณวุฒิ: ${q.reason}`, role.minOutputs === 0 ? `${need} (ข้อ ${role.clause}); ${have} ในปี ${windowText(s)}` : `ต้องการ ${need} ในปี ${windowText(s)}; ${have}`]
 
   let status: Status = q.ok === 'no' || o === 'no' ? 'not_met' : q.ok === 'yes' && o === 'yes' ? 'met' : 'needs_review'
   let path: RoleResult['path'] = 'regular'
@@ -304,9 +338,10 @@ export function evaluateRole(role: RoleSpec, p: Faculty, pubs: Pub[], s: Setting
     status,
     reasons,
     counts,
-    window: [from, to],
-    used: inWindow.filter((e) => pick(e) === 'yes'),
-    uncertain: inWindow.filter((e) => pick(e) === 'maybe'),
+    // The years the counted period touches (academic years run into the year after Y).
+    window: s.period === 'academic' ? [s.year - 4, s.year + 1] : windowYears(s.year),
+    used: counted.filter((e) => pick(e) === 'yes'),
+    uncertain: counted.filter((e) => pick(e) === 'maybe'),
     path,
   }
 }

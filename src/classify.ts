@@ -3,7 +3,7 @@
 // apply overrides.csv. Anything decided on weak evidence is marked uncertain
 // and goes to the review queue instead of being guessed.
 import { buildConferenceIndex, matchConference } from './conferences'
-import type { ConferenceEntry, Override, Pub, PubType, RawPub } from './types'
+import type { ConferenceEntry, CrossrefEntry, Override, Pub, PubType, RawPub } from './types'
 
 /** Lowercase, Unicode-normalise, and strip punctuation and whitespace. */
 export function normalizeTitle(title: string): string {
@@ -282,12 +282,30 @@ export function hideMatchedErrata(pubs: Pub[]): Pub[] {
   })
 }
 
-export function preparePubs(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[] = []): Pub[] {
-  return hideMatchedErrata(preparePubsAll(rows, overrides, conferences))
+/** "YYYY-MM" of a date string when it says the month, else ''. A date on 1 January is how the
+ *  indexes write "this year, month not known", so it does not say the month. */
+export function monthOfDate(date: string | null | undefined): string {
+  const m = String(date ?? '').trim().match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/)
+  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return ''
+  if (m[2] === '01' && m[3] === '01') return ''
+  return `${m[1]}-${m[2]}`
 }
 
-function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[]): Pub[] {
+/** The month a work was published, from the rows merged into it and its Crossref record: the issue
+ *  date first (Scopus cover date, Crossref print/issue date), then the online date (OpenAlex,
+ *  Crossref online). '' when no source says the month. */
+export function pubMonthOf(members: RawPub[], crossref?: Pick<CrossrefEntry, 'published' | 'publishedOnline'>): string {
+  const first = (dates: (string | undefined)[]) => dates.map(monthOfDate).find(Boolean) ?? ''
+  return first(members.map((m) => m.biblio?.date)) || monthOfDate(crossref?.published) || first(members.map((m) => m.pubDate)) || monthOfDate(crossref?.publishedOnline)
+}
+
+export function preparePubs(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[] = [], crossref: CrossrefEntry[] = []): Pub[] {
+  return hideMatchedErrata(preparePubsAll(rows, overrides, conferences, crossref))
+}
+
+function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: ConferenceEntry[], crossref: CrossrefEntry[]): Pub[] {
   const confIdx = buildConferenceIndex(conferences)
+  const crByDoi = new Map(crossref.map((c) => [normDoi(c.doi), c]))
   const byKey = new Map(overrides.map((o) => [overrideKey(o.key, o.titleNormalized), o]))
   return dedupe(rows).map(({ row, duplicates, members }) => {
     const titleNorm = normalizeTitle(row.title)
@@ -321,6 +339,8 @@ function preparePubsAll(rows: RawPub[], overrides: Override[], conferences: Conf
       biblio: members.map((m) => m.biblio).find(Boolean),
       override: o,
     }
+    const month = pubMonthOf(members, members.map((m) => crByDoi.get(normDoi(m.doi))).find(Boolean))
+    if (month) pub.pubMonth = month
     if (o?.type) Object.assign(pub, { type: o.type, typeReason: `แก้ไขด้วยมือ (override)${o.note ? `: ${o.note}` : ''}`, typeUncertain: false })
     if (o?.isResearch !== null && o?.isResearch !== undefined)
       Object.assign(pub, { isResearch: o.isResearch, researchReason: 'แก้ไขด้วยมือ (override)', researchUncertain: false })

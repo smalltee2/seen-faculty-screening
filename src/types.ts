@@ -196,6 +196,10 @@ export interface Pub extends RawPub {
   scopusType?: string
   /** Scopus bibliographic details from the merged Scopus row, when fetched. */
   biblio?: RawPub['biblio']
+  /** Month of publication "YYYY-MM" when a source gives one (classify.ts pubMonthOf): the issue date
+   *  first (Scopus, Crossref), then the online date (OpenAlex, Crossref). Read only when works are
+   *  counted by academic year (rules.ts inWindow); undefined = only the year is known. */
+  pubMonth?: string
   override: Override | null
   /** Conference screening result; only set for proceedings. */
   conference?: import('./conferences').ConferenceMatch
