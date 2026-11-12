@@ -46,7 +46,7 @@ function siteNote(sent) {
 // This web app's own URL (data/sources.json loginApiUrl), used in the รับทราบ link; a constant so
 // the script needs no extra permission to read its deployment.
 var APP_URL = 'https://script.google.com/macros/s/AKfycbxjAV3AbbEVkIiq7qsxVTkj6FXYPwlClPF66Mg96u3jZi_9UA6Cb9Y01PUEtwCE4hPg/exec';
-var CODE_MINUTES = 15;
+var CODE_HOURS = 24; // life of a login link (Tum, 2026-11-12: 1 day, was 15 minutes; the university's mail can deliver late)
 var SESSION_HOURS = 12;
 var REMEMBER_DAYS = 30;
 var MAX_REQUESTS_PER_HOUR = 10; // login links per address per hour (Tum, 2026-11-12: raised from 5)
@@ -316,7 +316,7 @@ function requestLink(body) {
     return { ok: true };
   }
   var code = randomToken();
-  var expires = new Date(Date.now() + CODE_MINUTES * 60 * 1000);
+  var expires = new Date(Date.now() + CODE_HOURS * 3600 * 1000);
   var site = siteOf(body.site);
   var link = site + 'me/#login=' + code;
   var name = user ? user.name_th || user.name_en : admin.name || email;
@@ -340,7 +340,7 @@ function sendLoginMail(email, name, link) {
     subject: 'ลิงก์เข้าสู่ระบบ ข้อมูลคุณสมบัติของฉัน (SEEN)',
     body:
       'เรียน ' + name + '\n\n' +
-      'คลิกลิงก์นี้เพื่อเข้าดูข้อมูลคุณสมบัติของท่าน (ใช้ได้ ' + CODE_MINUTES + ' นาที และใช้ได้ครั้งเดียว):\n' +
+      'คลิกลิงก์นี้เพื่อเข้าดูข้อมูลคุณสมบัติของท่าน (ใช้ได้ ' + CODE_HOURS + ' ชั่วโมง และใช้ได้ครั้งเดียว):\n' +
       link + '\n\n' +
       'หากท่านไม่ได้ขอลิงก์นี้ ไม่ต้องดำเนินการใด ๆ',
     name: 'SEEN ระบบตรวจสอบคุณสมบัติอาจารย์',

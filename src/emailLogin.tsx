@@ -226,14 +226,14 @@ export function EmailLogin({ notice, eyebrow = 'สำหรับอาจา�
       eyebrow={eyebrow}
       title={title}
       intro={intro ?? 'ดูผลการตรวจสอบคุณสมบัติและรายการผลงานของท่านเอง และเพิ่มผลงานที่ยังไม่มีในระบบ โดยไม่ต้องตั้งรหัสผ่าน'}
-      steps={steps ?? ['ใส่อีเมลมหาวิทยาลัย @up.ac.th', 'เปิดอีเมลแล้วคลิกลิงก์ภายใน 15 นาที', 'ระบบแสดงเฉพาะข้อมูลของท่าน']}
+      steps={steps ?? ['ใส่อีเมลมหาวิทยาลัย @up.ac.th', 'เปิดอีเมลแล้วคลิกลิงก์ภายใน 24 ชั่วโมง', 'ระบบแสดงเฉพาะข้อมูลของท่าน']}
     >
       <form className="gate-form" onSubmit={submit}>
         {sent ? (
           <div className="gate-sent" role="status">
             <h2 className="gate-form-title">ส่งลิงก์แล้ว</h2>
             <p>
-              ระบบส่งลิงก์เข้าสู่ระบบไปที่ <b>{email.trim()}</b> กรุณาเปิดอีเมลแล้วคลิกลิงก์ภายใน 15 นาที
+              ระบบส่งลิงก์เข้าสู่ระบบไปที่ <b>{email.trim()}</b> กรุณาเปิดอีเมลแล้วคลิกลิงก์ภายใน 24 ชั่วโมง อีเมลอาจใช้เวลา 1–2 นาทีจึงมาถึง
             </p>
             <p className="muted small">ถ้าไม่พบ ให้ตรวจในกล่อง Junk หรือ Spam</p>
             <button type="button" className="btn" onClick={() => setSent(false)}>

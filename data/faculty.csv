@@ -1,6 +1,6 @@
 ﻿name_en,name_th,scholar_id,openalex_id,scopus_id,academic_rank,highest_degree,degree_field,degree_year_ce,programs,notes
 Teerachai Amnuaylojaroen,ธีรชัย อำนวยล้อเจริญ,x2B8hBkAAAAJ,A5046749071,,รศ.,ปริญญาเอก,วิทยาศาสตร์สิ่งแวดล้อม,2014,,
-Torpong Kreetachat,ต่อพงศ์ กรีธาชาติ,UORF4PQAAAAJ,A5033865938,,รศ.,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2007,,
+Torpong Kreetachat,ต่อพงศ์ กรีธาชาติ,UORF4PQAAAAJ,A5033865938;A5117567649;A5053219393,,รศ.,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2007,,
 Nopparat Suriyachai,นพรัตน์ สุริยะไชย,RnwHzsgAAAAJ,A5007546516,,ผศ.,ปริญญาเอก,เทคโนโลยีพลังงาน,2018,,
 Saksit Imman,ศักดิ์สิทธิ์ อิ่มแมน,C4qADGsAAAAJ,A5025884372,,รศ.,ปริญญาเอก,เทคโนโลยีพลังงาน,2015,,
 Sittichai Pimonsree,สิทธิชัย พิมลศรี,IKO6SLsAAAAJ,A5063226565,,รศ.,ปริญญาเอก,เทคโนโลยีสิ่งแวดล้อม,2009,,
@@ -12,16 +12,16 @@ Bunyawat Vichanpol,บุญวัฒน์ วิจารณ์พล,kJEUzk4A
 Wanawan Pragot,วนาวัลย์ ปรากฎ,CbGh5XwAAAAJ,A5054614839,,ผศ.,ปริญญาเอก,Chemical Engineering,,,
 Watchara Wongpanyo,วัชระ วงค์ปัญโญ,ox2gTBwAAAAJ,A5075634470,,ผศ.,ปริญญาเอก,พลังงานทดแทน,2009,,
 Anusorn Boonpoke,อนุสรณ์ บุญปก,sQGtXMoAAAAJ,A5019169737,,ผศ.,ปริญญาเอก,เทคโนโลยีสิ่งแวดล้อม,2011,,
-Sukthai Pongpattanasiri,สุขทัย พงศ์พัฒนศิริ,aV9deG8AAAAJ,A5069182260,,ผศ.,ปริญญาเอก,Agricultural Science,2005,,
+Sukthai Pongpattanasiri,สุขทัย พงศ์พัฒนศิริ,aV9deG8AAAAJ,A5069182260;A5154193257,,ผศ.,ปริญญาเอก,Agricultural Science,2005,,
 Poramate Sittisun,ปรเมษฐ์ สิทธิสันติ์,X-e108QAAAAJ,A5083263881,,อาจารย์,ปริญญาเอก,วิศวกรรมพลังงาน,2018,,
 Nathiya Kreetachat,เนทิยา กรีธาชาติ,dZGJHXMAAAAJ,A5090461476,,ผศ.,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2008,,
-Sukhuma Chitapornpan,สุขุมา ชิตาภรณ์พันธุ์,HbpJCkEAAAAJ,A5009126578,,อาจารย์,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2013,,
+Sukhuma Chitapornpan,สุขุมา ชิตาภรณ์พันธุ์,HbpJCkEAAAAJ,A5009126578;A5153717089,,อาจารย์,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2013,,
 Somanat Somprasert,โสมนัส สมประเสริฐ,Z1bqHqIAAAAJ,A5028862723,,อาจารย์,ปริญญาเอก,เทคโนโลยีสิ่งแวดล้อม,2008,,
 Satawat Tanarat,ศตวรรษ ทนารัตน์,dt0aVkoAAAAJ,A5089694662,,อาจารย์,ปริญญาเอก,วิศวกรรมสิ่งแวดล้อม,2018,,
 Buran Phansawan,บุหรัน พันธุ์สวรรค์,0vbBfygAAAAJ,A5011995680,,ผศ.,ปริญญาเอก,วิทยาศาสตร์สิ่งแวดล้อม,2014,,
 Chaiwat Photong,ชัยวัฒน์ โพธิ์ทอง,01-VXucAAAAJ,A5067162619,,อาจารย์,ปริญญาโท,วิศวกรรมสิ่งแวดล้อม,1999,,
 Rattapoom Prommana,รัฐภูมิ พรหมณะ,CrOzkjIAAAAJ,A5119989578,,ผศ.,ปริญญาเอก,ชีววิทยา,2006,,
 Suchanya Thongkrua,สุชัญญา ทองเครือ,aaCbV6EAAAAJ,,,ผศ.,ปริญญาเอก,วิทยาศาสตร์สิ่งแวดล้อม,2011,,
-Pimsiri Suwannapat,พิมพ์ศิริ สุวรรณพัฒน์,,,,อาจารย์,ปริญญาโท,Applied Chemistry and Biotechnology,2011,,No Google Scholar profile; publications not yet collected
+Pimsiri Suwannapat,พิมพ์ศิริ สุวรรณพัฒน์,,A5117567280,,อาจารย์,ปริญญาโท,Applied Chemistry and Biotechnology,2011,,No Google Scholar profile; OpenAlex record is under the spelling Suwanpat
 Sumol Nilratnisakorn,สุมล นิลรัตน์นิศากร,2z6DPOYAAAAJ,A5046315565,19934009300,อาจารย์,ปริญญาเอก,เทคโนโลยีสิ่งแวดล้อม,2009,,
 Chayanan Jitmanee,ชญาน์นันท์ จิตมณี,6nHzS7EAAAAJ,A5068356783,,อาจารย์,ปริญญาเอก,วิทยาศาสตร์สิ่งแวดล้อม,,,

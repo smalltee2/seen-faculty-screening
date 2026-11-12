@@ -303,7 +303,7 @@ The passcode and the login hide views in the browser; the data are bundled with 
 repository is public, so this is not access control against someone who reads the source.
 
 **Login**: passwordless (decision 2026-11-06). The page asks the login backend to e-mail a one-time link (valid
-15 minutes); the link goes to `/me/#login=<code>`, a small page written by `scripts/build-personal.mjs` that
+24 hours); the link goes to `/me/#login=<code>`, a small page written by `scripts/build-personal.mjs` that
 forwards to `#/me/login=<code>`; the tab exchanges the code for a session (12 hours, or 30 days with
 "จำเครื่องนี้") and shows the result of the `name_en` the backend returns.
 

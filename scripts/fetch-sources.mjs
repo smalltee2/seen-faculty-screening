@@ -135,7 +135,7 @@ async function fetchOpenAlex(faculty) {
       let cursor = '*'
       while (cursor) {
         const url =
-          `https://api.openalex.org/works?filter=author.id:${encodeURIComponent(f.openalex_id)},publication_year:>${CONFIG.firstYear - 1}` +
+          `https://api.openalex.org/works?filter=author.id:${openalexIds(f).join('|')},publication_year:>${CONFIG.firstYear - 1}` +
           `&select=id,doi,display_name,publication_year,type,primary_location,biblio,authorships,cited_by_count&per-page=200&cursor=${encodeURIComponent(cursor)}`
         const d = await getJson(url)
         for (const w of d.results) {
@@ -191,6 +191,15 @@ async function scopusGet(url, key) {
   return getJson(url, 3, headers)
 }
 
+/** A lecturer's OpenAlex author IDs. OpenAlex sometimes keeps one person under several records
+ *  (a spelling variant of the surname gets its own), so faculty.csv may list more than one in
+ *  openalex_id, separated by ";", the main record first (Tum, 2026-11-12). */
+function openalexIds(f) {
+  const ids = String(f.openalex_id ?? '').split(/[;|\s]+/).map((x) => x.trim().split('/').pop()).filter(Boolean)
+  for (const id of ids) if (!/^A\d+$/.test(id)) throw new Error(`${f.name_en}: openalex_id "${id}" is not an OpenAlex author ID (A followed by digits)`)
+  return ids
+}
+
 /** Scopus query for one lecturer. The key is not entitled to Elsevier's Author Search
  *  (AUTHORIZATION_ERROR), so the Scopus author ID comes from faculty.csv (scopus_id) or
  *  from the lecturer's OpenAlex record; without one, search by name + Phayao affiliation. */
@@ -198,7 +207,7 @@ async function scopusQuery(f) {
   let id = f.scopus_id
   if (!id && f.openalex_id) {
     try {
-      const a = await getJson(`https://api.openalex.org/authors/${encodeURIComponent(f.openalex_id)}?select=ids`)
+      const a = await getJson(`https://api.openalex.org/authors/${openalexIds(f)[0]}?select=ids`)
       id = String(a.ids?.scopus ?? '').match(/authorID=(\d+)/)?.[1] ?? ''
     } catch (e) {
       // Not answered is not the same as "has no Scopus ID": the name query can return another set of
