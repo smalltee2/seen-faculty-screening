@@ -19,9 +19,12 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
-const OUT = join(ROOT, 'docs/manual/ppt/shots')
+const OUT = process.env.SHOTS_OUT ?? join(ROOT, 'docs/manual/ppt/shots')
+// SET=phone takes only the phone views of the personal page (for reviewing that layout).
+const SET = process.env.SET ?? 'manual'
 const BASE = (process.argv[2] ?? 'https://seen-education-service.pages.dev/').replace(/\/?$/, '/')
-const PAGE = `${BASE}sfs_webapp${BASE.includes('github.io') ? '.html' : ''}`
+// Cloudflare Pages serves pages without ".html"; GitHub Pages and the dev server need it.
+const PAGE = `${BASE}sfs_webapp${BASE.includes('pages.dev') ? '' : '.html'}`
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const PORT = 9333
 const data = JSON.parse(readFileSync(join(ROOT, 'src/generated/data.json'), 'utf8'))
@@ -113,7 +116,7 @@ const BLUR = `(() => {
   }
 })()`
 
-async function shot(name, { hash, width = 1440, height = 900, scale = 1.5, mobile = false, as = 'visitor', scrollTo = null, scrollText = null, scrollBy = 0, blur = false, wait = 3500, marks = [] }) {
+async function shot(name, { hash, width = 1440, height = 900, scale = 1.5, mobile = false, as = 'visitor', scrollTo = null, scrollText = null, scrollBy = 0, blur = false, wait = 3500, marks = [], act = null }) {
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: scale, mobile })
   // Start each view from a clean origin state, then set what this visitor would have.
   await send('Network.clearBrowserCookies')
@@ -131,6 +134,10 @@ async function shot(name, { hash, width = 1440, height = 900, scale = 1.5, mobil
   await sleep(300)
   await send('Page.navigate', { url: `${PAGE}#/${hash}` })
   await sleep(wait)
+  if (act) {
+    await send('Runtime.evaluate', { expression: act })
+    await sleep(800)
+  }
   if (scrollTo) {
     // The web app scrolls its content card, not the window, on desktop: scroll whatever holds the element.
     await send('Runtime.evaluate', { expression: `(() => { const el = document.querySelector(${JSON.stringify(scrollTo)}); if (el) el.scrollIntoView({ block: 'start' }); })()` })
@@ -171,6 +178,16 @@ try {
   await send('Network.enable')
   await interceptBackend()
   console.log(`Screenshots from ${PAGE}`)
+  if (SET === 'phone') {
+    const phone = { as: 'lecturer', width: 390, height: 844, scale: 2, mobile: true, hash: 'me' }
+    const click = (sel, text = '') => `(() => { const el = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => x.textContent.includes(${JSON.stringify(text)})); el && el.click(); })()`
+    await shot('m-me', phone)
+    await shot('m-me-level', { ...phone, act: click('.mme-row', 'ป.เอก') })
+    await shot('m-me-works', { ...phone, scrollTo: '.mme-chips' })
+    await shot('m-me-work-open', { ...phone, act: click('.mme-work'), scrollTo: '.mme-chips' })
+    await shot('m-me-not', { ...phone, act: click('.mme-chips button', 'ไม่นับ'), scrollTo: '.mme-chips' })
+    await shot('m-me-sheet', { ...phone, act: click('.mme-fab') })
+  } else {
   // อาจารย์ทั่วไป
   await shot('g-overview', { hash: 'overview', marks: [[1, '#app-side a', 'ภาพรวม'], [2, '.app-window-chip'], [3, 'button', 'ปีการศึกษา 2569'], [4, 'button,a', 'เข้าสู่ระบบผู้ดูแล'], [5, 'p', 'ผ่านเกณฑ์ครบทุกหน้าที่'], [6, 'p', 'ยังไม่ผ่านเกณฑ์บางหน้าที่'], [7, '*', 'อาจารย์ทั้งหมด'], [8, '*', 'ผลงานรวมที่นับได้']] })
   await shot('g-overview-charts', { hash: 'overview', scrollText: 'สัดส่วนอาจารย์ตามผลการประเมิน', marks: [[1, 'h2,h3', 'สัดส่วนอาจารย์ตามผลการประเมิน'], [2, 'h2,h3', 'จำนวนอาจารย์ที่ผ่านแต่ละหน้าที่'], [3, 'h2,h3', 'จำนวนผลงานต่อปี'], [4, 'button', 'แยกตามคุณภาพ']] })
@@ -189,6 +206,7 @@ try {
   await shot('c-lecturers-fail', { hash: 'lecturers?filter=not_met&scope=grad', as: 'chair', blur: true, scrollBy: 760 })
   await shot('c-lecturers-table', { hash: 'lecturers?view=table', as: 'chair', blur: true, scrollBy: 760 })
   await shot('c-person', { hash: `person/${encodeURIComponent(EXAMPLE.nameEn)}`, as: 'chair', marks: [[1, 'a', 'รายชื่ออาจารย์'], [2, '*', 'ตำแหน่งวิชาการ'], [3, 'h2', 'ผลตามหน้าที่'], [4, 'button', 'ดาวน์โหลด CSV']] })
+  }
 } finally {
   try {
     ws?.close()

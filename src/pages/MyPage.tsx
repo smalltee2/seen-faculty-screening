@@ -5,18 +5,22 @@
 import { useState, type FormEvent } from 'react'
 import type { PersonResult, Settings } from '../rules'
 import { PersonPage } from './PersonPage'
+import { MobileMe } from '../webapp/MobileMe'
 import { EmailLogin, api, errorText, sessionStore, useEmailUser } from '../emailLogin'
 import { STATUS_TH, TYPE_TH, findDuplicate, type Submission, type WorkType } from '../submissions'
 import type { CrossrefEntry, Pub } from '../types'
 
 /** `approverTh` names who approves self-added works: sfs.html says ผู้ดูแลระดับ 2, sfs_webapp.html its own title. */
-export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref, approverTh = 'ผู้ดูแลระดับ 2' }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[]; approverTh?: string }) {
+export function MyPage({ results, settings, loginCode, submissions, onSubmissionsChanged, crossref, approverTh = 'ผู้ดูแลระดับ 2', mobile = false }: { results: PersonResult[]; settings: Settings; loginCode?: string; submissions: Submission[]; onSubmissionsChanged: () => void; crossref?: CrossrefEntry[]; approverTh?: string; mobile?: boolean }) {
   const { user, checking, notice, logout } = useEmailUser(loginCode)
 
   if (checking) return <p className="note">กำลังตรวจสอบการเข้าสู่ระบบ…</p>
   if (!user) return <EmailLogin notice={notice} />
   const result = results.find((r) => r.person.nameEn === user.nameEn)
   const mine = submissions.filter((s) => s.nameEn === user.nameEn && s.status !== 'withdrawn')
+  // Phones (web app): a shorter, list-style page (src/webapp/MobileMe.tsx).
+  if (mobile && result)
+    return <MobileMe result={result} settings={settings} email={user.email} onLogout={logout} mine={mine} addWork={<AddWork mine={mine} pubs={result.pubs} onChanged={onSubmissionsChanged} approverTh={approverTh} />} />
   return (
     <>
       <div className="me-bar no-print">

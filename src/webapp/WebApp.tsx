@@ -13,6 +13,7 @@ import { academicYearOf, evaluatePerson, periodName, toBE, windowText, yearName,
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
 import { DemoBanner } from '../demoNotice' // DEMO-NOTICE
+import { useNarrow } from './useNarrow'
 import { HoverSelect } from '../HoverSelect'
 import { ThemeToggle, useScrolled } from '../ThemeToggle'
 import { AdminGateForm, forgetAdmin, initialAdmin, type AdminLinks } from '../adminGate'
@@ -88,6 +89,7 @@ const NAV: { page: IconKey; th: string; short: string; level: 0 | 1 | 2 }[] = [
 ]
 
 export function WebApp() {
+  const narrow = useNarrow()
   const [route, setRoute] = useState<Route>(() => parseWebAppHash(window.location.hash))
   // Counts navigations, so a link to #/lecturers always opens the page as the link says, even when
   // the page (which rewrites its own address without a navigation) already shows another filter.
@@ -234,7 +236,8 @@ export function WebApp() {
   const active: Page = route.page === 'person' ? 'lecturers' : route.page
   const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
-  const title = route.page === 'person' ? (person ? displayName(person.person) : 'ไม่พบอาจารย์') : current.th
+  // Phones: the short menu name, so the title fits beside the year menu (Tum, 2026-11-12: less text on phones).
+  const title = route.page === 'person' ? (person ? displayName(person.person) : 'ไม่พบอาจารย์') : narrow && 'short' in current ? current.short : current.th
   const need = route.page === 'person' || route.page === 'login' ? 1 : current.level
   const allowed = level >= need
   // Signed in at #/login: go on to the first admin page of that level.
@@ -394,7 +397,7 @@ export function WebApp() {
               id="app-year"
               label="ปีที่ประเมิน"
               value={String(settings.year)}
-              options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: yearName(settings, y) }))}
+              options={[CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => ({ value: String(y), label: narrow ? String(toBE(y)) : yearName(settings, y) }))}
               onChange={(v) => setSettings({ ...settings, year: Number(v) })}
             />
             {/* Sign-in status and sign-out, moved from the side menu (Tum, 2026-11-11). */}
@@ -457,7 +460,7 @@ export function WebApp() {
           ) : (
             <>
               {route.page === 'overview' && <Overview results={results} settings={settings} />}
-              {route.page === 'me' && <MyPage approverTh={LEVEL_TH[2]} results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
+              {route.page === 'me' && <MyPage mobile={narrow} approverTh={LEVEL_TH[2]} results={results} settings={settings} loginCode={route.login} submissions={site.submissions} onSubmissionsChanged={site.refreshSubmissions} crossref={data.crossref} />}
               {route.page === 'lecturers' && (
                 <LecturersPage
                   key={`${navTick}|${q?.toString() ?? ''}`}
