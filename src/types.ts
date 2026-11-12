@@ -39,6 +39,9 @@ export interface RawPub {
   /** Admin form answer to "เป็นงานวิจัยหรือไม่". */
   manualResearch?: boolean
   submitted?: string
+  /** OpenAlex publication date, YYYY-MM-DD (openalex.tsv rows fetched after 2026-11-12); usually the first online date.
+   *  The Scopus cover date is in `biblio.date`. Stored for evaluating by term; no rule reads it yet. */
+  pubDate?: string
   /** Scopus EID (scopus.tsv rows only), for the Scopus-style export. */
   eid?: string
   /** Scopus cover date, volume, issue, page range and article number (scopus.tsv rows fetched after 2026-11-07). */

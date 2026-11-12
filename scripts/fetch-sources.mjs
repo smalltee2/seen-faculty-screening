@@ -125,7 +125,9 @@ function venueOf(w) {
   return v
 }
 
-const OA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'oa_type', 'source_type', 'oa_id', 'issn']
+// pub_date (2026-11-12): OpenAlex's publication_date (YYYY-MM-DD, usually the first online date), kept for
+// evaluating by term; rows fetched earlier leave it empty until the next fetch.
+const OA_HEADER = ['key', 'year', 'title', 'authors', 'venue', 'cites', 'doi', 'oa_type', 'source_type', 'oa_id', 'issn', 'pub_date']
 /** ISSNs of a work's source, "issn_l;issn;…" (OpenAlex) — used to match the TCI list. */
 const issnsOf = (src) => [...new Set([src?.issn_l, ...(src?.issn ?? [])].filter(Boolean))].join(';')
 
@@ -137,7 +139,7 @@ async function fetchOpenAlex(faculty) {
   const out = []
   let ok = 0
   let tried = 0
-  const SELECT = 'id,doi,display_name,publication_year,type,primary_location,biblio,authorships,cited_by_count'
+  const SELECT = 'id,doi,display_name,publication_year,publication_date,type,primary_location,biblio,authorships,cited_by_count'
   /** Every work matching an OpenAlex filter (all pages). */
   const worksOf = async (filter) => {
     const found = []
@@ -199,6 +201,7 @@ async function fetchOpenAlex(faculty) {
           source_type: w.primary_location?.source?.type ?? '',
           oa_id: w.id.split('/').pop(),
           issn: issnsOf(w.primary_location?.source),
+          pub_date: /^\d{4}-\d{2}-\d{2}$/.test(String(w.publication_date ?? '')) ? w.publication_date : '',
         })
       }
       // An answer with no works for a lecturer who had some is treated as a failed request:
