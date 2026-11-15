@@ -180,7 +180,22 @@ try {
   await send('Network.enable')
   await interceptBackend()
   console.log(`Screenshots from ${PAGE}`)
-  if (SET === 'phone') {
+  if (SET === 'glass') {
+    // The glass menu frames: phone and computer, light and dark (review of that style).
+    const click = (sel, text = '') => `(() => { const el = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => x.textContent.includes(${JSON.stringify(text)})); el && el.click(); })()`
+    const dark = `document.documentElement.setAttribute('data-theme', 'dark');`
+    const ph = { as: 'admin', width: 390, height: 844, scale: 2, mobile: true, blur: true }
+    const pc = { as: 'admin', width: 1440, height: 900, scale: 1, blur: true }
+    for (const [tag, pre] of [['', ''], ['-dark', dark]]) {
+      await shot(`gl-phone-overview${tag}`, { ...ph, hash: 'overview', act: pre || null, scrollBy: 420 })
+      await shot(`gl-phone-list${tag}`, { ...ph, hash: 'lecturers', act: pre || null, scrollBy: 300 })
+      await shot(`gl-phone-more${tag}`, { ...ph, hash: 'lecturers', act: pre + click('.app-nav-more') })
+      await shot(`gl-phone-menu${tag}`, { ...ph, hash: 'lecturers', act: pre + click('.app-top-tools .hover-select-button') })
+      await shot(`gl-pc-overview${tag}`, { ...pc, hash: 'overview', act: pre || null })
+      await shot(`gl-tablet${tag}`, { ...pc, width: 900, height: 800, hash: 'overview', act: pre || null })
+      await shot(`gl-pc-menu${tag}`, { ...pc, hash: 'lecturers', act: pre + click('.app-top-tools .hover-select-button') })
+    }
+  } else if (SET === 'phone') {
     const phone = { as: 'lecturer', width: 390, height: 844, scale: 2, mobile: true, hash: 'me' }
     const click = (sel, text = '') => `(() => { const el = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => x.textContent.includes(${JSON.stringify(text)})); el && el.click(); })()`
     await shot('m-me', phone)
