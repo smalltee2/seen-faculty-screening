@@ -38,7 +38,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 mkdirSync(OUT, { recursive: true })
 const profile = mkdtempSync(join(tmpdir(), 'seen-shots-'))
-const chrome = spawn(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' })
+const chrome = spawn(CHROME, ['--headless=new', ...(process.env.GPU === '1' ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--disable-gpu']), '--hide-scrollbars', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' })
 
 let ws
 let nextId = 1
@@ -186,6 +186,15 @@ try {
     const dark = `document.documentElement.setAttribute('data-theme', 'dark');`
     const ph = { as: 'admin', width: 390, height: 844, scale: 2, mobile: true, blur: true }
     const pc = { as: 'admin', width: 1440, height: 900, scale: 1, blur: true }
+    if (process.env.ONLY === 'pc') {
+      // The WebGL water and glass: computer, tablet, light and dark; the pointer placed over the side menu.
+      const move = `window.dispatchEvent(new PointerEvent('pointermove', { clientX: 300, clientY: 140 }));`
+      for (const [tag, pre] of [['', ''], ['-dark', dark]]) {
+        await shot(`gl-pc-overview${tag}`, { ...pc, scale: 1.5, hash: 'overview', act: pre + move, wait: 4500 })
+        await shot(`gl-pc-menu${tag}`, { ...pc, scale: 1.5, hash: 'lecturers', act: pre + move + click('.app-top-tools .hover-select-button') })
+        await shot(`gl-tablet${tag}`, { ...pc, width: 900, height: 800, hash: 'overview', act: pre + move })
+      }
+    } else
     for (const [tag, pre] of [['', ''], ['-dark', dark]]) {
       await shot(`gl-phone-overview${tag}`, { ...ph, hash: 'overview', act: pre || null, scrollBy: 420 })
       await shot(`gl-phone-list${tag}`, { ...ph, hash: 'lecturers', act: pre || null, scrollBy: 300 })

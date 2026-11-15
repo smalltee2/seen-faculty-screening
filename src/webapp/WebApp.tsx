@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import raw from '../generated/data.json'
 import { useBarCompact, useNavPill } from './navGlass'
+import { WaterGlass } from './WaterCanvas'
 import { academicYearOf, evaluatePerson, periodName, toBE, windowText, yearName, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
@@ -241,6 +242,8 @@ export function WebApp() {
   const navRef = useRef<HTMLElement>(null)
   useNavPill(navRef, [active, narrow, level, moreOpen, nav])
   const barCompact = useBarCompact(narrow) && !moreOpen
+  // WebGL2 water behind the window, computers and tablets (false until it draws, and without WebGL2).
+  const [water, setWater] = useState(false)
   const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
   // Phones: the short menu name, so the title fits beside the year menu (Tum, 2026-11-12: less text on phones).
@@ -259,7 +262,8 @@ export function WebApp() {
   const approvalKey = admin?.level === 2 ? admin.approvalKey : undefined
 
   return (
-    <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}${barCompact ? ' app-bar-compact' : ''}`}>
+    <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}${barCompact ? ' app-bar-compact' : ''}${water ? ' app-water-on' : ''}`}>
+      <WaterGlass enabled={!narrow} onState={setWater} />
       <DemoBanner />{/* DEMO-NOTICE */}
       <a className="skip-link" href="#app-main">
         ข้ามไปที่เนื้อหา

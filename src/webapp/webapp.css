@@ -929,3 +929,22 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 @media (prefers-reduced-motion: reduce) {
   .app-nav[data-pill='on']::before, .app-side, .app-nav-link, .app-nav-short { transition: none !important; }
 }
+
+/* ── WebGL2 water and glass (src/webapp/waterGlass.ts), computers and tablets ──
+   While the canvas draws, it paints the side menu, its tab and the round top-bar controls as panes
+   over the water, so those drop their own CSS glass and keep only a thin edge. */
+.app-water { display: none; }
+@media (min-width: 761px) {
+  /* Shown only once it has drawn (an undrawn canvas is black). */
+  .app-water { display: block; visibility: hidden; position: fixed; inset: 0; z-index: 0; width: 100vw; height: 100vh; height: 100dvh; pointer-events: none; }
+  .app-water-on > .app-water { visibility: visible; }
+  .app-water-on > .app-main { position: relative; z-index: 1; }
+  .app-water-on > .app-side { z-index: 1; }
+  .app.app-water-on .app-side, .app.app-water-on .app-nav-tab,
+  .app.app-water-on .app-top-tools .hover-select-button, .app.app-water-on .app-top-tools .icon-btn {
+    background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+    border-color: color-mix(in srgb, var(--glass-line) 60%, transparent);
+  }
+  .app.app-water-on .app-top-tools .hover-select-button:hover, .app.app-water-on .app-top-tools .hover-select-button[aria-expanded='true'] { border-color: var(--accent); }
+}
+@media print { .app-water { display: none !important; } }
