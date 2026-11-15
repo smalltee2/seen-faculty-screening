@@ -725,7 +725,7 @@ async function scopusIssnsByName(key, knownNames) {
     try {
       let answer = {}
       try {
-        answer = await scopusGet(`https://api.elsevier.com/content/serial/title?title=${encodeURIComponent(name)}&count=25`, key)
+        answer = await scopusGet(`https://api.elsevier.com/content/serial/title?title=${encodeURIComponent(name.replace(/&/g, 'and'))}&count=25`, key)
       } catch (e) {
         if (!/^HTTP 404/.test(e.message)) throw e // 404 = Scopus has no serial with these words
       }

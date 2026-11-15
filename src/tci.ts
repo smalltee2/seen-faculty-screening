@@ -21,11 +21,12 @@ export interface TciIndex {
 
 export const normIssn = (s: string) => s.replace(/[^0-9Xx]/g, '').toUpperCase()
 
-/** Journal name for matching: lower case, no punctuation, single spaces, no "the";
+/** Journal name for matching: lower case, "&" read as "and", no punctuation, single spaces, no "the";
  *  Thai text loses the spaces Scholar inserts between syllables ("วารสาร วิชาการ"). */
 export function normName(s: string): string {
   return s
     .toLowerCase()
+    .replace(/&/g, ' and ') // Scholar writes "Water, Air, & Soil Pollution", Scopus "Water, Air, and Soil Pollution"
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/(?<=[\u0e00-\u0e7f])\s+(?=[\u0e00-\u0e7f])/g, '')
     .replace(/\bthe\b/g, ' ')

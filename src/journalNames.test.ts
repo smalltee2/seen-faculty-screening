@@ -4,7 +4,7 @@ import { normName, venueName } from './tci'
 
 describe('Scopus check of journals known only by name (Scholar rows)', () => {
   it('reads a journal name exactly as the page does', () => {
-    for (const v of ['Science of The Total Environment 1057, 182370, 2026', 'Journal of Hydrology 681, 136603, 2026', 'วารสาร วิชาการ 12 (1), 1-10', 'Earth Systems and Environment', 'Sustainability (Basel)', '']) {
+    for (const v of ['Science of The Total Environment 1057, 182370, 2026', 'Journal of Hydrology 681, 136603, 2026', 'วารสาร วิชาการ 12 (1), 1-10', 'Earth Systems and Environment', 'Sustainability (Basel)', 'Water, Air, & Soil Pollution 237 (1), 2', '']) {
       expect(venueJs(v)).toBe(venueName(v))
       expect(normJs(venueJs(v))).toBe(normName(venueName(v)))
     }
@@ -30,6 +30,8 @@ describe('Scopus check of journals known only by name (Scholar rows)', () => {
     expect(serialIssns(answer, 'Environmental research')).toEqual(['0013-9351', '1096-0953'])
     expect(serialIssns(answer, 'Environmental Research Communications')).toEqual([])
     expect(serialIssns({}, 'x')).toEqual([])
+    // "&" in Scholar's name is "and" in Scopus' title.
+    expect(serialIssns({ 'serial-metadata-response': { entry: [{ 'dc:title': 'Water, Air, and Soil Pollution', 'prism:issn': '0049-6979' }] } }, 'Water, Air, & Soil Pollution')).toEqual(['0049-6979'])
     // One entry comes as an object, not a list.
     expect(serialIssns({ 'serial-metadata-response': { entry: { 'dc:title': 'Science of the Total Environment', 'prism:issn': '0048-9697' } } }, 'Science of The Total Environment')).toEqual(['0048-9697'])
   })

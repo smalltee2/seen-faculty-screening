@@ -7,6 +7,7 @@
 export function normName(s) {
   return String(s ?? '')
     .toLowerCase()
+    .replace(/&/g, ' and ')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/(?<=[฀-๿])\s+(?=[฀-๿])/g, '')
     .replace(/\bthe\b/g, ' ')
