@@ -192,6 +192,7 @@ try {
       await shot(`gl-phone-more${tag}`, { ...ph, hash: 'lecturers', act: pre + click('.app-nav-more') })
       await shot(`gl-phone-menu${tag}`, { ...ph, hash: 'lecturers', act: pre + click('.app-top-tools .hover-select-button') })
       await shot(`gl-pc-overview${tag}`, { ...pc, hash: 'overview', act: pre || null })
+      await shot(`gl-phone-compact${tag}`, { ...ph, hash: 'lecturers', act: pre + `window.scrollTo(0, 100); setTimeout(() => window.scrollTo(0, 400), 150);` })
       await shot(`gl-tablet${tag}`, { ...pc, width: 900, height: 800, hash: 'overview', act: pre || null })
       await shot(`gl-pc-menu${tag}`, { ...pc, hash: 'lecturers', act: pre + click('.app-top-tools .hover-select-button') })
     }

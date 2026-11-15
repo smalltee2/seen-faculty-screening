@@ -774,11 +774,13 @@ body.is-resizing { cursor: col-resize; user-select: none; }
    contrast stays that of the solid design. Browsers without backdrop-filter, and visitors who ask
    for less transparency, get the solid frames. */
 :root {
-  --glass-bg: color-mix(in srgb, var(--panel) 66%, transparent);
-  --glass-bg-strong: color-mix(in srgb, var(--panel) 80%, transparent);
+  --glass-bg: color-mix(in srgb, var(--panel) 50%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--panel) 72%, transparent);
+  /* Light caught by the rim of a thick pane: bright along the top, a faint ring, a glow inside the lower edge. */
+  --glass-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.38), inset 0 1.5px 1px rgba(255, 255, 255, 0.95), inset 0 -10px 14px -10px rgba(255, 255, 255, 0.75), inset 0 12px 18px -14px rgba(255, 255, 255, 0.6);
   --glass-edge: rgba(255, 255, 255, 0.7);
   --glass-line: color-mix(in srgb, var(--line-strong, var(--line)) 55%, transparent);
-  --glass-blur: saturate(180%) blur(22px);
+  --glass-blur: saturate(190%) blur(14px);
   --glass-shadow: 0 10px 30px rgba(44, 42, 37, 0.14), 0 1px 2px rgba(44, 42, 37, 0.06);
   --glass-pill: color-mix(in srgb, var(--accent) 15%, transparent);
   --glass-tint-a: color-mix(in srgb, var(--accent) 22%, transparent);
@@ -786,14 +788,16 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --glass-bg: color-mix(in srgb, var(--panel) 60%, transparent); --glass-bg-strong: color-mix(in srgb, var(--panel) 78%, transparent);
+    --glass-bg: color-mix(in srgb, var(--panel) 46%, transparent); --glass-bg-strong: color-mix(in srgb, var(--panel) 70%, transparent);
+    --glass-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1.5px 1px rgba(255, 255, 255, 0.28), inset 0 -10px 14px -10px rgba(255, 255, 255, 0.14), inset 0 12px 18px -14px rgba(255, 255, 255, 0.12);
     --glass-edge: rgba(255, 255, 255, 0.14); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
     --glass-pill: color-mix(in srgb, var(--accent) 22%, transparent);
     --glass-tint-a: color-mix(in srgb, var(--accent) 16%, transparent); --glass-tint-b: color-mix(in srgb, var(--ember, #b5530f) 14%, transparent);
   }
 }
 :root[data-theme='dark'] {
-  --glass-bg: color-mix(in srgb, var(--panel) 60%, transparent); --glass-bg-strong: color-mix(in srgb, var(--panel) 78%, transparent);
+  --glass-bg: color-mix(in srgb, var(--panel) 46%, transparent); --glass-bg-strong: color-mix(in srgb, var(--panel) 70%, transparent);
+    --glass-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1.5px 1px rgba(255, 255, 255, 0.28), inset 0 -10px 14px -10px rgba(255, 255, 255, 0.14), inset 0 12px 18px -14px rgba(255, 255, 255, 0.12);
   --glass-edge: rgba(255, 255, 255, 0.14); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
   --glass-pill: color-mix(in srgb, var(--accent) 22%, transparent);
   --glass-tint-a: color-mix(in srgb, var(--accent) 16%, transparent); --glass-tint-b: color-mix(in srgb, var(--ember, #b5530f) 14%, transparent);
@@ -803,7 +807,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
   /* The drop-down lists and the tip of the menu tab, everywhere. */
   .app .hover-select-list, .app-nav-tip {
     background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-    border-color: var(--glass-line); border-radius: 16px; box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+    border-color: var(--glass-line); border-radius: 16px; box-shadow: var(--glass-shadow), var(--glass-rim);
   }
   .app .hover-select-list { padding: 6px; }
   .app .hover-select-list li { border-radius: 10px; }
@@ -826,7 +830,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
     .app-side {
       top: 12px; height: calc(100vh - 24px); height: calc(100dvh - 24px); margin: 12px 14px 12px 12px;
       background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--glass-line); border-radius: 26px; box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+      border: 1px solid var(--glass-line); border-radius: 26px; box-shadow: var(--glass-shadow), var(--glass-rim);
     }
     /* The pills stay inside the rounded panel. */
     .app-nav-link { margin-left: 0; padding-left: 14px; border-radius: 14px; }
@@ -861,8 +865,9 @@ body.is-resizing { cursor: col-resize; user-select: none; }
     .app-side {
       left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
       bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px;
-      background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+      /* A little more of the panel colour than the side menu: tables and charts pass under this bar. */
+      background: color-mix(in srgb, var(--panel) 58%, transparent); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: var(--glass-shadow), var(--glass-rim);
       overflow: visible;
     }
     .app-nav-link { border-radius: 24px; }
@@ -880,7 +885,7 @@ body.is-resizing { cursor: col-resize; user-select: none; }
       left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
       bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px 14px;
       background: color-mix(in srgb, var(--panel) 88%, transparent); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+      border: 1px solid var(--glass-line); border-radius: 30px; box-shadow: var(--glass-shadow), var(--glass-rim);
     }
     .app-more-link { border-radius: 16px; }
     .app-more-link[aria-current='page'] { background: var(--glass-pill); }
@@ -894,6 +899,33 @@ body.is-resizing { cursor: col-resize; user-select: none; }
 }
 /* Less transparency asked for in the device settings: the solid frames. */
 @media (prefers-reduced-transparency: reduce) {
-  :root, :root[data-theme='dark'], :root:not([data-theme='light']) { --glass-bg: var(--panel); --glass-bg-strong: var(--panel); --glass-blur: none; }
+  :root, :root[data-theme='dark'], :root:not([data-theme='light']) { --glass-bg: var(--panel); --glass-bg-strong: var(--panel); --glass-blur: none; --glass-rim: inset 0 0 0 0 transparent; }
   .app-top, .app-top.app-top-scrolled, .mme-sheet-bar { background: var(--bg) !important; }
+}
+
+/* ── Glass motion (src/webapp/navGlass.ts) ── */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* One pill behind the chosen item; it slides, with a little overshoot, when the page changes. */
+  .app-nav { position: relative; }
+  .app-nav[data-pill]::before {
+    content: ''; position: absolute; left: 0; top: 0; z-index: 0; width: var(--pill-w); height: var(--pill-h);
+    transform: translate(var(--pill-x), var(--pill-y)); border-radius: 14px; pointer-events: none;
+    background: var(--glass-pill); box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .app-nav[data-pill='on']::before { transition: transform 0.5s cubic-bezier(0.3, 1.35, 0.45, 1), width 0.3s ease, height 0.3s ease; }
+  .app-nav[data-pill] .app-nav-link[aria-current='page'] { background: transparent; box-shadow: none; }
+  .app-nav-link { z-index: 1; }
+  @media (max-width: 760px) {
+    .app-nav[data-pill]::before { border-radius: 24px; }
+    /* Reading down: the bar draws in to its icons; scrolling up brings the names back. */
+    .app-side { transition: left 0.35s cubic-bezier(0.3, 1.2, 0.4, 1), right 0.35s cubic-bezier(0.3, 1.2, 0.4, 1); }
+    .app-nav-link { transition: min-height 0.3s ease, background var(--t-fast), color var(--t-fast); }
+    .app-nav-short { max-height: 2.6em; overflow: hidden; transition: max-height 0.3s ease, opacity 0.2s ease; }
+    .app-bar-compact .app-side { left: max(17vw, env(safe-area-inset-left, 0px)); right: max(17vw, env(safe-area-inset-right, 0px)); }
+    .app-bar-compact .app-nav-link { min-height: 44px; }
+    .app-bar-compact .app-nav-short { max-height: 0; opacity: 0; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-nav[data-pill='on']::before, .app-side, .app-nav-link, .app-nav-short { transition: none !important; }
 }

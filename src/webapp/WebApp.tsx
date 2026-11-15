@@ -9,6 +9,7 @@
 // pages, level 1 adds ผลงานอาจารย์, level 2 sees everything. Admins sign in at #/login.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import raw from '../generated/data.json'
+import { useBarCompact, useNavPill } from './navGlass'
 import { academicYearOf, evaluatePerson, periodName, toBE, windowText, yearName, type Settings } from '../rules'
 import type { DataBundle } from '../types'
 import { useSiteData } from '../siteData'
@@ -236,6 +237,10 @@ export function WebApp() {
     return () => document.removeEventListener('keydown', esc)
   }, [moreOpen])
   const active: Page = route.page === 'person' ? 'lecturers' : route.page
+  // Glass menu motion: the pill slides to the chosen item; the phone's bar shrinks while reading down.
+  const navRef = useRef<HTMLElement>(null)
+  useNavPill(navRef, [active, narrow, level, moreOpen, nav])
+  const barCompact = useBarCompact(narrow) && !moreOpen
   const current = NAV.find((n) => n.page === active) ?? { page: 'login' as const, th: 'เข้าสู่ระบบผู้ดูแล', level: 1 as const }
   const person = route.page === 'person' ? results.find((r) => r.person.nameEn === route.id) : undefined
   // Phones: the short menu name, so the title fits beside the year menu (Tum, 2026-11-12: less text on phones).
@@ -254,7 +259,7 @@ export function WebApp() {
   const approvalKey = admin?.level === 2 ? admin.approvalKey : undefined
 
   return (
-    <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}`}>
+    <div className={`app${nav === 'hidden' ? ' app-nav-hidden' : ''}${barCompact ? ' app-bar-compact' : ''}`}>
       <DemoBanner />{/* DEMO-NOTICE */}
       <a className="skip-link" href="#app-main">
         ข้ามไปที่เนื้อหา
@@ -264,7 +269,7 @@ export function WebApp() {
           <img src={seenLogo} alt="ตราสัญลักษณ์คณะพลังงานและสิ่งแวดล้อม มหาวิทยาลัยพะเยา (SEEN)" width={131} height={50} />
           <span>ระบบตรวจสอบคุณสมบัติอาจารย์</span>
         </a>
-        <nav className="app-nav">
+        <nav ref={navRef} className="app-nav">
           {visibleNav.map((n) => (
             <a
               key={n.page}
