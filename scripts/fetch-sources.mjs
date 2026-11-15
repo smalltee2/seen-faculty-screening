@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { parseCsv } from './csv.mjs'
 import { lecturerNames, namedOn } from './name-match.mjs'
 import { tciAuthorMatch, tciRow, tciTitle } from './tci-articles.mjs'
+import { namesToAsk, normName as journalKey, serialIssns } from './journal-names.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The calendar year in Thailand (UTC+7). The daily run is at 20:00 UTC, which is already the next
@@ -55,6 +56,10 @@ const CONFIG = {
   tciHistoryOut: join(ROOT, 'data/tci_tier_history.csv'),
   tciInfoUrl: 'https://tci-thailand.org/backend/journal/get_journal_info',
   scopusJournalsOut: join(ROOT, 'data/scopus_journals.csv'),
+  // Journal names of Scholar-only rows asked from Scopus, with the ISSNs found (scripts/journal-names.mjs).
+  scopusJournalNamesOut: join(ROOT, 'data/scopus_journal_names.csv'),
+  // Scholar rows older than this many years are outside every evaluation window; their journals are not asked.
+  journalNameYears: 6,
   scopusQuartilesOut: join(ROOT, 'data/scopus_quartiles.csv'),
   // Bibliographic details per DOI from Crossref (issue, pages, article number, publication date)
   // for the Scopus-style CSV export; cached, only new DOIs are looked up (Tum, 2026-11-07).
@@ -699,6 +704,46 @@ async function fetchFormCancels(loginApiUrl) {
   log(`Form cancels: ${out.length} cancelled -> data/form_cancels.tsv`)
 }
 
+/** ISSNs of journals that Scholar rows name (data/publications.tsv, data/scholar_imports.tsv):
+ *  each name is asked once from the Serial Title API and cached in data/scopus_journal_names.csv;
+ *  a name Scopus did not have is asked again after 30 days. A failed request leaves the name for
+ *  the next run. `knownNames` = names of journals already known to be in Scopus. */
+async function scopusIssnsByName(key, knownNames) {
+  const SN_HEADER = ['name_key', 'name', 'issn', 'checked']
+  const prev = existsSync(CONFIG.scopusJournalNamesOut) ? parseCsv(readFileSync(CONFIG.scopusJournalNamesOut, 'utf8')) : []
+  const header = prev.length ? prev[0].map((h) => h.trim()) : SN_HEADER
+  const missingCols = SN_HEADER.filter((h) => !header.includes(h))
+  if (missingCols.length) throw new Error(`data/scopus_journal_names.csv has no column ${missingCols.join(', ')}`)
+  let rows = prev.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])))
+  const recheck = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
+  const known = new Set([...knownNames, ...rows.filter((r) => r.issn || r.checked >= recheck).map((r) => r.name_key)])
+  const scholarRows = [join(ROOT, 'data/publications.tsv'), join(ROOT, 'data/scholar_imports.tsv')].flatMap((f) => readTsv(f).rows)
+  const todo = namesToAsk(scholarRows, { sinceYear: new Date().getFullYear() - CONFIG.journalNameYears, known })
+  let asked = 0
+  for (const [nameKey, name] of todo) {
+    try {
+      let answer = {}
+      try {
+        answer = await scopusGet(`https://api.elsevier.com/content/serial/title?title=${encodeURIComponent(name)}&count=25`, key)
+      } catch (e) {
+        if (!/^HTTP 404/.test(e.message)) throw e // 404 = Scopus has no serial with these words
+      }
+      rows = rows.filter((r) => r.name_key !== nameKey)
+      rows.push({ name_key: nameKey, name, issn: serialIssns(answer, name).join(';'), checked: today })
+      asked++
+      await sleep(150)
+    } catch (e) {
+      warn(`Scopus journal names: "${name}" failed (${e.message})`)
+      if (e.fatal) break
+    }
+  }
+  rows.sort((a, b) => a.name_key.localeCompare(b.name_key))
+  writeFileSync(CONFIG.scopusJournalNamesOut, [header.join(','), ...rows.map((r) => header.map((h) => csvCell(r[h])).join(','))].join('\n') + '\n')
+  log(`Scopus journal names: ${rows.length} names cached (${asked} asked), ${rows.filter((r) => r.issn).length} found by title -> data/scopus_journal_names.csv`)
+  return rows.flatMap((r) => r.issn.split(';')).filter(Boolean)
+}
+
 /** Journal-level Scopus coverage: for every ISSN seen in openalex.tsv / scopus.tsv, ask
  *  Scopus once whether the journal is indexed (ISSN(x) returns documents). Cached in
  *  data/scopus_journals.csv so a new article in a Scopus journal counts as international
@@ -720,6 +765,8 @@ async function fetchScopusJournals(key) {
   const known = new Set(rows.filter((r) => r.in_scopus === 'yes' || r.checked >= recheck).map((r) => r.issn))
   const seen = new Set()
   for (const f of [CONFIG.openalexOut, CONFIG.scopusOut]) for (const r of readTsv(f).rows) for (const i of (r.issn ?? '').split(';')) if (i) seen.add(i.trim())
+  // Journals of Scholar-only rows, found by name; their ISSNs are then checked like the others.
+  for (const i of await scopusIssnsByName(key, new Set(rows.filter((r) => r.in_scopus === 'yes').map((r) => journalKey(r.name))))) seen.add(i)
   const todo = [...seen].filter((i) => !known.has(i))
   let added = 0
   for (const issn of todo) {
